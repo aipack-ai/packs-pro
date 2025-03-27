@@ -12,6 +12,6 @@ For example, once pack globs are supported by AIPACK (coming soon), the `pro@cod
 
 ```toml
 #!meta
-knowledge_globs = ["pro@rust10x/common/**/*.md", "pro@rust10x/web-app/**/*.md"]
+knowledge_globs = ["pro@rust10x/base/**/*.md"]
 # ...
 ```

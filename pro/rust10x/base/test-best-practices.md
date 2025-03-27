@@ -44,7 +44,7 @@ mod tests {
 ```
 - For those types of tests block, have the `use super::*;` as well as above
 - Make sure to have the `// region:    --- Tests` which will be at the top level now. That surrounds the `#[cfg(test)] mod test {...}`
-    - If no `#[cfg(test)] ` which means the file is a dedicated test file, no need to add `// region:    --- Tests`
+    - If no `#[cfg(test)]` which means the file is a dedicated test file, no need to add `// region:    --- Tests`
 
 - Include clear section comments in every test function:
   - `// -- Setup & Fixtures`
@@ -82,7 +82,7 @@ mod tests {
     - `support_text` is the module path name (make sure to look at the mod.rs, because submodules can be flattened out)
     - `replace_markers` is the function that this test tests.
     - `simple` is the first variant and first one to implement
-    - `with_filter` was the other variant to show that sometimes, we want to be able to test different things.
+    - `with_filter` was the other variant to show that sometimes we want to be able to test different things.
 - NO NEED to repeat the crate/lib name in the test function name.
     - For example, if the crate or lib is named `simple_fs`, do not do a name like `test_simple_fs_support_text_...` that would be silly.
     - Just have `test_support_text_...`
