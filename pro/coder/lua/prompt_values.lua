@@ -2,8 +2,9 @@ local prompt_template = [[
 ```toml
 #!meta - parametric agent block
 
-# knowledge_globs = ["/some/path/to/knowledge.md"]
+# knowledge_globs = ["/some/path/to/knowledge.md", "pro@rust10x/base/**/*.md"]
 
+# If not set, won't look at globs or create files (below ==== will be the context and full AI answer)
 # base_dir = "src"
 
 # context_globs = ["**/*.rs", "**/*.html", "**/*.js", "**/*.css"] # By default most language extension
@@ -12,10 +13,11 @@ local prompt_template = [[
 # working_concurrency = true
 # input_concurrency   = 6
 
-model_aliases = {pro = "claude-3-7-sonnet-latest", high = "o3-mini-high", low = "o3-mini-low", cheap = "gpt-4o-mini", fast = "gemini-2.0-flash"}
+# Note: Make sure to update the `-exp` models with their latest
+model_aliases = {pro = "claude-3-7-sonnet-latest", gpro = "gemini-2.5-pro-exp-03-25", high = "o3-mini-high", low = "o3-mini-low", cheap = "gpt-4o-mini", fast = "gemini-2.0-flash"}
 
 # If not set, will use config.toml defined model
-# model = "pro"
+model = "cheap"
 
 # To see doc, type "Show Doc" and then press `r` in the aip terminal
 ```
