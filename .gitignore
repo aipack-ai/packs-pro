@@ -1,0 +1,91 @@
+# -- Base
+.*
+!.gitignore
+
+_*
+# '_' in src dir, ok.
+!**/src/**/_*
+
+*.lock
+*.lockb
+*.log
+
+# -- Rust
+target/
+# !Cargo.lock # commented by default
+!.cargo/
+
+# -- AIPACK
+# By default ignore all .aipack (but not the .aip)
+*.aipack
+
+# Uncomment below to allow commiting .aipack/pack/custom .aip
+# Only allow .aipack/pack/custom and .aipack/Config.toml
+# Note: Here the starting `/` will just include the top .aip
+#       Remove the starting `/` to include all .aipack/pack/custom even if their in a sub dir
+# !/.aipack/
+# .aipack/*
+# !.aipack/pack/
+# .aipack/pack/*
+# !.aipack/pack/custom/
+
+# -- Safety net
+
+dist/
+out/
+
+# Doc Files
+*.pdf
+*.docx
+*.xlsx
+*.pptx
+*.doc
+*.xls
+*.ppt
+*.page
+
+# Data Files
+*.db3
+*.parquet
+*.map
+*.zip
+*.gz
+*.tar
+*.tgz
+*.vsix
+
+# Videos
+*.mov
+*.mp4
+*.webm
+*.ogg
+*.avi
+
+# Audio
+*.mp3
+*.wav
+*.flac
+
+# Images
+*.icns
+*.ico
+*.jpeg
+*.jpg
+*.png
+*.bmp
+
+# -- Nodejs
+node_modules/
+!.mocharc.yaml
+report.*.json
+
+# -- Python
+__pycache__/
+
+
+# -- others
+# Allows .env (make sure only dev info) 
+# !.env # Commented by default
+
+# Allow vscode
+# !.vscode # Commented by default
