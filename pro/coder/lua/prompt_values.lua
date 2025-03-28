@@ -1,3 +1,9 @@
+local default_context_globs = {
+    "**/*.lua", "**/*.md", 
+    "**/*.rs", "**/*.cpp", "**/*.c", 
+     "**/*.java", "**/*.go", "**/*.swift", "**/*.kt", 
+    "**/*.html", "**/*.js", "**/*.ts", "**/*.tsx", "**/*.css", "**/*.pcss", "**/*.scss"}
+
 local prompt_template = [[
 ```toml
 #!meta - parametric agent block
@@ -7,7 +13,7 @@ local prompt_template = [[
 # If not set, won't look at globs or create files (below ==== will be the context and full AI answer)
 # base_dir = "src"
 
-# context_globs = ["**/*.rs", "**/*.html", "**/*.js", "**/*.css"] # By default most language extension
+# context_globs = ["**/*.html", "**/*.js", "**/*.css"] # By default most language extension
 
 # working_globs       = ["**/mod.rs"]
 # working_concurrency = true
@@ -62,5 +68,6 @@ model = "cheap"
 ]]
 
 return {
-  prompt_template = prompt_template
+  prompt_template       = prompt_template,
+  default_context_globs = default_context_globs
 }
