@@ -84,8 +84,6 @@ local working_concurrency = meta.working_concurrency or false
 local include_second_part = second_part ~= nil
 
 if base_dir ~= nil then
-    -- if base dir, we do not include second part
-    include_second_part = false
     -- remove the trailing /
     base_dir =  base_dir:gsub("/+$", "")
 
@@ -104,6 +102,13 @@ else
     print("INFO: No base_dir, update in place.")
 end
 
+local write_mode = meta.write_mode or false
+
+if write_mode == true then
+    -- if write_mode, we do not include second part
+    include_second_part = false
+end
+
 print("\nOPEN your @coder prompt file: " .. prompt_file_rel_path .. "\n")
 
 local should_cache_context_files = false
@@ -114,7 +119,7 @@ end
 
 -- == Build the inputs(for now, only one)
 local input_base = {
-    write_mode                   = meta.write_mode or false,
+    write_mode                   = write_mode,
     prompt_file_rel_path         = prompt_file_rel_path,
     default_language             = meta.default_language or "Python Programming",
     knowledge_refs               = knowledge_refs,
