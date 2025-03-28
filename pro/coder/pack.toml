@@ -1,11 +1,11 @@
 [pack]
 namespace = "pro"
 name      = "coder"
-version   = "0.2.0-rc.1"
+version   = "0.2.0"
 
 # -- Optional section
 license  = "MIT or Apache 2"
 homepage = "https://aipack.ai/"
-repo     = "https://github.com/aipack-ai/packs-jc"
+repo     = "https://github.com/aipack-ai/packs-pro"
 author   = "Jeremy Chone"
 
