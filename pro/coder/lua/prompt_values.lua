@@ -2,7 +2,8 @@ local default_context_globs = {
     "**/*.lua", "**/*.md", 
     "**/*.rs", "**/*.cpp", "**/*.c", 
      "**/*.java", "**/*.go", "**/*.swift", "**/*.kt", 
-    "**/*.html", "**/*.js", "**/*.ts", "**/*.tsx", "**/*.css", "**/*.pcss", "**/*.scss"}
+    "**/*.html", "**/*.js", "**/*.ts", "**/*.tsx", "**/*.css", "**/*.pcss", "**/*.scss"
+}
 
 local prompt_template = [[
 ```toml
@@ -10,17 +11,21 @@ local prompt_template = [[
 
 # knowledge_globs = ["/some/path/to/knowledge.md", "pro@rust10x/base/**/*.md"]
 
-# If not set, won't look at globs or create files (below ==== will be the context and full AI answer)
-# base_dir = "src"
+# If not set, won't look at globs (below ==== will be the context and full AI answer)
+base_dir = "src/"
 
-# context_globs = ["**/*.html", "**/*.js", "**/*.css"] # By default most language extension
+# If not set will default to most language extension (["**/*.rs", ...])
+context_globs = ["**/*.html", "**/*.js", "**/*.css"] 
 
-# working_globs       = ["**/mod.rs"]
+# working_globs       = ["**/*.js"]
 # working_concurrency = true
 # input_concurrency   = 6
 
 # Note: Make sure to update the `-exp` models with their latest
 model_aliases = {pro = "claude-3-7-sonnet-latest", gpro = "gemini-2.5-pro-exp-03-25", high = "o3-mini-high", low = "o3-mini-low", cheap = "gpt-4o-mini", fast = "gemini-2.0-flash"}
+
+# Set to true to write the files (otherwise, will show below the `====` )
+write_mode = false
 
 # If not set, will use config.toml defined model
 model = "cheap"

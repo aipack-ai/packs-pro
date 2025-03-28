@@ -114,8 +114,9 @@ end
 
 -- == Build the inputs(for now, only one)
 local input_base = {
+    write_mode                   = meta.write_mode or false,
     prompt_file_rel_path         = prompt_file_rel_path,
-    default_language             = meta.default_language or "Rust Programming",
+    default_language             = meta.default_language or "Python Programming",
     knowledge_refs               = knowledge_refs,
     prompt_template              = p_values.prompt_template,
     first_part                   = first_part,
@@ -195,8 +196,8 @@ local base, working_refs = input.base, input.working_refs
 
 -- Augment the base
 base.knowledge_files = p_utils.load_file_refs(base.base_dir, base.knowledge_refs)
-base.context_files   = p_utils.load_file_refs(base.base_dir,  base.context_refs)
-base.working_files   = p_utils.load_file_refs(base.base_dir,  working_refs)
+base.context_files   = p_utils.load_file_refs(base.base_dir, base.context_refs)
+base.working_files   = p_utils.load_file_refs(base.base_dir, working_refs)
 
 -- The augmented base becomes the data.
 return base
@@ -216,7 +217,9 @@ Also, respect the space/tab of the code exactly.
 
 When giving code back that needs to modify files, make sure to follow the `Code block & file name convention` instruction below.
 
-Here are some important Code block and file name convention
+When existing code, do not perform reformatting or make unnecessary changes unless explicitly requested by the user or specified in the user/system knowledge or instructions.
+
+Here are some important Code block and file name convention.
 
 ## Code block and file name convention
 
@@ -386,7 +389,7 @@ local ai_content_for_raw = "====\n> Info: " .. ai_response.info .. "\n\n" .. ai_
 aip.file.append(data.ai_responses_for_raw_path, ai_content_for_raw)
 
 -- == Write to the src file
-if data.context_files ~= nil then
+if data.write_mode == true then
     local blocks, other_content = aip.md.extract_blocks(ai_content, {extrude = "content"})
     -- In this case, the other_content becomes the second_part
     second_part = other_content
