@@ -1,4 +1,4 @@
-### Rust10X test best practices and conventions
+## Rust10X test best practices and conventions
 
 For Rust unit tests, here is a good template to follow:
 

@@ -1,4 +1,4 @@
-# Support / Utils Module Best Practices
+## Support / Utils Module Best Practices
 
 In Rust10x, the best practice for crate or sub-module utilities is the following:
 

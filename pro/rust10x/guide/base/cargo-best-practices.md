@@ -1,8 +1,8 @@
-# Cargo.toml Best Practices
+## Cargo.toml Best Practices
 
 These are the best practices for cargo.toml and dependency management.
 
-## Cargo.toml
+### Cargo.toml
 
 Here is an example of a `Cargo.toml`:
 

@@ -1,4 +1,4 @@
-# Error Best practices
+## Error Best practices
 
 This outlines the error best practices for Rust10x.
 
@@ -6,7 +6,7 @@ Rust10x does not utilize `thiserror` or `anyhow`, but rather a traditional Rust 
 
 The goal is to have a similar and progressive approach between tests/examples and application/lib code.
 
-## For Test and Example
+### For Test and Example
 
 For tests and examples, use the type alias `pub type Result<T> = core::result::Result<T, Box<dyn std::error::Error>>;`
 
@@ -14,7 +14,7 @@ For tests and examples, use the type alias `pub type Result<T> = core::result::R
 
 - For example files, when there is only one `main` function, we can use `main() -> Result<T, Box<dyn std::error::Error>> {...`
 
-## For App & Lib Code
+### For App & Lib Code
 
 Typically, in the `lib.rs` or `main.rs` we will have the following:
 
