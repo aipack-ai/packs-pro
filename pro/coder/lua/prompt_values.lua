@@ -1,9 +1,12 @@
-local default_context_globs = {
-    "**/*.lua", "**/*.md", 
-    "**/*.rs", "**/*.cpp", "**/*.c", 
-     "**/*.java", "**/*.go", "**/*.swift", "**/*.kt", 
-    "**/*.html", "**/*.js", "**/*.ts", "**/*.tsx", "**/*.css", "**/*.pcss", "**/*.scss"
-}
+local default_context_globs = nil
+
+-- If we wanted to have most languages as default (but can be not clear to user)
+-- {
+--     "**/*.lua", "**/*.md", 
+--     "**/*.rs", "**/*.cpp", "**/*.c", 
+--      "**/*.java", "**/*.go", "**/*.swift", "**/*.kt", 
+--     "**/*.html", "**/*.js", "**/*.ts", "**/*.tsx", "**/*.css", "**/*.pcss", "**/*.scss"
+-- }
 
 local prompt_template = [[
 ```toml

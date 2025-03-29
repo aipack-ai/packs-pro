@@ -87,10 +87,14 @@ if base_dir ~= nil then
     local context_globs = meta.context_globs
 
     if context_globs == nil then
+        -- For now, since, v0.2.1, this will be nil as well
         context_globs = p_values.default_context_globs
     end
 
-    context_refs = aip.file.list(context_globs, {base_dir = base_dir})
+    context_refs = {}
+    if context_globs ~= nil then
+        context_refs = aip.file.list(context_globs, {base_dir = base_dir})
+    end
 
     if meta.working_globs ~= nil then
         working_refs = aip.file.list(meta.working_globs, {base_dir = base_dir})
