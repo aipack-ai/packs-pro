@@ -14,10 +14,10 @@ local prompt_template = [[
 
 # knowledge_globs = ["/some/path/to/knowledge.md", "pro@rust10x/base/**/*.md"]
 
-# If not set, won't look at globs (below ==== will be the context and full AI answer)
+# If not set, context_globs and working_globs won't be evaluated
 base_dir = "src/"
 
-# If not set will default to most language extension (["**/*.rs", ...])
+# If not set, no context files will be added
 context_globs = ["**/*.html", "**/*.js", "**/*.css"] 
 
 # working_globs       = ["**/*.js"]
@@ -46,10 +46,10 @@ model = "cheap"
 > `knowledge_globs`     - Allows you to add knowledge files to the context. These can be absolute or even refer to other packs, 
 >                         e.g., `["my-coding-guideline/**/*.md", "pro@rust10x/common/**/*.md"]`
 >
-> `base_dir`            - If activated in the TOML parameter section above, the AI will read and update the appropriate file.
+> `base_dir`            - If activated in the TOML parameter section above, the context_globs and working_globs will be enabled.
 >
 > `context_globs`       - Customize your context globs relative to `base_dir` to decide which files are added to the context.
->                         If not defined, and `base_dir` is defined, the defaults are shown above.
+>                         If not defined, then, it will no context files included in the prompt.
 >                         These files will be described to the AI as `User's context files`.
 >                         Narrowing the scope is better (cost- and quality-wise, as it allows the model to focus on what matters).
 >
