@@ -12,7 +12,7 @@ local prompt_template = [[
 ```toml
 #!meta - parametric agent block
 
-# knowledge_globs = ["/some/path/to/knowledge.md", "pro@rust10x/base/**/*.md"]
+# knowledge_globs = ["/some/path/to/knowledge.md", "pro@rust10x/guide/base/**/*.md"]
 
 # If not set, context_globs and working_globs won't be evaluated
 base_dir = "src/"
