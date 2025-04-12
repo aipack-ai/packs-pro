@@ -234,7 +234,7 @@ Here are some important Code block and file name convention.
 
 The files provided will be in a markdown code block, with the appropriate language (file extension) with the first line following this format (with the comment language) `// file: path/to/file.ext`
 
-1.  **Markdown Code Block Markers:** *Always* enclose code examples within markdown code blocks using *four* backticks markdown code blocks. Never use three backticks for markdown code block. So, always give markdow code block with four starting and ending backtics.
+1.  **Markdown Code Block Markers:** *Always* enclose code examples within markdown code blocks using four backticks markdown code blocks. Never use three backticks for markdown code block. So, always give markdow code block with four starting and ending backtics. Make sure it start and end with the four backticks
     - Also make sure the code block start at the start of the line. 
 2.  **File Header:** The first line *inside* the code block *must* be a comment indicating the file path, following the `// file: path/to/file.ext` convention.
     - So, for HTML files, it will be `<!-- file: path/to/file.html -->`
@@ -374,7 +374,6 @@ Here is some context and/or your previous answer:
 Here are my instruction for this work:
 
 {{data.inst}}
-
 
 {{/if}}
 
