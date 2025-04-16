@@ -12,7 +12,7 @@ local prompt_template = [[
 ```toml
 #!meta - parametric agent block
 
-# knowledge_globs = ["/some/path/to/knowledge.md", "pro@rust10x/base/**/*.md"]
+# knowledge_globs = ["pro@rust10x/guide/base/**/*.md", "core@doc/**/*.md", "/path/to/knowledge/**/*.md"]
 
 # If not set, context_globs and working_globs won't be evaluated
 base_dir = "src/"
@@ -20,7 +20,7 @@ base_dir = "src/"
 # If not set, no context files will be added
 context_globs = ["**/*.html", "**/*.js", "**/*.css"] 
 
-# working_globs       = ["**/*.js"]
+# working_globs = ["**/*.js"]
 # working_concurrency = true
 # input_concurrency   = 6
 
