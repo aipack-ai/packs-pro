@@ -68,9 +68,10 @@ aip.file.save(ai_responses_for_prompt_path, "")
 -- == Prep knowledge_refs
 local knowledge_refs = nil
 if meta.knowledge_globs then
-    knowledge_refs = aip.file.list(meta.knowledge_globs, {base_dir = base_dir})
+    knowledge_refs = aip.file.list(meta.knowledge_globs, {base_dir = CTX.WORKSPACE_DIR})
     print("INFO: Knowledge Files (from knowledge_globs): " .. #knowledge_refs)
 end
+
 
 -- == Prep context_refs and working_refs
 local base_dir = meta.base_dir
@@ -204,7 +205,7 @@ local p_utils  = require("prompt_utils")
 local base, working_refs = input.base, input.working_refs
 
 -- Augment the base
-base.knowledge_files = p_utils.load_file_refs(base.base_dir, base.knowledge_refs)
+base.knowledge_files = p_utils.load_file_refs(CTX.WORKSPACE_DIR, base.knowledge_refs)
 base.context_files   = p_utils.load_file_refs(base.base_dir, base.context_refs)
 base.working_files   = p_utils.load_file_refs(base.base_dir, working_refs)
 

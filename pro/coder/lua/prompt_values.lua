@@ -12,14 +12,16 @@ local prompt_template = [[
 ```toml
 #!meta - parametric agent block
 
+# Relative to workspace dir (dir with the .aipack/). Accept absolute path/globs as well
 # knowledge_globs = ["pro@rust10x/guide/base/**/*.md", "core@doc/**/*.md", "/path/to/knowledge/**/*.md"]
 
 # If not set, context_globs and working_globs won't be evaluated
 base_dir = "src/"
 
-# If not set, no context files will be added
+# Relative to base_dir. If not set, no context files will be added
 context_globs = ["**/*.html", "**/*.js", "**/*.css"] 
 
+# Relative to base_dir. 
 # working_globs = ["**/*.js"]
 # working_concurrency = true
 # input_concurrency   = 6
