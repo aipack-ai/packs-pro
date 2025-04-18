@@ -12,8 +12,8 @@ local prompt_template = [[
 ```toml
 #!meta - parametric agent block
 
-# Relative to workspace dir (dir with the .aipack/). Accept absolute path/globs as well
-# knowledge_globs = ["pro@rust10x/guide/base/**/*.md", "core@doc/**/*.md", "/path/to/knowledge/**/*.md"]
+# Relative to workspace dir (dir with the .aipack/). Accept absolute path/globs as well (core@doc/... to code AIPACK agents)
+# knowledge_globs = ["path/to/knowledge/**/*.md", "core@doc/**/*.md", "pro@rust10x/guide/base/**/*.md"]
 
 # If not set, context_globs and working_globs won't be evaluated
 base_dir = "src/"
@@ -32,8 +32,9 @@ model_aliases = {main = "gpt-4.1", mini = "gpt-4.1-mini", nano = "gpt-4.1-nano",
 # Set to true to write the files (otherwise, will show below the `====` )
 write_mode = false
 
-# If not set, will use config.toml defined model
-model = "cheap"
+# It can be an alias name above, or model names like "o4-mini", "o4-mini-high".  
+# If not set, the model defined in config.toml will be used.  
+model = "main"
 
 # To see doc, type "Show Doc" and then press `r` in the aip terminal
 ```
