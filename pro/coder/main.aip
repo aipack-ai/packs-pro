@@ -60,7 +60,9 @@ if inst == "" then
 end
 
 -- == Prep the cache files
-local ai_responses_for_raw_path     = prompt_file.dir .. "/" .. ".cache/last_ai_responses_for_raw.md"
+local prompt_files_path            = prompt_file.dir .. "/" .. ".cache/prompt_files_path.md"
+aip.file.save(prompt_files_path, "")
+local ai_responses_for_raw_path    = prompt_file.dir .. "/" .. ".cache/last_ai_responses_for_raw.md"
 aip.file.save(ai_responses_for_raw_path, "")
 local ai_responses_for_prompt_path = prompt_file.dir .. "/" .. ".cache/last_ai_responses_for_prompt.md"
 aip.file.save(ai_responses_for_prompt_path, "")
@@ -77,14 +79,22 @@ end
 local base_dir = meta.base_dir
 
 local context_refs = nil
+local structure_refs = nil
 local working_refs = nil
 local working_concurrency = meta.working_concurrency or false
 
 
 if base_dir ~= nil then
-    -- remove the trailing /
+    -- Remove the trailing /
     base_dir =  base_dir:gsub("/+$", "")
 
+    -- Prep structure_globs = "**/*.*"
+    local stucture_globs = meta.structure_globs
+    if stucture_globs ~= nil then
+        structure_refs = aip.file.list(stucture_globs, {base_dir = base_dir})
+    end
+
+    -- Prep context_refs
     local context_globs = meta.context_globs
 
     if context_globs == nil then
@@ -97,6 +107,7 @@ if base_dir ~= nil then
         context_refs = aip.file.list(context_globs, {base_dir = base_dir})
     end
 
+    -- Prep working_refs
     if meta.working_globs ~= nil then
         working_refs = aip.file.list(meta.working_globs, {base_dir = base_dir})
     end
@@ -136,8 +147,10 @@ local input_base = {
     inst                         = inst,
     knowledge_refs               = knowledge_refs,
     base_dir                     = base_dir,
+    structure_refs               = structure_refs,
     context_refs                 = context_refs,
     should_cache_context_files   = should_cache_context_files,
+    prompt_files_path            = prompt_files_path,
     ai_responses_for_raw_path    = ai_responses_for_raw_path,
     ai_responses_for_prompt_path = ai_responses_for_prompt_path
 }
@@ -203,6 +216,15 @@ local p_utils  = require("prompt_utils")
 
 -- This is the input format (.base, and the .working_refs)
 local base, working_refs = input.base, input.working_refs
+
+-- Save the prompt_files_path
+local prompt_files_content = "====\n\n"
+prompt_files_content = prompt_files_content .. "# Knowledge Files" .. "\n\n" .. p_utils.file_refs_to_md(base.knowledge_refs) .. "\n\n"
+prompt_files_content = prompt_files_content .. "# Struture Files" .. "\n\n" .. p_utils.file_refs_to_md(base.structure_refs) .. "\n\n"
+prompt_files_content = prompt_files_content .. "# Context Files" .. "\n\n" .. p_utils.file_refs_to_md(base.context_refs) .. "\n\n"
+prompt_files_content = prompt_files_content .. "# Working Files" .. "\n\n" .. p_utils.file_refs_to_md(base.working_refs) .. "\n\n"
+aip.file.append(base.prompt_files_path, prompt_files_content)
+
 
 -- Augment the base
 base.knowledge_files = p_utils.load_file_refs(CTX.WORKSPACE_DIR, base.knowledge_refs)
@@ -316,6 +338,20 @@ First, here are some important knowledge, guidelines, and best practices I like 
 {{/each}}
 
 {{/if}}
+
+# User `cache = true`
+
+{{#if data.structure_refs}}
+
+Here are the file structure of this project. Do not edit/change file you do not have source for. 
+Those are for your reference, in case there are referred somewhere. 
+
+{{#each data.context_files}}
+- {this.path}
+{{/each}}
+
+{{/if}}
+
 
 # User `cache = {{data.should_cache_context_files}}`
 

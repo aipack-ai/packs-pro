@@ -95,10 +95,25 @@ function shallow_copy(original, to_merge)
     return copy
 end
 
+function file_refs_to_md(refs)
+  -- if refs nil or empty return nil
+  if refs == nil or #refs == 0 then
+    return "None"
+  end
+  -- otehrwise, return a text with `- ref.path`
+  local lines = {}
+  for _, ref in ipairs(refs) do
+    table.insert(lines, "- " .. ref.path)
+  end
+  return table.concat(lines, "\n")
+
+end
+
 
 return {
   prep_prompt_file      = prep_prompt_file,
   should_skip           = should_skip,
   prep_inst_and_content = prep_inst_and_content,
-  load_file_refs        = load_file_refs
+  load_file_refs        = load_file_refs,
+  file_refs_to_md       = file_refs_to_md
 }
