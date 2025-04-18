@@ -12,7 +12,8 @@ local prompt_template = [[
 ```toml
 #!meta - parametric agent block
 
-# Pull in knowledge file content into the context. Relative to workspace dir (dir with the .aipack/). Can be absolute path.
+# Relative to workspace dir (dir with the .aipack/). Can be absolute path. 
+# Pull in knowledge file content into the context. 
 # knowledge_globs = ["path/to/knowledge/**/*.md", "core@doc/**/*.md", "pro@rust10x/guide/base/**/*.md"]
 
 # If not set, context_globs and working_globs won't be evaluated
