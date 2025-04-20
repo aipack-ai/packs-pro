@@ -222,9 +222,8 @@ local prompt_files_content = "====\n\n"
 prompt_files_content = prompt_files_content .. "# Knowledge Files" .. "\n\n" .. p_utils.file_refs_to_md(base.knowledge_refs) .. "\n\n"
 prompt_files_content = prompt_files_content .. "# Struture Files" .. "\n\n" .. p_utils.file_refs_to_md(base.structure_refs) .. "\n\n"
 prompt_files_content = prompt_files_content .. "# Context Files" .. "\n\n" .. p_utils.file_refs_to_md(base.context_refs) .. "\n\n"
-prompt_files_content = prompt_files_content .. "# Working Files" .. "\n\n" .. p_utils.file_refs_to_md(base.working_refs) .. "\n\n"
+prompt_files_content = prompt_files_content .. "# Working Files" .. "\n\n" .. p_utils.file_refs_to_md(working_refs) .. "\n\n"
 aip.file.append(base.prompt_files_path, prompt_files_content)
-
 
 -- Augment the base
 base.knowledge_files = p_utils.load_file_refs(CTX.WORKSPACE_DIR, base.knowledge_refs)
