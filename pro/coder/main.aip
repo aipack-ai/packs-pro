@@ -220,7 +220,7 @@ local base, working_refs = input.base, input.working_refs
 -- Save the prompt_files_path
 local prompt_files_content = "====\n\n"
 prompt_files_content = prompt_files_content .. "# Knowledge Files" .. "\n\n" .. p_utils.file_refs_to_md(base.knowledge_refs) .. "\n\n"
-prompt_files_content = prompt_files_content .. "# Struture Files" .. "\n\n" .. p_utils.file_refs_to_md(base.structure_refs) .. "\n\n"
+prompt_files_content = prompt_files_content .. "# Struture Files" .. "\n\n" .. p_utils.file_refs_to_md(base.structure_refs, "(Only file paths, not their content)") .. "\n\n"
 prompt_files_content = prompt_files_content .. "# Context Files" .. "\n\n" .. p_utils.file_refs_to_md(base.context_refs) .. "\n\n"
 prompt_files_content = prompt_files_content .. "# Working Files" .. "\n\n" .. p_utils.file_refs_to_md(working_refs) .. "\n\n"
 aip.file.append(base.prompt_files_path, prompt_files_content)
@@ -345,8 +345,8 @@ First, here are some important knowledge, guidelines, and best practices I like 
 Here are the file structure of this project. Do not edit/change file you do not have source for. 
 Those are for your reference, in case there are referred somewhere. 
 
-{{#each data.context_files}}
-- {this.path}
+{{#each data.structure_refs}}
+- {{this.path}}
 {{/each}}
 
 {{/if}}

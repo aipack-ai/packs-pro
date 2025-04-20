@@ -95,17 +95,19 @@ function shallow_copy(original, to_merge)
     return copy
 end
 
-function file_refs_to_md(refs)
+function file_refs_to_md(refs, preamble)
   -- if refs nil or empty return nil
   if refs == nil or #refs == 0 then
     return "None"
   end
+  preample = preamble and preamble .. "\n\n" or ""
+
   -- otehrwise, return a text with `- ref.path`
   local lines = {}
   for _, ref in ipairs(refs) do
     table.insert(lines, "- " .. ref.path)
   end
-  return table.concat(lines, "\n")
+  return preample .. table.concat(lines, "\n")
 
 end
 
