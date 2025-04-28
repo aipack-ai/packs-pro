@@ -24,7 +24,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_with = { version = "3", features = ["macros"] }
 # -- Others
-derive_more = {version = "2", features = ["from"] }
+derive_more = {version = "2", features = ["from", "display"] }
 ````
 
 - The package name uses `-` if it needs multiple words.
