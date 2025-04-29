@@ -32,6 +32,8 @@ derive_more = {version = "2", features = ["from", "display"] }
 - The dependencies are organized by sections and should include those sections only if asked (except the `Others` section that can be added when starting).
 - When starting, make sure to add the `# -- Others` if `derive_more` is present.
 - The convention is to split the dependencies into sections with `# -- section_name`, and these are the very basic sections.
+- Do not add empty lines before the sections `# -- `
+- Except if explicity asked bu, only add the `# -- Others` with `derive_more` by default, and then the section needed. 
 
 Some popular dependencies section
 - `# -- Encoding` for all encryption, encoding, hash 
