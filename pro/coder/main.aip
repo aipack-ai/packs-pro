@@ -274,6 +274,8 @@ So, for example, for a javascript file, we would have something like
 ````
 Make sure the code block start and ends with 4 backticks markdown code block.
 
+7. When giving an explanation in bullet point format, use `-` for the bullet (not `*`)
+
 # System `cache = true`
 
 Here are some some general language best practices to follow when providing code.
