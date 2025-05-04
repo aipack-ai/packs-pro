@@ -17,13 +17,14 @@ local prompt_template = [[
 # knowledge_globs = ["path/to/knowledge/**/*.md", "core@doc/**/*.md", "pro@rust10x/guide/base/**/*.md"]
 
 # If not set, context_globs and working_globs won't be evaluated
-base_dir = "src/"
+base_dir = "" # empty for workspace root, make sure to narrow in context_globs
 
-# Relative to base_dir. Inline these files’ contents into the prompt
-context_globs = ["**/*.html", "**/*.js", "**/*.css"] 
+# Relative to base_dir. Inline these files’ contents into the prompt (narrow as project grows)
+# (e.g., for rust replace "package.json" by "Cargo.toml")
+context_globs = ["package.json", "src/**/*.*"] 
 
 # Relative to base_dir. Only include paths (not content) in the prompt.
-# structure_globs = ["**/*.*"]
+# structure_globs = ["src/**/*.*"]
 
 # Relative to base_dir. (optional) Files you actually want to work on on top of the context files
 # working_globs = ["**/*.js"]
