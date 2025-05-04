@@ -1,6 +1,6 @@
 ## Rust10x AI Pack
 
-**NOT RELEASED YET - Under Development**
+**Early Release**
 
 The pro@rust10x AI Pack provides the knowledge, guidelines, and best practices I, Jeremy Chone, use to build production applications.
 
