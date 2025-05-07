@@ -32,7 +32,7 @@ context_globs = ["package.json", "src/**/*.*"]
 # input_concurrency   = 6
 
 # Note: Make sure to update the `-exp` models with their latest
-model_aliases = {main = "gpt-4.1", mini = "gpt-4.1-mini", nano = "gpt-4.1-nano", claude = "claude-3-7-sonnet-latest", gpro = "gemini-2.5-pro-exp-03-25", flash = "gemini-2.0-flash"}
+model_aliases = {main = "gpt-4.1", mini = "gpt-4.1-mini", nano = "gpt-4.1-nano", claude = "claude-3-7-sonnet-latest", gpro = "gemini-2.5-pro-preview-05-06", flash = "gemini-2.0-flash"}
 
 # Set to true to write the files (otherwise, will show below the `====` )
 write_mode = false
