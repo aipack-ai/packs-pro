@@ -17,7 +17,7 @@ The main signature will be:
 - Start with an empty `src/lib.rs` except if the user ask specifc.
 - with `examples/c01-simple.rs` 
 - if asked to be async, add the tokio cargo group, and make the example tokio async. 
-- When doin async do not do `use tokio::main` but `#[tokio::main] ...`
+- When doin async do not do `use tokio::main` but `#[tokio::main] async fn main...`
 - The content of the `main` example function should be
 ```rust
 println!("Hello World");
