@@ -42,7 +42,9 @@ mod tests {
 // endregion: --- Tests
 
 ```
+
 - For those types of tests block, have the `use super::*;` as well as above
+- Do not use `unwrap()` but have `.ok_or("Should be ...")?` type of pattern when getting expected values (works well with the box dyn error type)
 - Make sure to have the `// region:    --- Tests` which will be at the top level now. That surrounds the `#[cfg(test)] mod test {...}`
     - If no `#[cfg(test)]` which means the file is a dedicated test file, no need to add `// region:    --- Tests`
 
