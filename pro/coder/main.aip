@@ -8,7 +8,6 @@ This will return inputs, where each input will have `.context_files: string[]`. 
 local p_utils  = require("prompt_utils")
 local p_values = require("prompt_values")
 
-
 -- == Check AIPACK Version
 if not aip.semver.compare(CTX.AIPACK_VERSION, ">", "0.6.11") then
     local msg = "\nWARNING - This pack requires AIPACK_VERSION 0.6.12 or above, but " .. CTX.AIPACK_VERSION .. " is currently installed"
@@ -132,10 +131,29 @@ if working_refs ~= nil then
     should_cache_context_files = true
 end
 
+-- == Compute file_content_mode
+-- "whole" or "search_replace_auto"
+local file_content_mode = {}
+
+local xp_file_content_mode = meta.xp_file_content_mode
+if xp_file_content_mode then
+  if xp_file_content_mode == "whole" then
+    file_content_mode.whole = true
+  elseif xp_file_content_mode == "search_replace_auto" then
+    file_content_mode.search_replace_auto = true
+  else
+    return aip.flow.skip("Error xp_file_content_mode value '" .. xp_file_content_mode .. "' is invalid.\nCan be 'whole' or 'search_replace_auto'" )
+  end 
+else
+  file_content_mode.whole = true
+end
+
+-- print("file_content_mode: " .. aip.lua.dump(file_content_mode))
 
 -- == Build the inputs(for now, only one)
 local input_base = {
     write_mode                   = write_mode,
+    file_content_mode            = file_content_mode,
     prompt_file_rel_path         = prompt_file_rel_path,
     default_language             = meta.default_language or "Python",
     knowledge_refs               = knowledge_refs,
@@ -250,6 +268,11 @@ When giving code back that needs to modify files, make sure to follow the `Code 
 
 When existing code, do not perform reformatting or make unnecessary changes unless explicitly requested by the user or specified in the user/system knowledge or instructions.
 
+
+# System `cache = true`
+
+{{#if data.file_content_mode.whole}}
+
 Here are some important Code block and file name convention.
 
 ## Code block and file name convention
@@ -272,9 +295,91 @@ So, for example, for a javascript file, we would have something like
 // file: path/to/file.js
 ... file content here
 ````
+
 Make sure the code block start and ends with 4 backticks markdown code block.
 
-7. When giving an explanation in bullet point format, use `-` for the bullet (not `*`)
+{{/if}}
+
+# System `cache = true`
+
+{{#if data.file_content_mode.search_replace_auto}}
+
+Here are some important Code block and file name convention.
+
+## Code block and file name convention
+
+The files provided will be in a markdown code block, with the appropriate language (file extension) with the first line following this format (with the comment language) `// file: path/to/file.ext`
+
+1.  **Markdown Block Markers for file content:** When providing file content, always enclose it within four backticks in markdown code blocks. Never use three backticks for markdown file content blocks. This ensures compatibility even if the file contains three backticks within its content.
+2.  **File Header:** The first line *inside* the code block *must* be a comment indicating the file path, following the `// file: path/to/file.ext` convention.
+    - So, for HTML files, it will be `<!-- file: path/to/file.html -->`
+    - For SQL, Lua, and other `--` comment languages, it will be `-- file: path/to/file...` (with the appropriate extension)
+    - For CSS, PCSS, and similar files, it will be `/* file: path/to/file... */`  (with the appropriate extension)
+3.  **Language Specifier:** The markdown code block *must* include the language specifier, the extension, immediately after the opening four backticks and end with four backticks.
+4.  **Strict Adherence:** Always use four backticks, never three, to ensure uniform formatting and prevent rendering issues.
+5.  **Consistency:** Maintain the four-backtick format *unconditionally* for *all* code blocks, for start and end backticks, regardless of language or content.
+6.  When you return files, follow the same convention, always first line, and as noted above. Usually, files will be given this way too.
+
+So, for example, for a javascript file, we would have something like
+
+````js
+// file: path/to/file.js
+file_content_or_search_replace_here
+````
+Make sure the code block start and ends with 4 backticks markdown code block.
+
+7. **Full File v.s. SEARCH/REPLACE** When creating a new file, put the whole file content in the `file_content_or_search_replace_here` section
+
+8. **SEARCH/REPLACE** When updating an existing file, use the SEARCH/REPLACE format below
+
+### SEARCH/REPLACE format
+
+Here is an example of a SEARCH/REPLACE
+
+````js
+// file: path/to/file.js
+<<<<<<< SEARCH
+import * from "process"
+=======
+import * as pc from "process"
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+function hello_world(name) {
+    return `Hello ${name}, welcome to the world`
+}
+=======
+function hello_world(name) {
+    return `Hello ${name}, big welcome`
+}
+>>>>>>> REPLACE
+````
+
+Every *SEARCH/REPLACE block* must use this format:
+
+- In a code block, four backticks (i.e. quad backticks) as defined previously
+- First line must be thefile path, like `// file: path/to/file.ext` (use the comment of the language)
+- Only use this *SEARCH/REPLACE block* where the whole file does not need to be replaced, but just part of it. Otherwise, just the whole file content as described when a new files. 
+- A code block might have one or more SEARCH/REPLACE pairs
+- When *SEARCH/REPLACE* is used, try to identify only the ones that need to be replace, not to big chuncks.
+- Each SEARCH/REPLACE pair, start with `<<<<<<< SEARCH` (exactually)
+- A contiguous chunk of lines to search for in the existing source code (exactly as the source given, preserving whitespace and all)
+- The dividing line: `=======` (exactualy)
+- The lines to replace into the source code
+- The end of the replace block: `>>>>>>> REPLACE`
+- Put all of the SEARCH/REPLACE in the same code block for the same file. 
+- When a code block has one SEARCH/REPLACE section, then, all SEARCH/REPLACE needs to be consecutive. 
+- You Cannot have other code after a `>>>>>>> REPLACE`, it has to be another SEARCH/REPLACE pair.
+
+Important considerations when generated the *SEARCH/REPLACE* pairs: 
+
+- Keep *SEARCH/REPLACE* pairs concise.
+- Break large *SEARCH/REPLACE* blocks into a series of smaller pairs that each change a small portion of the file.
+- Include just the changing lines, and a few surrounding lines if needed for uniqueness.
+- Do not include long runs of unchanging lines in *SEARCH/REPLACE* blocks.
+- To move code within a file, use 2 *SEARCH/REPLACE* blocks: 1 to delete it from its current location, 1 to insert it in the new location.
+
+
+{{/if}}
 
 # System `cache = true`
 
@@ -451,7 +556,11 @@ if data.write_mode == true then
         local file_path = first:match(" file:%s*([^%s]+)")
         if file_path then
             file_path = aip.path.join(base_dir, file_path)
-            aip.file.save(file_path, remain)
+            if data.file_content_mode.search_replace_auto then 
+                aip.file.save_changes(file_path, remain)
+            else
+                aip.file.save(file_path, remain)
+            end
             msg = msg .. file_path .. " "
         end
     end
