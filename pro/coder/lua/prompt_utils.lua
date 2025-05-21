@@ -42,7 +42,13 @@ end
 --   - When content_is_default, it means that if no two parts, the content will be the first_part
 function prep_inst_and_content(content, separator, options) 
   local content_is_default = options and options.content_is_default or false
-  local first_part, second_part = aip.text.split_first(content, separator)
+  -- for v0.7.10 compatibilty
+  local first_part, second_part = nil, nil
+  if aip.text.split_first_line then -- this is new in 0.7.11 (better, more robust with others =====)
+    first_part, second_part = aip.text.split_first_line(content, separator)
+  else
+    first_part, second_part = aip.text.split_first(content, separator .. "\n")
+  end
 
   local inst, content = nil, nil
   if second_part ~= nil then 

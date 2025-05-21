@@ -30,7 +30,7 @@ local prompt_file_rel_path = aip.path.diff(prompt_file.path, CTX.WORKSPACE_DIR)
 
 -- == Extract data from prompt files
 -- Split the prompt into inst and content
-local first_part, second_part = p_utils.prep_inst_and_content(prompt_file.content, "====\n", {content_is_default = false})
+local first_part, second_part = p_utils.prep_inst_and_content(prompt_file.content, "====", {content_is_default = false})
 
 -- Clean the second_part
 if second_part ~= nil then
