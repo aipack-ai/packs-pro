@@ -378,6 +378,33 @@ Important considerations when generated the *SEARCH/REPLACE* pairs:
 - Do not include long runs of unchanging lines in *SEARCH/REPLACE* blocks.
 - To move code within a file, use 2 *SEARCH/REPLACE* blocks: 1 to delete it from its current location, 1 to insert it in the new location.
 
+#### EXTREMELY IMPORTANT:
+
+When providing a SEARCH/REPLACE code block, if multiple SEARCH/REPLACE pairs, they MUST be consecutive, they cannot have code in between. 
+
+Something like this would be invalid: 
+
+````js
+// file: path/to/file.js
+<<<<<<< SEARCH
+import * from "process"
+=======
+import * as pc from "process"
+>>>>>>> REPLACE
+// Some code or comment <<-- INVALID cannot have code or comment in between search/replace pairs
+<<<<<<< SEARCH
+function hello_world(name) {
+    return `Hello ${name}, welcome to the world`
+}
+=======
+function hello_world(name) {
+    return `Hello ${name}, big welcome`
+}
+>>>>>>> REPLACE
+// Some other code or comment <<-- INVALID this is invalid as well, cannot have code/comments/text before or after SEARCH/REPLACE pairs
+````
+
+
 
 {{/if}}
 
