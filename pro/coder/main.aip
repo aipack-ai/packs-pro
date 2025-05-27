@@ -132,7 +132,7 @@ if working_refs ~= nil then
 end
 
 -- == Compute file_content_mode
--- "whole" or "search_replace_auto"
+-- xp_file_content_mode = "whole" or xp_file_content_mode = "search_replace_auto"
 local file_content_mode = {}
 
 local xp_file_content_mode = meta.xp_file_content_mode
@@ -147,8 +147,6 @@ if xp_file_content_mode then
 else
   file_content_mode.whole = true
 end
-
--- print("file_content_mode: " .. aip.lua.dump(file_content_mode))
 
 -- == Build the inputs(for now, only one)
 local input_base = {
