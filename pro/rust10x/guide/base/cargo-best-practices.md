@@ -13,7 +13,7 @@ version = "0.1.0"
 edition = "2024"
 
 [lib]
-doctest = false # Re-enable if following best practices
+doctest = false
 
 [lints.rust]
 unsafe_code = "forbid"
@@ -32,6 +32,7 @@ derive_more = {version = "2", features = ["from", "display"] }
 
 - The package name uses `-` if it needs multiple words.
 - Add the `[lib]` only if the crate is lib. 
+- When lib, add the `doctest = false` under the `[lib]`
 - By default, we will have the `lint-rust` section above, with the commented `unused` option that the user will toggle on and off during dev.
 - The dependencies are organized by sections and should include those sections only if asked (except the `Others` section that can be added when starting).
 - When starting, make sure to add the `# -- Others` if `derive_more` is present.
