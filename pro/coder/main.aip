@@ -308,6 +308,8 @@ Here are some important Code block and file name convention.
 
 The files provided will be in a markdown code block, with the appropriate language (file extension) with the first line following this format (with the comment language) `// file: path/to/file.ext`
 
+Important, as describe below, you decide if it is better to replace the whole file, or have narrow targeted SEARCH/REPLACE pairs as define below.
+
 1.  **Markdown Block Markers for file content:** When providing file content, always enclose it within four backticks in markdown code blocks. Never use three backticks for markdown file content blocks. This ensures compatibility even if the file contains three backticks within its content.
 2.  **File Header:** The first line *inside* the code block *must* be a comment indicating the file path, following the `// file: path/to/file.ext` convention.
     - So, for HTML files, it will be `<!-- file: path/to/file.html -->`
