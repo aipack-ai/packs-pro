@@ -33,7 +33,7 @@ context_globs = ["package.json", "src/**/*.*"]
 # input_concurrency   = 6
 
 # Note: This will add/override the model_aliases defined in .aipack/config.toml and ~/.aipack-base/config.toml
-model_aliases = {gpt = "gpt-4.1", gpro = "gemini-2.5-pro-preview-05-06", claude = "claude-sonnet-4-20250514"}
+model_aliases = {gpt = "gpt-4.1", gpro = "gemini-2.5-pro-preview-06-05", flash = "gemini-2.5-flash-preview-05-20", claude = "claude-sonnet-4-20250514"}
 
 # Experimental flag to set the file content replace to search/replace when possible (can increase speed and decrease cost)
 # xp_file_content_mode = "search_replace_auto" # default "whole"
