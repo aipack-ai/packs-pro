@@ -461,11 +461,13 @@ Here is the content:
 
 {{#if data.knowledge_files}}
 
-First, here are some important knowledge, guidelines, and best practices I like you to follow. Make sure you respect them when providing code.
+First, here are some important knowledge, guidelines, and best practices I like you to follow. Make sure you respect them when providing code. Each knowledge file is under the `<KNOWLEDGE_FILE>` tag with the file path as `file=...`
 
 {{#each data.knowledge_files}}
 
+<KNOWLEDGE_FILE file="{{this.path}}">
 {{this.content}}
+</KNOWLEDGE_FILE>
 
 {{/each}}
 
