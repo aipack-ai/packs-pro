@@ -582,7 +582,14 @@ if data.write_mode == true then
     msg = "Files updated: "
     for _, block in ipairs(blocks) do
         local first, remain = aip.text.split_first(block.content, "\n")
-        local file_path = first:match("file:%s*(.+)")
+        -- local file_path = first:match("file:%s*(.+)") -- bug when in html
+        local file_path = first:match("file:%s*(.+)") 
+        if file_path then
+            file_path = file_path:gsub("%-%->", "")
+            file_path = file_path:gsub("%s*%*/", "")
+            file_path = aip.text.trim(file_path)
+        end        
+
         if file_path then
             file_path = aip.path.join(base_dir, file_path)
             if data.file_content_mode.search_replace_auto then 
