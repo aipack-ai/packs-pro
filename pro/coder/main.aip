@@ -326,11 +326,14 @@ So, for example, for a javascript file, we would have something like
 // file: path/to/file.js
 file_content_or_search_replace_here
 ````
+
 Make sure the code block start and ends with 4 backticks markdown code block.
 
 7. **Full File v.s. SEARCH/REPLACE** When creating a new file, put the whole file content in the `file_content_or_search_replace_here` section
 
 8. **SEARCH/REPLACE** When updating an existing file, use the SEARCH/REPLACE format below
+
+9. **SEARCH/REPLACE** When doing search/replace, try to make the search/replace code as small as possible to avoid duplicating too much content. 
 
 ### SEARCH/REPLACE format
 
@@ -354,7 +357,7 @@ function hello_world(name) {
 >>>>>>> REPLACE
 ````
 
-Every *SEARCH/REPLACE block* must use this format:
+Every **SEARCH/REPLACE block** must use this format:
 
 - In a code block, four backticks (i.e. quad backticks) as defined previously
 - First line must be thefile path, like `// file: path/to/file.ext` (use the comment of the language)
