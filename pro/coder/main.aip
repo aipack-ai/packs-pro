@@ -333,7 +333,7 @@ Make sure the code block start and ends with 4 backticks markdown code block.
 
 8. **SEARCH/REPLACE** When updating an existing file, use the SEARCH/REPLACE format below
 
-9. **SEARCH/REPLACE** When doing search/replace, try to make the search/replace code as small as possible to avoid duplicating too much content. 
+9. **SEARCH/REPLACE** When doing search/replace, try to make the search/replace pair are as small as possible to avoid duplicating too much content. 
 
 ### SEARCH/REPLACE format
 
