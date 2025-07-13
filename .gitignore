@@ -3,8 +3,8 @@
 !.gitignore
 
 _*
-# '_' in src dir, ok.
-!**/src/**/_*
+# '_' in pro dir, ok.
+!**/pro/**/_*
 
 *.lock
 *.lockb
