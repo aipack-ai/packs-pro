@@ -193,14 +193,15 @@ if working_refs ~= nil and #working_refs > 0 then
     if working_concurrency then
         for _, working_ref in ipairs(working_refs) do
             -- Note: We put the working_file into an array for later, to allow having one input to be multiple files
-            table.insert(inputs, {base = input_base, working_refs = {working_ref}})
+            local _display = "working file: " .. working_ref.path .. "\n" .. inst
+            table.insert(inputs, {base = input_base, working_refs = {working_ref}, _display = _display})
         end
     else
-        inputs = { {base = input_base, working_refs = working_refs} }
+        inputs = { {base = input_base, working_refs = working_refs, _display = inst} }
     end
 -- Otherwise, if no working_refs, then, one input with the input_base
 else
-    inputs = { {base = input_base}}
+    inputs = { {base = input_base, _display = inst} }
 end
 
 if input_base.context_refs ~= nil then
@@ -621,5 +622,5 @@ local prompt_content = first_part .. "\n\n" .. ai_content_for_prompt
 
 aip.file.save(data.prompt_path, prompt_content)
 
-print("\nExecuted from your @coder prompt file: " .. data.prompt_file_rel_path .. "\n")
+print("Executed from your @coder prompt file: " .. data.prompt_file_rel_path .. "\n")
 ```
