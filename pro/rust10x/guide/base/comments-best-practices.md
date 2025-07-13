@@ -2,6 +2,8 @@
 
 Here are the Rust10x comments best practices that build upon Rust comment best practices.
 
+Make sure to not add other comment style for delimiting that those styles, except if the code already use some patterns. 
+
 ### Comment Delimiters
 
 Rust10x best practices include two main comment delimiters:
@@ -20,6 +22,7 @@ For larger code sections.
 ```rust
 // -- Some Section Name
 ```
+
 Typically used without a function body to section off lines of code. This does not have an end marker; it just indicates that from that point, the code block is about a specific section.
 
 ### Code Region
