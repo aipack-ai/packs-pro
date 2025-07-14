@@ -565,8 +565,6 @@ Important additional instruction:
 ```lua
 local o_utils = require("output_utils")
 
-local msg = "Prompt updated with AI Response"
-
 local base_dir = data.base_dir
 
 local ai_content = ai_response.content
@@ -582,6 +580,7 @@ local ai_content_for_raw = "====\n" .. info_lines .. "\n\n" .. ai_content .. "\n
 aip.file.append(data.ai_responses_for_raw_path, ai_content_for_raw)
 
 -- == Write to the src file
+local files_changed = {}
 if data.write_mode == true then
     local blocks, other_content = aip.md.extract_blocks(ai_content, {extrude = "content"})
     -- In this case, the other_content becomes the second_part
@@ -604,7 +603,7 @@ if data.write_mode == true then
             else
                 aip.file.save(file_path, remain)
             end
-            msg = msg .. file_path .. " "
+            table.insert(files_changed, file_path)
         end
     end
 end
@@ -622,5 +621,30 @@ local prompt_content = first_part .. "\n\n" .. ai_content_for_prompt
 
 aip.file.save(data.prompt_path, prompt_content)
 
-print("Executed from your @coder prompt file: " .. data.prompt_file_rel_path .. "\n")
+-- print("Executed from your @coder prompt file:" .. data.prompt_file_rel_path)
+
+-- == Build the Response
+local response = "✅ pro@coder task done.\n"
+
+if data.write_mode then
+    if #files_changed == 0 then
+        response = response .. "\nNo File changed."
+        response = response .. "\nCheck prompt file for more AI answer."
+        response = response .. "\nPrompt file:\n→ " .. data.prompt_file_rel_path        
+    else 
+        local file_txt = "file"
+        if #files_changed > 1 then
+            file_txt = "files"
+        end
+        response = response .. "\n" .. #files_changed .. " " .. file_txt .. " changed:\n"
+        response = response .. "→ " .. table.concat(files_changed, "\n→ ")
+        response = response .. "\n\nCheck prompt file for more AI answer. Prompt file:"
+        response = response .. "\n→ " .. data.prompt_file_rel_path        
+    end
+else 
+    response = response .. "\nPrompt File has been updated with AI Response. Prompt file:"
+    response = response .. "\n→ " .. data.prompt_file_rel_path
+end
+
+return response
 ```
