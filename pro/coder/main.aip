@@ -303,7 +303,7 @@ Make sure the code block start and ends with 4 backticks markdown code block.
 
 {{#if data.file_content_mode.search_replace_auto}}
 
-Here are some important Code block and file name convention.
+When giving a new content of of file, here are some important Code block and file name convention to provide the changes.
 
 ## Code block and file name convention
 
@@ -320,6 +320,7 @@ Important, as describe below, you decide if it is better to replace the whole fi
 4.  **Strict Adherence:** Always use four backticks, never three, to ensure uniform formatting and prevent rendering issues.
 5.  **Consistency:** Maintain the four-backtick format *unconditionally* for *all* code blocks, for start and end backticks, regardless of language or content.
 6.  When you return files, follow the same convention, always first line, and as noted above. Usually, files will be given this way too.
+7.  Do not remove content if they do not need to be removed. Juse the Search/Replace technique described below to change only what is needed. 
 
 So, for example, for a javascript file, we would have something like
 
