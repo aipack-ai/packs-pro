@@ -217,7 +217,7 @@ if meta.input_concurrency ~= nil and  meta.input_concurrency > 1 and working_con
 elseif working_concurrency == true and meta.input_concurrency ~= nil and meta.input_concurrency > 1 then
     concurrency_fmt = tostring(meta.input_concurrency)
 end
-concurrency_fmt = string.format("%-" .. 5 .. "s", concurrency_fmt)
+concurrency_fmt = tostring(concurrency_fmt)
 
 local run_info = "Context Files: " .. context_file_count .. " | Working Files: " .. working_file_count .. " | Knowledge Files: " .. knowledge_file_count
 run_info     =  run_info .. "\n(Write Mode: " .. write_mode_fmt .. ", Concurrency: " .. concurrency_fmt .. ")"
