@@ -54,8 +54,9 @@ inst = aip.text.trim(inst_content)
 
 -- == Determine if we should skip
 if inst == "" then
-    print("\nOPEN your @coder prompt file: " .. prompt_file_rel_path .. "\n\n")
-    return aipack.skip("Empty instruction - Start writing and do a Redo.")
+    local msg = "Empty instruction. Open & Edit prompt file:\n\n"
+    msg = msg .. "➜ " .. prompt_file_rel_path .. "    (And press [r] for Replay)"
+    return aipack.skip(msg)
 end
 
 -- == Prep the cache files
@@ -124,7 +125,7 @@ if write_mode == true then
 end
 
 -- == More logic
-print("\nOPEN your @coder prompt file: " .. prompt_file_rel_path .. "\n")
+print("Prompt file ➜ " .. prompt_file_rel_path)
 
 local should_cache_context_files = false
 if working_refs ~= nil then
@@ -204,12 +205,23 @@ else
     inputs = { {base = input_base, _display = inst} }
 end
 
-if input_base.context_refs ~= nil then
-    print("INFO: Context Files (from context_globs): " .. #input_base.context_refs)
+-- Print Run Info
+local context_file_count   = input_base.context_refs and #input_base.context_refs or 0
+context_file_count = tostring(context_file_count) -- string.format("%-" .. 5 .. "s", context_file_count)
+local write_mode_fmt = tostring(write_mode)
+local working_file_count   = working_refs and #working_refs or 0
+local knowledge_file_count = input_base.knowledge_refs and #input_base.knowledge_refs or 0
+local concurrency_fmt    = "1"
+if meta.input_concurrency ~= nil and  meta.input_concurrency > 1 and working_concurrency == false then
+    concurrency_fmt = concurrency_fmt .. " (working_concurrency = false)"
+elseif working_concurrency == true and meta.input_concurrency ~= nil and meta.input_concurrency > 1 then
+    concurrency_fmt = tostring(meta.input_concurrency)
 end
-if working_refs ~= nil then
-    print("INFO: Working Files (from working_globs): " .. #working_refs)
-end
+concurrency_fmt = string.format("%-" .. 5 .. "s", concurrency_fmt)
+
+local run_info = "Context Files: " .. context_file_count .. " | Working Files: " .. working_file_count .. " | Knowledge Files: " .. knowledge_file_count
+run_info     =  run_info .. "\n(Write Mode: " .. write_mode_fmt .. ", Concurrency: " .. concurrency_fmt .. ")"
+print(run_info)
 
 
 -- == Compute the agent options
@@ -246,6 +258,14 @@ aip.file.append(base.prompt_files_path, prompt_files_content)
 base.knowledge_files = p_utils.load_file_refs(CTX.WORKSPACE_DIR, base.knowledge_refs)
 base.context_files   = p_utils.load_file_refs(base.base_dir, base.context_refs)
 base.working_files   = p_utils.load_file_refs(base.base_dir, working_refs)
+
+-- Print info
+local knowledge_file_count = tostring(base.knowledge_files and #base.knowledge_files or 0)
+local working_file_count = tostring(base.working_files and #base.working_files or 0)
+local context_file_count = tostring(base.context_files and #base.context_files or 0)
+local task_info = "Context Files: " .. context_file_count .. " | Working Files: " .. working_file_count .. " | Knowledge Files: " .. knowledge_file_count
+print(task_info)
+
 
 -- The augmented base becomes the data.
 return base
