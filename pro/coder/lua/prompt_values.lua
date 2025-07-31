@@ -35,8 +35,10 @@ structure_globs:
 # Note: This will add/override the model_aliases defined in .aipack/config.toml and ~/.aipack-base/config.toml
 model_aliases:
   gpro: gemini-2.5-pro
-  gpro: gemini-2.5-pro-low
+  gpro-high: gemini-2.5-pro-high
+  gpro-low: gemini-2.5-pro-low
   flash: gemini-2.5-flash
+  flash-zero: gemini-2.5-flash-zero
   lite: gemini-2.5-flash-lite-preview-06-17
   claude: claude-sonnet-4-20250514
   gpt: gpt-4.1
