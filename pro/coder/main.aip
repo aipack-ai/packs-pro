@@ -89,9 +89,9 @@ if base_dir ~= nil then
     base_dir =  base_dir:gsub("/+$", "")
 
     -- Prep structure_globs = "**/*.*"
-    local stucture_globs = meta.structure_globs
-    if stucture_globs ~= nil then
-        structure_refs = aip.file.list(stucture_globs, {base_dir = base_dir})
+    local structure_globs = meta.structure_globs
+    if structure_globs ~= nil then
+        structure_refs = aip.file.list(structure_globs, {base_dir = base_dir})
     end
 
     -- Prep context_refs

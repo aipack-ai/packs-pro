@@ -28,7 +28,7 @@ structure_globs:
 
 # Relative to base_dir. (optional) Files you actually want to work on, especially useful for concurrency
 # working_globs:
-#   - **/*.js
+#   - src/**/*.js
 # working_concurrency: true
 # input_concurrency: 6
 
