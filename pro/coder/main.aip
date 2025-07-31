@@ -133,20 +133,21 @@ if working_refs ~= nil then
 end
 
 -- == Compute file_content_mode
--- xp_file_content_mode = "whole" or xp_file_content_mode = "search_replace_auto"
+-- user_file_conent_mode = "whole" or user_file_conent_mode = "search_replace_auto"
 local file_content_mode = {}
 
-local xp_file_content_mode = meta.xp_file_content_mode
-if xp_file_content_mode then
-  if xp_file_content_mode == "whole" then
+local user_file_conent_mode = meta.file_content_mode
+if user_file_conent_mode then
+  if user_file_conent_mode == "whole" then
     file_content_mode.whole = true
-  elseif xp_file_content_mode == "search_replace_auto" then
+  elseif user_file_conent_mode == "search_replace_auto" then
     file_content_mode.search_replace_auto = true
   else
-    return aip.flow.skip("Error xp_file_content_mode value '" .. xp_file_content_mode .. "' is invalid.\nCan be 'whole' or 'search_replace_auto'" )
+    return aip.flow.skip("Error file_conent_mode value '" .. user_file_conent_mode .. "' is invalid.\nCan be 'whole' or 'search_replace_auto'" )
   end 
 else
-  file_content_mode.whole = true
+  -- Default: search_replace_auto
+  file_content_mode.search_replace_auto = true
 end
 
 -- == Build the inputs(for now, only one)
