@@ -2,7 +2,7 @@
 
 Here are the Rust10x comments best practices that build upon Rust comment best practices.
 
-Make sure to not add other comment style for delimiting that those styles, except if the code already use some patterns. 
+Make sure to not add other comment styles for delimiting than those styles, except if the code already uses some patterns. 
 
 ### Comment Delimiters
 
@@ -47,7 +47,7 @@ For large chunks of code, usually groups of types, functions, private/support co
 
 **For Tests Block in Source Code Files:**
 
-- As described in the `test-best-practices`, when unit tests are inlined in a source file, the `#[cfg(test)] mod test{ ...}` is wrapped in a `Tests` code region.
+- As described in the `test-best-practices`, when unit tests are inlined in a source file, the `#[cfg(test)] mod tests { ... }` block is wrapped in a `Tests` code region.
 
 **Inlined Support Functions/Types:**
 

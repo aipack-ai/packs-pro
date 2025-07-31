@@ -3,7 +3,7 @@
 For Rust unit tests, here is a good template to follow:
 
 - Let's assume the file is `src/support/text.rs`
-    - or one that gets flattened to this, for example, if `src/support/text/mod.rs` does a `pub use text_common::*` for the file `src/support/text/text_commond.rs`
+    - or one that gets flattened to this, for example, if `src/support/text/mod.rs` does a `pub use text_common::*` for the file `src/support/text/text_common.rs`
 - This function to test would be `replace_markers(...)`
 - When the test is inside a binary/lib code file, with the `mod tests {` follow that layout:
 
@@ -89,5 +89,5 @@ mod tests {
     - For example, if the crate or lib is named `simple_fs`, do not do a name like `test_simple_fs_support_text_...` that would be silly.
     - Just have `test_support_text_...`
 
-- When need to create temp data files, For each function, have the paths like  `tests-data/.tmp/test_function_name/` and the `test_function_name` is the full unit test funciton. This way, all test have their onw. 
+- When need to create temp data files, For each function, have the paths like  `tests-data/.tmp/test_function_name/` and the `test_function_name` is the full unit test function. This way, all tests have their own. 
 - IMPORTANT: for the cleanup of file, comment out the `..remove..` code, so that the user has to activate it itself. to make sure we do not remove file automatically. 

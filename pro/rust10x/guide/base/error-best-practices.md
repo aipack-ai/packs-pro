@@ -1,4 +1,4 @@
-## Error Best practices
+## Error Best Practices
 
 This outlines the error best practices for Rust10x.
 
@@ -6,17 +6,18 @@ Rust10x does not utilize `thiserror` or `anyhow`, but rather a traditional Rust 
 
 The goal is to have a similar and progressive approach between tests/examples and application/lib code.
 
-### For Test and Example
+### For Tests and Examples
 
 For tests and examples, use the type alias `pub type Result<T> = core::result::Result<T, Box<dyn std::error::Error>>;`
 
 - For test modules, we will have the type alias so that we can simply use `Result<T>`. Make sure to fully qualify `core::result::Result` as the test might `use super::*` which will introduce another application `Result<T>`.
 
-- For example files, when there is only one `main` function, we can use `main() -> Result<T, Box<dyn std::error::Error>> {...`
+- For example files, when there is only one `main` function, we can define `fn main() -> Result<(), Box<dyn std::error::Error>> { ... }`
 
 ### For App & Lib Code
 
 Typically, in the `lib.rs` or `main.rs` we will have the following:
+
 
 ````rust
 // file: src/main.rs
@@ -44,7 +45,7 @@ fn main() -> Result<()> {
 
 The `error.rs` has the following format:
 
-````rust
+```rust
 use derive_more::{Display, From};
 
 pub type Result<T> = core::result::Result<T, Error>;
@@ -80,7 +81,7 @@ impl std::error::Error for Error {}
 
 // endregion: --- Error Boilerplate
 
-````
+```
 
 - We have the `Custom` region and variant for early flexibility.
 - Below `// -- Externals` are the external types, usually passed through.

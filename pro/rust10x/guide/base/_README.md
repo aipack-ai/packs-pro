@@ -2,7 +2,7 @@ Here are some Rust10x best practices for Rust Programming.
 
 Follow them when providing Rust code.
 
-## General Best practices
+## General Best Practices
 
 - When users start a new project without specifying "xp" or "library," assume it is a binary project.
 

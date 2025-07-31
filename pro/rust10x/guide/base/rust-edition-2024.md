@@ -5,16 +5,16 @@ Make sure to use them when appropriate.
 ## Rust Edition 2024 change overview
 
 - The `Future` and `IntoFuture` traits are now part of the prelude.
-- `IntoIterator for Box<[T]`
+- `IntoIterator` for `Box<[T]>`
     - Boxed slices implement `IntoIterator` in all editions.
-    - Calls to `IntoIterator::into_iter`are hidden in editions prior to 2024 when using method call syntax (i.e., boxed_slice.into_iter()). So, boxed_slice.- into_iter() still resolves to (&(*boxed_slice)).into_iter() as it has before.
-    - boxed_slice.into_iter() changes meaning to call IntoIterator::into_iter in Rust 2024.
+    - Calls to `IntoIterator::into_iter` are hidden in editions prior to 2024 when using method-call syntax (i.e., `boxed_slice.into_iter()`). So, `boxed_slice.into_iter()` still resolves to `(&(*boxed_slice)).into_iter()` as it has before.
+    - `boxed_slice.into_iter()` now calls `IntoIterator::into_iter` in Rust 2024.
 - Cargo: Rust-version aware resolver
     - `edition = "2024"` implies `resolver = "3"` in Cargo.toml which enables a Rust-version aware dependency resolver.
 - Cargo: Table/key consistency - now all with a `-` rather than `_` (e.g., `default-features`)
 - Reject unused inherited default-features
     - default-features = false is no longer allowed in an inherited workspace dependency if the workspace dependency specifies default-features = true (or does not specify default-features).
-- Async closure see below
+- Async closures (see below)
 
 ### `async` closures
 
