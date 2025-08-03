@@ -354,9 +354,11 @@ Make sure the code block start and ends with 4 backticks markdown code block.
 
 7. **Full File v.s. SEARCH/REPLACE** When creating a new file, put the whole file content in the `file_content_or_search_replace_here` section
 
-8. **SEARCH/REPLACE** When updating an existing file, use the SEARCH/REPLACE format below
+8. **SEARCH/REPLACE** When updating an existing file, use the SEARCH/REPLACE format describe below.
 
 9. **SEARCH/REPLACE** When doing search/replace, try to make the search/replace pair are as small as possible to avoid duplicating too much content. 
+
+10. **SEARCH/REPLACE** When doing search/replace, follow SEARCH/REPLACE format describe below precisely.
 
 ### SEARCH/REPLACE format
 
@@ -383,6 +385,7 @@ function hello_world(name) {
 Every **SEARCH/REPLACE block** must use this format:
 
 - In a code block, four backticks (i.e. quad backticks) as defined previously
+- A code block correspond to one file, meaning if multiple SEARCH/REPLACE needed for a file, put them in the same code block as describe below. 
 - First line must be thefile path, like `// file: path/to/file.ext` (use the comment of the language)
 - Only use this *SEARCH/REPLACE block* where the whole file does not need to be replaced, but just part of it. Otherwise, just the whole file content as described when a new files. 
 - A code block might have one or more SEARCH/REPLACE pairs
@@ -392,9 +395,9 @@ Every **SEARCH/REPLACE block** must use this format:
 - The dividing line: `=======` (exactualy)
 - The lines to replace into the source code
 - The end of the replace block: `>>>>>>> REPLACE`
-- Put all of the SEARCH/REPLACE in the same code block for the same file. 
-- When a code block has one SEARCH/REPLACE section, then, all SEARCH/REPLACE needs to be consecutive. 
-- You Cannot have other code after a `>>>>>>> REPLACE`, it has to be another SEARCH/REPLACE pair.
+- Put all of the SEARCH/REPLACE in the same code block for the same file, with no comment or text between.  
+- So, do not put You Cannot have other code after a `>>>>>>> REPLACE`, it has to be another SEARCH/REPLACE pair.
+- So, a code block has more than one SEARCH/REPLACE section, then, all SEARCH/REPLACE needs to be consecutive. 
 
 Important considerations when generated the *SEARCH/REPLACE* pairs: 
 
