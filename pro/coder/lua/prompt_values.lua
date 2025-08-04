@@ -5,10 +5,10 @@ local prompt_template = [[
 #!meta (parametric prompt)
 
 # Add absolute, relative, ~/, or some@pack knowledge globs. They will be included in the prompt as knowledge files.
-# knowledge_globs:
-#   - path/to/knowledge/**/*.md         # Your own best practices
-#   - core@doc/**/*.md                  # To help code .aip aipack agents
-#   - pro@rust10x/guide/base/**/*.md    # Some Rust best practices
+knowledge_globs:
+# - path/to/knowledge/**/*.md         # Your own best practices
+# - core@doc/**/*.md                  # To help code .aip aipack agents
+# - pro@rust10x/guide/base/**/*.md    # Some Rust best practices
 
 # If not set, context_globs and working_globs won't be evaluated
 base_dir: "" # Leave empty for workspace root; make sure to refine context_globs
