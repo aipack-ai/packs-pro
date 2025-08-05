@@ -15,19 +15,21 @@ base_dir: "" # Leave empty for workspace root; make sure to refine context_globs
 
 # Files that will be included in your prompt as context files.
 # Relative to base_dir, try to keep them as narrow as possible for a large codebase
+# The manifest file like package.json or Cargo.toml are good context for the AI at relatively low context cost/size
 context_globs:
-  - src/**/*.*
 # - package.json    # e.g., for Node.js
 # - Cargo.toml      # e.g., for Rust
+  - src/**/*.*      # Narrow glob when more than 10 files
 
 # Relative to base_dir. Only include paths (not content) in the prompt.
 # (A good way to give the AI a cheap overview of the overall structure of the project)
 structure_globs:
   - src/**/*.*
 
-# Relative to base_dir. (optional) Files you actually want to work on, especially useful for concurrency
-# working_globs:
-#   - src/**/*.js
+# Relative to base_dir. (optional) Files you actually want to work on, 
+# Especially useful for concurrency (apply prompt on multiple file at the same time)
+working_globs:
+# - src/**/*.js
 # working_concurrency: true
 # input_concurrency: 6
 
@@ -52,10 +54,10 @@ model: gpt-4.1-mini
 
 ====
 
-> Write your prompt above the `====` line and below the parametric block (the YAML code block).
-> Press `r` in the terminal to replay this run; the AI response will appear below the `====`.
-> When `write_mode: true`, the file code block will be extracted and saved to the appropriate files.
-> You can ask pro@coder to give you some documentation by asking `Show Doc` and pressing `r`
+> Write your prompt above the `====` line and below the parametric block (the YAML code block).  
+> Press `r` in the terminal to replay this run; the AI response will appear below the `====`.  
+> When `write_mode: true`, the file code block will be extracted and saved to the appropriate files.  
+> You can ask pro@coder to give you some documentation by asking `Show Doc` and pressing `r`  
 ]]
 
 return {
