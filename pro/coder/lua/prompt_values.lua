@@ -1,5 +1,3 @@
-local default_context_globs = nil
-
 local prompt_template = [[
 ```yaml
 #!meta (parametric prompt)

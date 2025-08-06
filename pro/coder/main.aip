@@ -69,7 +69,7 @@ aip.file.save(ai_responses_for_prompt_path, "")
 
 -- == Prep knowledge_refs
 local knowledge_refs = nil
-if meta.knowledge_globs then
+if p_utils.is_not_empty(meta.knowledge_globs) then
     knowledge_refs = aip.file.list(meta.knowledge_globs, {base_dir = CTX.WORKSPACE_DIR})
     print("INFO: Knowledge Files (from knowledge_globs): " .. #knowledge_refs)
 end
@@ -89,26 +89,18 @@ if base_dir ~= nil then
     base_dir =  base_dir:gsub("/+$", "")
 
     -- Prep structure_globs = "**/*.*"
-    local structure_globs = meta.structure_globs
-    if structure_globs ~= nil then
-        structure_refs = aip.file.list(structure_globs, {base_dir = base_dir})
+    local structure_globs = nil
+    if p_utils.is_not_empty(meta.structure_globs)  then
+        structure_refs = aip.file.list(meta.structure_globs, {base_dir = base_dir})
     end
 
-    -- Prep context_refs
-    local context_globs = meta.context_globs
-
-    if context_globs == nil then
-        -- For now, since, v0.2.1, this will be nil as well
-        context_globs = p_values.default_context_globs
-    end
-
-    context_refs = {}
-    if context_globs ~= nil then
-        context_refs = aip.file.list(context_globs, {base_dir = base_dir})
+    context_refs = {} -- probably need to be nil to be consistent
+    if p_utils.is_not_empty(meta.context_globs)  then
+        context_refs = aip.file.list(meta.context_globs, {base_dir = base_dir})
     end
 
     -- Prep working_refs
-    if meta.working_globs ~= nil then
+    if p_utils.is_not_empty(meta.working_globs) then
         working_refs = aip.file.list(meta.working_globs, {base_dir = base_dir})
     end
 else

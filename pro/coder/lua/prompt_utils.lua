@@ -117,11 +117,28 @@ function file_refs_to_md(refs, preamble)
 
 end
 
+-- true true if not empty, or nil, or userdata (pointer)
+function is_not_empty(val)
+  if type(val) == "userdata" then
+    return false
+  end
+  if val == nil then
+     return false
+  end
+  if val == "" then 
+    return false
+  end
+  if type(val) == "table" then
+    return next(val) ~= nil
+  end
+  return true
+end
 
 return {
   prep_prompt_file      = prep_prompt_file,
   should_skip           = should_skip,
   prep_inst_and_content = prep_inst_and_content,
   load_file_refs        = load_file_refs,
-  file_refs_to_md       = file_refs_to_md
+  file_refs_to_md       = file_refs_to_md,
+  is_not_empty          = is_not_empty,
 }
