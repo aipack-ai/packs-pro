@@ -2,7 +2,8 @@ local prompt_template = [[
 ```yaml
 #!meta (parametric prompt)
 
-# Add absolute, relative, ~/, or some@pack knowledge globs. They will be included in the prompt as knowledge files.
+# Add absolute, relative, ~/, or some@pack knowledge globs.
+# They will be included in the prompt as knowledge files.
 knowledge_globs:
 # - path/to/knowledge/**/*.md         # Your own best practices
 # - core@doc/**/*.md                  # To help code .aip aipack agents
@@ -26,10 +27,11 @@ structure_globs:
 
 # Relative to base_dir. (optional) Files you actually want to work on, 
 # Especially useful for concurrency (apply prompt on multiple file at the same time)
+# working_concurrency: true # When activated, each working glob file will become a task
+# input_concurrency: 6      # Number of concurrent tasks (default set to config tomls)
 working_globs:
 # - src/**/*.js
-# working_concurrency: true
-# input_concurrency: 6
+
 
 # Note: This will add/override the model_aliases defined in
 #       .aipack/config.toml, ~/.aipack-base/config-user.toml, ~/.aipack-base/config-default.toml
@@ -42,10 +44,11 @@ model_aliases:
 # Set to true to write the files (otherwise, they will be shown below the `====` separator)
 write_mode: false
 
-# Here you can use any full model name or model aliases defined above and in the config.toml
+# MODEL: Here you can use any full model name or model aliases defined above and in the config.toml
 # such as ~/.aipack-base/config-default.toml
+# For OpenAI and Gemini model, can use -low, -medium, -high suffix for reasoning control
 
-model: gpt-4.1-mini
+model: gpt-5-mini
 
 # To see docs, type "Show Doc" and then press `r` in the aip terminal
 ```
