@@ -54,7 +54,6 @@ model: gpt-5-mini
 ```
 
 ====
-
 > Write your prompt above the `====` line and below the parametric block (the YAML code block).  
 > Press `r` in the terminal to replay this run; the AI response will appear below the `====`.  
 > When `write_mode: true`, the file code block will be extracted and saved to the appropriate files.  
