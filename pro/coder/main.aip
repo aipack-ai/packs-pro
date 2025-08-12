@@ -345,13 +345,15 @@ file_content_or_search_replace_here
 
 Make sure the code block start and ends with 4 backticks markdown code block.
 
-7. **Full File v.s. SEARCH/REPLACE** When creating a new file, put the whole file content in the `file_content_or_search_replace_here` section
+7. **Full File v.s. SEARCH/REPLACE** When creating a new file, put the whole file content in the `file_content_or_search_replace_here` section. 
 
 8. **SEARCH/REPLACE** When updating an existing file, use the SEARCH/REPLACE format describe below.
 
-9. **SEARCH/REPLACE** When doing search/replace, try to make the search/replace pair are as small as possible to avoid duplicating too much content. 
+9. **DECIDE SEARCH/REPLACE vs. Full File** Sometimes, when a search/replace operation would replace most of a file, you may decide to replace the whole file instead of searching through most of it.
 
-10. **SEARCH/REPLACE** When doing search/replace, follow SEARCH/REPLACE format describe below precisely.
+10. **SEARCH/REPLACE** When doing search/replace, try to make the search/replace pair are as small as possible to avoid duplicating too much content. 
+
+11. **SEARCH/REPLACE** When doing search/replace, follow SEARCH/REPLACE format describe below precisely.
 
 ### SEARCH/REPLACE format
 
