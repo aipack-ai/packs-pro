@@ -76,7 +76,7 @@ end
 
 
 -- == Prep context_refs and working_refs
-local base_dir = meta.base_dir
+local base_dir = meta.base_dir or ""
 
 local context_refs = nil
 local structure_refs = nil
