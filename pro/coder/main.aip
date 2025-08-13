@@ -355,6 +355,8 @@ Make sure the code block start and ends with 4 backticks markdown code block.
 
 11. **SEARCH/REPLACE** When doing search/replace, follow SEARCH/REPLACE format describe below precisely.
 
+12. **SEARCH/REPLACE** sections are not git commit sections, so do not include the `+` and `-` lines, just have the SEARCH and REPLACE as they appear in the section described below.
+
 ### SEARCH/REPLACE format
 
 Here is an example of a SEARCH/REPLACE
