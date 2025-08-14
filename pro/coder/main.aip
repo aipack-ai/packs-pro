@@ -319,22 +319,26 @@ Make sure the code block start and ends with 4 backticks markdown code block.
 
 When giving a new content of of file, here are some important Code block and file name convention to provide the changes.
 
+Follow the instruction below to create or update files. 
+- When a file needs to be updated, use the SEARCH/REPLACE technique. it can have multiple search/replace sections in the same code block
+- When creating a new file, use the full file content technique. 
+
 ## Code block and file name convention
 
 The files provided will be in a markdown code block, with the appropriate language (file extension) with the first line following this format (with the comment language) `// file: path/to/file.ext`
 
-Important, as describe below, you decide if it is better to replace the whole file, or have narrow targeted SEARCH/REPLACE pairs as define below.
+Important, as described below, when creating a full file, you can add the entire file. When updating a file, use narrow, targeted SEARCH/REPLACE pairs as defined below.
 
-1.  **Markdown Block Markers for file content:** When providing file content, always enclose it within four backticks in markdown code blocks. Never use three backticks for markdown file content blocks. This ensures compatibility even if the file contains three backticks within its content.
+1.  **Markdown Block Markers for file content:** When providing file content, always enclose it within four backticks for markdown code blocks. Never use three backticks for markdown file content blocks. This ensures compatibility even if the file contains three backticks within its content.
 2.  **File Header:** The first line *inside* the code block *must* be a comment indicating the file path, following the `// file: path/to/file.ext` convention.
     - So, for HTML files, it will be `<!-- file: path/to/file.html -->`
     - For SQL, Lua, and other `--` comment languages, it will be `-- file: path/to/file...` (with the appropriate extension)
-    - For CSS, PCSS, and similar files, it will be `/* file: path/to/file... */`  (with the appropriate extension)
-3.  **Language Specifier:** The markdown code block *must* include the language specifier, the extension, immediately after the opening four backticks and end with four backticks.
+    - For CSS, PCSS, and similar files, it will be `/* file: path/to/file... */` (with the appropriate extension)
+3.  **Language Specifier:** The markdown code block *must* include the language specifier (the extension) immediately after the opening four backticks and be closed with four backticks.
 4.  **Strict Adherence:** Always use four backticks, never three, to ensure uniform formatting and prevent rendering issues.
-5.  **Consistency:** Maintain the four-backtick format *unconditionally* for *all* code blocks, for start and end backticks, regardless of language or content.
-6.  When you return files, follow the same convention, always first line, and as noted above. Usually, files will be given this way too.
-7.  Do not remove content if they do not need to be removed. Juse the Search/Replace technique described below to change only what is needed. 
+5.  **Consistency:** Maintain the four-backtick format *unconditionally* for *all* code blocks, both for opening and closing, regardless of language or content.
+6.  When you return files, follow the same convention, always starting with the first line as noted above. Usually, files will be given this way too.
+7.  Do not remove content unless it needs to be removed. Use the Search/Replace technique described below to change only what is needed.
 
 So, for example, for a javascript file, we would have something like
 
@@ -345,17 +349,15 @@ file_content_or_search_replace_here
 
 Make sure the code block start and ends with 4 backticks markdown code block.
 
-7. **Full File v.s. SEARCH/REPLACE** When creating a new file, put the whole file content in the `file_content_or_search_replace_here` section. 
+7. **Full File v.s. SEARCH/REPLACE** When creating a new file, put the whole file content in the `file_content_or_search_replace_here` section, but when updating a file, use the SEARCH/REPLACE technique explained below. 
 
-8. **SEARCH/REPLACE** When updating an existing file, use the SEARCH/REPLACE format describe below.
+8. **SEARCH/REPLACE** When doing search/replace, try to make the search/replace pair are as small as possible to avoid duplicating too much content. 
 
-9. **DECIDE SEARCH/REPLACE vs. Full File** Try hard to have the search/replace way when possible. When it is obvious that most of the file need to be rewritten, then, you may decide to replace the whole file instead of searching through most of it.
+9. **SEARCH/REPLACE** When doing search/replace, follow SEARCH/REPLACE format describe below precisely.
 
-10. **SEARCH/REPLACE** When doing search/replace, try to make the search/replace pair are as small as possible to avoid duplicating too much content. 
+10. **SEARCH/REPLACE** sections are not git commit sections, so do not include the `+` and `-` lines, just have the SEARCH and REPLACE as they appear in the section described below.
 
-11. **SEARCH/REPLACE** When doing search/replace, follow SEARCH/REPLACE format describe below precisely.
-
-12. **SEARCH/REPLACE** sections are not git commit sections, so do not include the `+` and `-` lines, just have the SEARCH and REPLACE as they appear in the section described below.
+11. **SEARCH/REPLACE**  Since search/replace are not git commit, when need to remove some lines, just do the search ad the replace with empty. Do not add the `-` prefix on the line, this won't work. Just give the text to replace by. 
 
 ### SEARCH/REPLACE format
 
@@ -404,6 +406,7 @@ Important considerations when generated the *SEARCH/REPLACE* pairs:
 - Do not include long runs of unchanging lines in *SEARCH/REPLACE* blocks.
 - To move code within a file, use 2 *SEARCH/REPLACE* blocks: 1 to delete it from its current location, 1 to insert it in the new location.
 - Make sure the Search section match exactly, event the whitespace. 
+- **VERY IMPORTANT**: The REPLACE section are not commit lines, and should **NOT** have `+` or `-` prefixes, there are just the line that should be replace the SEARCH section. 
 
 #### EXTREMELY IMPORTANT:
 
