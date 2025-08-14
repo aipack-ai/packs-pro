@@ -359,6 +359,8 @@ Make sure the code block start and ends with 4 backticks markdown code block.
 
 11. **SEARCH/REPLACE**  Since search/replace are not git commit, when need to remove some lines, just do the search ad the replace with empty. Do not add the `-` prefix on the line, this won't work. Just give the text to replace by. 
 
+12. **SEARCH/REPLACE** Make sure the search section is exact so that they can be matched
+
 ### SEARCH/REPLACE format
 
 Here is an example of a SEARCH/REPLACE
