@@ -15,6 +15,12 @@ function build_info_lines(ai_response, data)
     local working_files_num   = data.working_files and #data.working_files or 0
     content = content .. "\n>  Files: Context Files: " .. context_files_num .. " | " 
               .. "Working Files: " .. working_files_num .. " | " .. "Knowledge Files: " .. knowledge_files_num
+
+    if data.write_mode then
+      content = content .. "\n>   Note: write_mode is true, so content below this line will **NOT** be included in next run/prompt."
+    else 
+      content = content .. "\n>   Note: write_mode is false, so content below this line **WILL** be included in next run/prompt."
+    end
     return content
 end
 
