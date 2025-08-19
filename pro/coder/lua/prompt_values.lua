@@ -25,18 +25,17 @@ context_globs:
 structure_globs:
   - src/**/*.*
 
-# Relative to base_dir. (optional) Files you actually want to work on, 
-# Especially useful for concurrency (apply prompt on multiple file at the same time)
-# working_concurrency: true # When activated, each working glob file will become a task
-# input_concurrency: 6      # Number of concurrent tasks (default set to config tomls)
-working_globs:
-# - src/**/*.js
+# Working Globs - Create a task per file. Enable concurrency for parallelism. 
+#
+# working_globs:
+#   - src/**/*.js
+# working_concurrency: true # When activated, each working glob file becomes a task
+# input_concurrency: 6      # Number of concurrent tasks (default set in the config TOML files)
 
-
-# Note: This will add/override the model_aliases defined in
+# Note: This will add or override the model_aliases defined in
 #       .aipack/config.toml, ~/.aipack-base/config-user.toml, ~/.aipack-base/config-default.toml
 model_aliases:
-  my-model: gemini-2.5-pro
+  gpro: gemini-2.5-pro # example
 
 # Typically, leave this commented for "search_replace_auto", which is the most efficient
 # file_content_mode: whole # default "search_replace_auto"
@@ -48,7 +47,7 @@ write_mode: false
 # such as ~/.aipack-base/config-default.toml
 # For OpenAI and Gemini model, can use -low, -medium, -high suffix for reasoning control
 
-model: gpt-5-mini
+model: gpt-5-mini # set it to "gpt-5" for normal coding
 
 # To see docs, type "Show Doc" and then press `r` in the aip terminal
 ```
