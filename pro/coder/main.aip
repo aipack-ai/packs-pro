@@ -125,10 +125,13 @@ if working_refs ~= nil then
 end
 
 -- == Compute file_content_mode
--- user_file_conent_mode = "whole" or user_file_conent_mode = "search_replace_auto"
-local file_content_mode = {}
 
+-- file_content_mode = "whole" or file_content_mode = "search_replace_auto"
 local user_file_conent_mode = meta.file_content_mode
+
+-- This will have the `file_content_mode.search_replace_auto = true` or `file_content_mode.whole = true`
+local file_content_mode = {}
+-- If user gives it, then, we use what we set
 if user_file_conent_mode then
   if user_file_conent_mode == "whole" then
     file_content_mode.whole = true
@@ -137,9 +140,16 @@ if user_file_conent_mode then
   else
     return aip.flow.skip("Error file_conent_mode value '" .. user_file_conent_mode .. "' is invalid.\nCan be 'whole' or 'search_replace_auto'" )
   end 
+-- if user does not give anything, base on write_mode
 else
-  -- Default: search_replace_auto
-  file_content_mode.search_replace_auto = true
+  if write_mode == true then
+    -- Default: search_replace_auto
+    file_content_mode.search_replace_auto = true  
+  else
+    -- When write mode false, we do not do whole mode
+    file_content_mode.whole = true    
+  end
+
 end
 
 -- == Build the inputs(for now, only one)
