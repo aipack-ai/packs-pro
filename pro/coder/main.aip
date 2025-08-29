@@ -409,6 +409,7 @@ Important considerations when generated the *SEARCH/REPLACE* pairs:
 - To move code within a file, use 2 *SEARCH/REPLACE* blocks: 1 to delete it from its current location, 1 to insert it in the new location.
 - Make sure the Search section match exactly, event the whitespace. 
 - **VERY IMPORTANT**: The REPLACE section are not commit lines, and should **NOT** have `+` or `-` prefixes, there are just the line that should be replace the SEARCH section. 
+- And as with other code blocks, those code blocks sure they start and end with four backticks.
 
 #### EXTREMELY IMPORTANT:
 
