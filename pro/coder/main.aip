@@ -252,11 +252,18 @@ base.knowledge_files = p_utils.load_file_refs(CTX.WORKSPACE_DIR, base.knowledge_
 base.context_files   = p_utils.load_file_refs(base.base_dir, base.context_refs)
 base.working_files   = p_utils.load_file_refs(base.base_dir, working_refs)
 
+-- Add time if available
+if aip.time.weekday_local and aip.time.now_iso_local then
+    base.now_local = aip.time.now_iso_local() .. " (" .. aip.time.weekday_local() .. ")"
+end
 -- Print info
 local knowledge_file_count = tostring(base.knowledge_files and #base.knowledge_files or 0)
 local working_file_count = tostring(base.working_files and #base.working_files or 0)
 local context_file_count = tostring(base.context_files and #base.context_files or 0)
 local task_info = "Context Files: " .. context_file_count .. " | Working Files: " .. working_file_count .. " | Knowledge Files: " .. knowledge_file_count
+if base.now_local then
+   task_info = task_info .. "\nTime: " .. base.now_local
+end
 print(task_info)
 
 
@@ -617,6 +624,11 @@ Here are my instruction for this work:
 
 {{data.inst}}
 
+{{/if}}
+
+{{#if data.now_local}}
+Here is today local date / time if user ask to do something with it: 
+{{data.now_local}}
 {{/if}}
 
 Important additional instruction:
