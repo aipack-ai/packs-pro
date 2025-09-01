@@ -56,7 +56,7 @@ inst = aip.text.trim(inst_content)
 if inst == "" then
     local msg = "Empty instruction. Open & Edit prompt file:\n\n"
     msg = msg .. "➜ " .. prompt_file_rel_path .. "    (And press [r] for Replay)"
-    return aipack.skip(msg)
+    return aip.flow.skip(msg)
 end
 
 -- == Prep the cache files
