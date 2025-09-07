@@ -378,6 +378,12 @@ Make sure the code block start and ends with 4 backticks markdown code block.
 
 12. **SEARCH/REPLACE** Make sure the search section is exact so that they can be matched
 
+13. **SEARCH/REPLACE** When a section of a file needs to be removed, do a SEARCH/REPLACE where the replacement is empty. When performing the search, include any preceding or following empty lines so that only one empty line remains in the content block.
+
+14. **SEARCH/REPLACE** Very important. Always try to have small SEARCH and Replace only what is needed. 
+
+15. **SEARCH/REPLACE** If the Search is more than 2/3 of the full file, then, do a full file code block (without search replace). But really try to make small search block when possible. 
+
 ### SEARCH/REPLACE format
 
 Here is an example of a SEARCH/REPLACE
