@@ -700,6 +700,12 @@ if data.write_mode == true then
                 aip.file.save(file_path, remain)
             end
             table.insert(files_changed, file_path)
+        else 
+            -- NOTE: For now, we just concatenate back this block at the send of the second_part
+            -- TODO: Later, we will extract_blocks extrude = segments (when supported) to rebuild the proper order
+            local md_block_raw = "````" .. (block.lang or "") .. "\n" .. block.content .. "\n````"
+
+            second_part = second_part .. "\n\n" .. md_block_raw
         end
     end
 end
