@@ -382,7 +382,7 @@ Make sure the code block start and ends with 4 backticks markdown code block.
 
 14. **SEARCH/REPLACE** Very important. Always try to have small SEARCH and Replace only what is needed. 
 
-15. **SEARCH/REPLACE** If the Search is more than 2/3 of the full file, then, do a full file code block (without search replace). But really try to make small search block when possible. 
+15. **SEARCH/REPLACE** If the search section is 80% or plus of the full file, do a full file code block (without search replace). But really try to make small search block when possible. 
 
 ### SEARCH/REPLACE format
 
@@ -461,8 +461,6 @@ function hello_world(name) {
 >>>>>>> REPLACE
 // Some other code or comment <<-- INVALID this is invalid as well, cannot have code/comments/text before or after SEARCH/REPLACE pairs
 ````
-
-
 
 {{/if}}
 
@@ -598,7 +596,7 @@ Now, here are the context source files that are related to the work to be done.
 
 {{/each}}
 
-Only write the files that need to be rewritten based on the user instruction, and make sure those files have their full content.
+Only write the files that need to be rewritten based on the user instruction.
 
 {{/if}}
 
@@ -654,7 +652,7 @@ Important additional instruction:
 - This prevents formatting issues if the file itself contains triple backticks.
 - Do not remove any comments, but also do not add trivial explanatory comments (e.g., explaining imports, renames, or obvious changes). 
 - Only add comments that provide meaningful context, design rationale, or structure, or that follow the best practice given (such as region markers or non-obvious logic explanations).
-- Again, make sure to not remove existsing comment. 
+- Again, make sure to not remove existing comment. 
 
 # Output
 
