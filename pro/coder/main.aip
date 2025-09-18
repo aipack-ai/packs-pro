@@ -254,15 +254,29 @@ local base, working_refs = input.base, input.working_refs
 -- Save the prompt_files_path
 local prompt_files_content = "====\n\n"
 prompt_files_content = prompt_files_content .. "# Knowledge Files" .. "\n\n" .. p_utils.file_refs_to_md(base.knowledge_refs) .. "\n\n"
-prompt_files_content = prompt_files_content .. "# Struture Files" .. "\n\n" .. p_utils.file_refs_to_md(base.structure_refs, "(Only file paths, not their content)") .. "\n\n"
-prompt_files_content = prompt_files_content .. "# Context Files" .. "\n\n" .. p_utils.file_refs_to_md(base.context_refs) .. "\n\n"
-prompt_files_content = prompt_files_content .. "# Working Files" .. "\n\n" .. p_utils.file_refs_to_md(working_refs) .. "\n\n"
+prompt_files_content = prompt_files_content .. "# Struture Files"  .. "\n\n" .. p_utils.file_refs_to_md(base.structure_refs, "(Only file paths, not their content)") .. "\n\n"
+prompt_files_content = prompt_files_content .. "# Context Files"   .. "\n\n" .. p_utils.file_refs_to_md(base.context_refs) .. "\n\n"
+prompt_files_content = prompt_files_content .. "# Working Files"   .. "\n\n" .. p_utils.file_refs_to_md(working_refs) .. "\n\n"
 aip.file.append(base.prompt_files_path, prompt_files_content)
 
 -- Augment the base
 base.knowledge_files = p_utils.load_file_refs(CTX.WORKSPACE_DIR, base.knowledge_refs)
 base.context_files   = p_utils.load_file_refs(base.base_dir, base.context_refs)
 base.working_files   = p_utils.load_file_refs(base.base_dir, working_refs)
+
+-- 
+local total_size = 0
+local all_files  = {
+  base.knowledge_files or {}, -- making sure it is not nil, otherwise, loop below stops
+  base.context_files or {},
+  base.working_files or {}
+}
+
+for _, file_list in ipairs(all_files) do
+  for _, file in ipairs(file_list) do
+    total_size = total_size + file.size
+  end
+end
 
 -- Add time if available
 if aip.time.weekday_local and aip.time.now_iso_local then
@@ -273,6 +287,10 @@ local knowledge_file_count = tostring(base.knowledge_files and #base.knowledge_f
 local working_file_count = tostring(base.working_files and #base.working_files or 0)
 local context_file_count = tostring(base.context_files and #base.context_files or 0)
 local task_info = "Context Files: " .. context_file_count .. " | Working Files: " .. working_file_count .. " | Knowledge Files: " .. knowledge_file_count
+if total_size > 0 then
+    local total_size_fmt = aip.text.format_size(total_size, {trim = true})
+    task_info = task_info .. "\nTotal files size: " .. total_size_fmt
+end
 if base.now_local then
    task_info = task_info .. "\nTime: " .. base.now_local
 end
