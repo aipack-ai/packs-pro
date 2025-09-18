@@ -6,7 +6,6 @@ This will return inputs, where each input will have `.context_files: string[]`. 
 
 ```lua
 local p_utils  = require("prompt_utils")
-local p_values = require("prompt_values")
 local p_tmpl   = require("prompt_tmpl")
 
 -- == Check AIPACK Version
@@ -24,8 +23,7 @@ local prompt_file_path     = prompt_absolute_dir .. "/coder-prompt.md"
 local input = inputs and inputs[1] or nil
 
 local prompt_file = p_utils.prep_prompt_file(input, {
-    default_prompt_path = prompt_file_path,
-    initial_content     = p_values.prompt_template
+    default_prompt_path = prompt_file_path
 })
 local prompt_file_rel_path = aip.path.diff(prompt_file.path, CTX.WORKSPACE_DIR)
 local prompt_dir_rel_path  = aip.path.diff(prompt_absolute_dir, CTX.WORKSPACE_DIR)
@@ -164,7 +162,6 @@ local input_base = {
     prompt_file_rel_path         = prompt_file_rel_path,
     default_language             = meta.default_language or "Python",
     knowledge_refs               = knowledge_refs,
-    prompt_template              = p_values.prompt_template,
     first_part                   = first_part,
     include_second_part          = include_second_part,
     second_part                  = second_part,

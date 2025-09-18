@@ -1,8 +1,9 @@
+local p_tmpl   = require("prompt_tmpl")
+
 -- Returns FileRecord
 function prep_prompt_file(input, options) 
   options = options or {}
   local default_prompt_path    = options.default_prompt_path
-  local initial_content        = options.initial_content
   local add_separator          = options.add_separator ~= nil and options.add_separator or false 
   
   -- Enter prompt_path
@@ -20,13 +21,8 @@ function prep_prompt_file(input, options)
   -- Get flag
   local first_time = aip.path.exists(prompt_path) ~= true
 
-  -- Create placeholder initial content
-  -- (otherwise, the initial content will be)
-  if initial_content == nil then
-    initial_content = ""
-  end
-
-  aip.file.ensure_exists(prompt_path, initial_content, {content_when_empty =  true})
+  -- aip.file.ensure_exists(prompt_path, initial_content, {content_when_empty =  true})
+  p_tmpl.save_prompt_file(prompt_path)
 
   -- open if first time
   if first_time then 
