@@ -7,6 +7,7 @@ This will return inputs, where each input will have `.context_files: string[]`. 
 ```lua
 local p_utils  = require("prompt_utils")
 local p_tmpl   = require("prompt_tmpl")
+local consts   = require("consts")
 
 -- == Check AIPACK Version
 if not aip.semver.compare(CTX.AIPACK_VERSION, ">", "0.6.11") then
@@ -112,6 +113,10 @@ end
 
 local write_mode = meta.write_mode or false
 
+local max_files_size_kb = meta.max_files_size_kb or consts.DEFAULT_MAX_FILES_SIZE_KB
+
+print("max_files_size_kb", max_files_size_kb)
+
 -- == Compute include_second_partby default we include second part if not nil
 local include_second_part = second_part ~= nil
 if write_mode == true then
@@ -157,6 +162,7 @@ end
 
 -- == Build the inputs(for now, only one)
 local input_base = {
+    max_files_size_kb            = max_files_size_kb,
     write_mode                   = write_mode,
     file_content_mode            = file_content_mode,
     prompt_file_rel_path         = prompt_file_rel_path,
@@ -251,6 +257,29 @@ local p_utils  = require("prompt_utils")
 -- This is the input format (.base, and the .working_refs)
 local base, working_refs = input.base, input.working_refs
 
+-- Compute total size
+local total_size = 0
+local all_refs  = {
+  base.knowledge_refs or {}, -- making sure it is not nil, otherwise, loop below stops
+  base.context_refs or {},
+  base.working_refs or {}
+}
+
+for _, file_list in ipairs(all_refs) do
+  for _, file in ipairs(file_list) do
+    total_size = total_size + file.size
+  end
+end
+
+-- Check that not more than max
+local max_files_size_b = base.max_files_size_kb * 1000
+if total_size > max_files_size_b then
+    local msg = "Max files size reached."
+    msg = msg .. "\n Actual size: " .. aip.text.format_size(total_size)
+    msg = msg .. "\n    Max size: " .. aip.text.format_size(max_files_size_b)
+    return aip.flow.skip(msg)
+end
+
 -- Save the prompt_files_path
 local prompt_files_content = "====\n\n"
 prompt_files_content = prompt_files_content .. "# Knowledge Files" .. "\n\n" .. p_utils.file_refs_to_md(base.knowledge_refs) .. "\n\n"
@@ -264,19 +293,6 @@ base.knowledge_files = p_utils.load_file_refs(CTX.WORKSPACE_DIR, base.knowledge_
 base.context_files   = p_utils.load_file_refs(base.base_dir, base.context_refs)
 base.working_files   = p_utils.load_file_refs(base.base_dir, working_refs)
 
--- 
-local total_size = 0
-local all_files  = {
-  base.knowledge_files or {}, -- making sure it is not nil, otherwise, loop below stops
-  base.context_files or {},
-  base.working_files or {}
-}
-
-for _, file_list in ipairs(all_files) do
-  for _, file in ipairs(file_list) do
-    total_size = total_size + file.size
-  end
-end
 
 -- Add time if available
 if aip.time.weekday_local and aip.time.now_iso_local then
