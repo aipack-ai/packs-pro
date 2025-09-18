@@ -1,7 +1,5 @@
 # Completed Work
 
-- This is where the work completed goes
-
-- Similar format than the `work-plan.md`
-
-- This file list the step from oldest to newest, newest at the bottom. 
+- This is where the completed work goes.
+- Similar format to the work-plan.md.
+- This file lists the steps from oldest to newest, with the newest at the bottom.
