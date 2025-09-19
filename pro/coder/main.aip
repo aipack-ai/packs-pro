@@ -115,8 +115,6 @@ local write_mode = meta.write_mode or false
 
 local max_files_size_kb = meta.max_files_size_kb or consts.DEFAULT_MAX_FILES_SIZE_KB
 
-print("max_files_size_kb", max_files_size_kb)
-
 -- == Compute include_second_partby default we include second part if not nil
 local include_second_part = second_part ~= nil
 if write_mode == true then
