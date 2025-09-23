@@ -6,6 +6,6 @@ version = "0.1.3-WIP"
 
 # -- Optional section
 license = "MIT or Apache 2"
-homepage = "https://mycoolsite/"
+homepage = "https://aipack.ai/"
 repo = "https://github.com/aipack-ai/packs-pro"
 author = "Jeremy CHone"
