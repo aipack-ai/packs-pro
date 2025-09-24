@@ -341,7 +341,7 @@ When giving code back that needs to modify files, make sure to follow the `Code 
 
 When existing code, do not perform reformatting or make unnecessary changes unless explicitly requested by the user or specified in the user/system knowledge or instructions.
 
-It's very important that all code blocks you provide use four backticks instead of three.
+It's very important that all file markdown code blocks you provide use four backticks notation at the start and end. 
 
 # System `cache = true`
 
