@@ -30,8 +30,8 @@ structure_globs:
 #   - ["css/*.css"]      # When in a sub array, this will put all of the css in the same working group
 # input_concurrency: 2   # Number of concurrent tasks (default set in the config TOML files)
 
-## Max size in KB of all included file (safeguard, default 5000, for 5MB)
-# max_files_size_kb: 5000
+## Max size in KB of all included file (safeguard, default 1000, for 1MB)
+# max_files_size_kb: 1000
 
 ## Note: This will add or override the model_aliases defined in
 ##       .aipack/config.toml, ~/.aipack-base/config-user.toml, ~/.aipack-base/config-default.toml
