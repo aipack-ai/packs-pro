@@ -24,12 +24,11 @@ context_globs:
 structure_globs:
   - src/**/*.*
 
-## Working Globs - Create a task per file. Enable concurrency for parallelism. 
-##
+## Working Globs - Create a task per file or file group.
 # working_globs:
-#   - src/**/*.js
-# working_concurrency: true # When activated, each working glob file becomes a task
-# input_concurrency: 6      # Number of concurrent tasks (default set in the config TOML files)
+#   - src/**/*.js        # This will do one working group per matched .js
+#   - ["css/*.css"]      # When in a sub array, this will put all of the css in the same working group
+# input_concurrency: 2   # Number of concurrent tasks (default set in the config TOML files)
 
 ## Max size in KB of all included file (safeguard, default 5000, for 5MB)
 # max_files_size_kb: 5000

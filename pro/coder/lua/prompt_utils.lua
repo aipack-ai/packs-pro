@@ -113,6 +113,59 @@ function file_refs_to_md(refs, preamble)
 
 end
 
+-- Will resolve a list of string or array of string (each item can be anything)
+-- If the item is a string, it will will be added to the root_working_refs array
+--    (and then, we will do a aip.file.list(...) )
+-- If the items is a string[], then, 
+-- Arguments: 
+-- - `working_globs: (string | string[])[]` - List of string or array of string
+-- Returns: 
+-- - `FileInfo[][]` - List of file refs
+function compute_working_refs_list(working_globs)
+    local root_working_globs    = nil
+    local grouped_working_globs = nil
+
+    for _, item in ipairs(working_globs) do
+        if type(item) == "string" then
+            root_working_globs = root_working_globs or {}
+            table.insert(root_working_globs, item)
+        elseif type(item) == "table" then
+            -- NOTE: Assume item is list of string
+            -- TODO: Check item is list of string
+            grouped_working_globs = grouped_working_globs or {}
+            table.insert(grouped_working_globs, item)
+        end
+    end
+
+    local result = nil
+
+    -- For the root working blobs, populate the result (item become {item})
+    if root_working_globs then
+        result = result or {}
+        local root_files = aip.file.list(root_working_globs)
+        for _, f in ipairs(root_files) do
+            table.insert(result, {f})
+        end
+    end
+
+    -- For the grouped_working_globs, we add the files as one item
+    if grouped_working_globs then
+        result = result or {}
+        for _, group in ipairs(grouped_working_globs) do
+            local group_files = aip.file.list(group)
+            if #group_files > 0 then
+                table.insert(result, group_files)
+            end
+        end
+    end
+
+    return result
+end
+
+
+
+
+
 -- true true if not empty, or nil, or userdata (pointer)
 function is_not_empty(val)
   if type(val) == "userdata" then
@@ -131,10 +184,11 @@ function is_not_empty(val)
 end
 
 return {
-  prep_prompt_file      = prep_prompt_file,
-  should_skip           = should_skip,
-  prep_inst_and_content = prep_inst_and_content,
-  load_file_refs        = load_file_refs,
-  file_refs_to_md       = file_refs_to_md,
-  is_not_empty          = is_not_empty,
+  prep_prompt_file          = prep_prompt_file,
+  should_skip               = should_skip,
+  prep_inst_and_content     = prep_inst_and_content,
+  load_file_refs            = load_file_refs,
+  compute_working_refs_list = compute_working_refs_list,
+  file_refs_to_md           = file_refs_to_md,
+  is_not_empty              = is_not_empty,
 }

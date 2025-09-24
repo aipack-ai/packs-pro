@@ -9,7 +9,7 @@ local p_utils  = require("prompt_utils")
 local p_tmpl   = require("prompt_tmpl")
 local consts   = require("consts")
 
--- == Check AIPACK Version
+-- === Check AIPACK Version
 if not aip.semver.compare(CTX.AIPACK_VERSION, ">", "0.6.11") then
     local msg = "\nWARNING - This pack requires AIPACK_VERSION 0.6.12 or above, but " .. CTX.AIPACK_VERSION .. " is currently installed"
     msg = msg .. "\n\nACTION  - Update your aipack `cargo install aipack` (to check your aipack version run 'aip -V')"
@@ -17,7 +17,7 @@ if not aip.semver.compare(CTX.AIPACK_VERSION, ">", "0.6.11") then
     return aip.flow.skip("Wrong aipack version")
 end
 
--- == Init the prompt file if needed
+-- === Init the prompt file if needed
 local prompt_absolute_dir  = CTX.WORKSPACE_AIPACK_DIR .. "/.prompt/" .. CTX.PACK_IDENTITY
 local prompt_file_path     = prompt_absolute_dir .. "/coder-prompt.md"
 
@@ -32,7 +32,7 @@ local prompt_dir_rel_path  = aip.path.diff(prompt_absolute_dir, CTX.WORKSPACE_DI
 -- Save the dev plan files only if not present
 p_tmpl.save_dev_plan_files(prompt_dir_rel_path)
 
--- == Extract data from prompt files
+-- === Extract data from prompt files
 -- Split the prompt into inst and content
 local first_part, second_part = p_utils.prep_inst_and_content(prompt_file.content, "====", {content_is_default = false})
 
@@ -49,21 +49,21 @@ end
 
 -- Note: For now, we ignore the second part, as this will display what the AI says beside the code it gives. This allows for explanations, but there is no need to put it back in context.
 
--- == Extract the meta and instruction
+-- === Extract the meta and instruction
 local meta, inst = aip.md.extract_meta(first_part)
 -- Remove the `> ..` lines
 local _line_blocks, inst_content = aip.text.extract_line_blocks(inst,
                                              {starts_with = ">", extrude = "content"})
 inst = aip.text.trim(inst_content)
 
--- == Determine if we should skip
+-- === Determine if we should skip
 if inst == "" then
     local msg = "Empty instruction. Open & Edit prompt file:\n\n"
     msg = msg .. "➜ " .. prompt_file_rel_path .. "    (And press [r] for Replay)"
     return aip.flow.skip(msg)
 end
 
--- == Prep the cache files
+-- === Prep the cache files
 local prompt_files_path            = prompt_file.dir .. "/" .. ".cache/prompt_files_path.md"
 aip.file.save(prompt_files_path, "")
 local ai_responses_for_raw_path    = prompt_file.dir .. "/" .. ".cache/last_ai_responses_for_raw.md"
@@ -71,7 +71,7 @@ aip.file.save(ai_responses_for_raw_path, "")
 local ai_responses_for_prompt_path = prompt_file.dir .. "/" .. ".cache/last_ai_responses_for_prompt.md"
 aip.file.save(ai_responses_for_prompt_path, "")
 
--- == Prep knowledge_refs
+-- === Prep knowledge_refs
 local knowledge_refs = nil
 if p_utils.is_not_empty(meta.knowledge_globs) then
     knowledge_refs = aip.file.list(meta.knowledge_globs, {base_dir = CTX.WORKSPACE_DIR})
@@ -79,13 +79,12 @@ if p_utils.is_not_empty(meta.knowledge_globs) then
 end
 
 
--- == Prep context_refs and working_refs
+-- === Prep context_refs and working_refs
 local base_dir = meta.base_dir or ""
 
-local context_refs = nil
-local structure_refs = nil
-local working_refs = nil
-local working_concurrency = meta.working_concurrency or false
+local context_refs        = nil
+local structure_refs      = nil
+local working_refs_list   = nil
 
 
 if base_dir ~= nil then
@@ -103,9 +102,11 @@ if base_dir ~= nil then
         context_refs = aip.file.list(meta.context_globs, {base_dir = base_dir})
     end
 
-    -- Prep working_refs
+    -- Prep working_refs_list
     if p_utils.is_not_empty(meta.working_globs) then
-        working_refs = aip.file.list(meta.working_globs, {base_dir = base_dir})
+        working_refs_list = p_utils.compute_working_refs_list(meta.working_globs)
+        -- OLD WAY
+        -- working_refs = aip.file.list(meta.working_globs, {base_dir = base_dir})
     end
 else
     print("INFO: No base_dir, update in place.")
@@ -115,23 +116,22 @@ local write_mode = meta.write_mode or false
 
 local max_files_size_kb = meta.max_files_size_kb or consts.DEFAULT_MAX_FILES_SIZE_KB
 
--- == Compute include_second_partby default we include second part if not nil
+-- === Compute include_second_partby default we include second part if not nil
 local include_second_part = second_part ~= nil
 if write_mode == true then
     -- if write_mode, we do not include second part
     include_second_part = false
 end
 
--- == More logic
+-- === More logic
 print("Prompt file ➜ " .. prompt_file_rel_path)
 
 local should_cache_context_files = false
-if working_refs ~= nil then
+if working_refs_list ~= nil then
     should_cache_context_files = true
 end
 
--- == Compute file_content_mode
-
+-- === Compute file_content_mode
 -- file_content_mode = "whole" or file_content_mode = "search_replace_auto"
 local user_file_conent_mode = meta.file_content_mode
 
@@ -158,7 +158,7 @@ else
 
 end
 
--- == Build the inputs(for now, only one)
+-- === Build the input base
 local input_base = {
     max_files_size_kb            = max_files_size_kb,
     write_mode                   = write_mode,
@@ -181,59 +181,47 @@ local input_base = {
     ai_responses_for_prompt_path = ai_responses_for_prompt_path
 }
 
+-- === Preps the inputs
 local inputs = {}
 
+-- === working_refs
 -- If we have working_refs, then, we split input per working_refs (i.e., files)
-if working_refs ~= nil and #working_refs > 0 then
-    -- NOTE we filter out the working_refs from context_refs
-    local working_set = {}
-    for _, ref in ipairs(working_refs) do
-        working_set[ref.path] = true
-    end
-    -- Filter context_refs
-    local new_context_refs = {}
-    for _, ref in ipairs(input_base.context_refs) do
-        if not working_set[ref.path] then
-            table.insert(new_context_refs, ref)
+if working_refs_list ~= nil and #working_refs_list > 0 then
+    -- IMPORTANT - NOW IGNORE (working_concurrency)
+    for _, working_refs in ipairs(working_refs_list) do
+        -- Note: We put the working_file into an array for later, to allow having one input to be multiple files
+        if #working_refs > 0 then
+            local msg = working_refs[1].path
+            if #working_refs > 1 then
+                msg = msg .. ", plus " .. (#working_refs - 1) .. " files"
+            end
+            local _display = "working files (" .. #working_refs .."): " .. msg .. "\n\n" .. inst
+            table.insert(inputs, {base = input_base, working_refs = working_refs , _display = _display})        
         end
-    end
-    input_base.context_refs = new_context_refs
+    end    
 
-    -- We reshape the inputs if needed
-    if working_concurrency then
-        for _, working_ref in ipairs(working_refs) do
-            -- Note: We put the working_file into an array for later, to allow having one input to be multiple files
-            local _display = "working file: " .. working_ref.path .. "\n" .. inst
-            table.insert(inputs, {base = input_base, working_refs = {working_ref}, _display = _display})
-        end
-    else
-        inputs = { {base = input_base, working_refs = working_refs, _display = inst} }
-    end
--- Otherwise, if no working_refs, then, one input with the input_base
 else
     inputs = { {base = input_base, _display = inst} }
 end
 
--- Print Run Info
+-- === Print Run Info
 local context_file_count   = input_base.context_refs and #input_base.context_refs or 0
 context_file_count = tostring(context_file_count) -- string.format("%-" .. 5 .. "s", context_file_count)
 local write_mode_fmt = tostring(write_mode)
-local working_file_count   = working_refs and #working_refs or 0
+local working_group_count   = working_refs_list and #working_refs_list or 0
 local knowledge_file_count = input_base.knowledge_refs and #input_base.knowledge_refs or 0
 local concurrency_fmt    = "1"
-if meta.input_concurrency ~= nil and  meta.input_concurrency > 1 and working_concurrency == false then
-    concurrency_fmt = concurrency_fmt .. " (working_concurrency = false)"
-elseif working_concurrency == true and meta.input_concurrency ~= nil and meta.input_concurrency > 1 then
+if working_refs_list and #working_refs_list > 0 then
     concurrency_fmt = tostring(meta.input_concurrency)
 end
 concurrency_fmt = tostring(concurrency_fmt)
 
-local run_info = "Context Files: " .. context_file_count .. " | Working Files: " .. working_file_count .. " | Knowledge Files: " .. knowledge_file_count
+local run_info = "Context Files: " .. context_file_count .. " | Working Groups: " .. working_group_count .. " | Knowledge Files: " .. knowledge_file_count
 run_info     =  run_info .. "\n(Write Mode: " .. write_mode_fmt .. ", Concurrency: " .. concurrency_fmt .. ")"
 print(run_info)
 
 
--- == Compute the agent options
+-- === Compute the agent options
 options.model             = meta.model
 options.temperature       = meta.temperature
 options.model_aliases     = meta.model_aliases
@@ -255,12 +243,32 @@ local p_utils  = require("prompt_utils")
 -- This is the input format (.base, and the .working_refs)
 local base, working_refs = input.base, input.working_refs
 
+-- Compute new_context_refs
+local new_context_refs = nil 
+if working_refs and #working_refs > 1 then
+    local working_set = {}
+    for _, ref in ipairs(working_refs) do
+        working_set[ref.path] = true
+    end
+
+    new_context_refs = {}
+    for _, ref in ipairs(base.context_refs) do
+        if not working_set[ref.path] then
+            print("ref.path", ref.path)
+            table.insert(new_context_refs, ref)
+        end
+    end
+else 
+    new_context_refs = base.context_refs -- by default
+end
+
+
 -- Compute total size
 local total_size = 0
 local all_refs  = {
   base.knowledge_refs or {}, -- making sure it is not nil, otherwise, loop below stops
-  base.context_refs or {},
-  base.working_refs or {}
+  new_context_refs or {},
+  working_refs or {}
 }
 
 for _, file_list in ipairs(all_refs) do
@@ -278,17 +286,19 @@ if total_size > max_files_size_b then
     return aip.flow.skip(msg)
 end
 
+
 -- Save the prompt_files_path
 local prompt_files_content = "====\n\n"
 prompt_files_content = prompt_files_content .. "# Knowledge Files" .. "\n\n" .. p_utils.file_refs_to_md(base.knowledge_refs) .. "\n\n"
 prompt_files_content = prompt_files_content .. "# Struture Files"  .. "\n\n" .. p_utils.file_refs_to_md(base.structure_refs, "(Only file paths, not their content)") .. "\n\n"
-prompt_files_content = prompt_files_content .. "# Context Files"   .. "\n\n" .. p_utils.file_refs_to_md(base.context_refs) .. "\n\n"
+prompt_files_content = prompt_files_content .. "# Context Files"   .. "\n\n" .. p_utils.file_refs_to_md(new_context_refs) .. "\n\n"
 prompt_files_content = prompt_files_content .. "# Working Files"   .. "\n\n" .. p_utils.file_refs_to_md(working_refs) .. "\n\n"
 aip.file.append(base.prompt_files_path, prompt_files_content)
 
+
 -- Augment the base
 base.knowledge_files = p_utils.load_file_refs(CTX.WORKSPACE_DIR, base.knowledge_refs)
-base.context_files   = p_utils.load_file_refs(base.base_dir, base.context_refs)
+base.context_files   = p_utils.load_file_refs(base.base_dir, new_context_refs)
 base.working_files   = p_utils.load_file_refs(base.base_dir, working_refs)
 
 
@@ -567,9 +577,6 @@ Here is the documentation to show when user as "show doc"
 > `structure_globs`     - Relative to base_dir. Only include paths (not content) in the prompt.
 >                         This is very useful to give the AI the overall project shape without using too much prompt context.
 >
-> `working_concurrency` - When set to `true` and `working_globs` is defined, this will work on each working file concurrently,
->                         following the `input_concurrency` value set in this section or in the workspace or aipack-base config.toml.
->
 > `model_aliases`       - You can create your own alias names (which will override those defined in `.aipack/config.toml`).
 >                         Examples: "gpro" (maps to `gemini-2.5-pro`), "flash" (maps to `gemini-2.5-flash`).
 >
@@ -703,11 +710,11 @@ local second_part = ai_content
 -- Info lines
 local info_lines = o_utils.build_info_lines(ai_response, data)
 
--- == Write to the ai_content_for_raw
+-- === Write to the ai_content_for_raw
 local ai_content_for_raw = "====\n" .. info_lines .. "\n\n" .. ai_content .. "\n\n"
 aip.file.append(data.ai_responses_for_raw_path, ai_content_for_raw)
 
--- == Write to the src file
+-- === Write to the src file
 local files_changed = {}
 if data.write_mode == true then
     local blocks, other_content = aip.md.extract_blocks(ai_content, {extrude = "content"})
@@ -742,12 +749,12 @@ if data.write_mode == true then
     end
 end
 
--- == Append to the second_part to ai_content_for_prompt file
+-- === Append to the second_part to ai_content_for_prompt file
 second_part = aip.text.trim_start(second_part)
 local ai_content_for_prompt = "====\n" .. info_lines .. "\n\n" .. second_part .. "\n"
 aip.file.append(data.ai_responses_for_prompt_path, ai_content_for_prompt)
 
--- == Update the prompt file
+-- === Update the prompt file
 local first_part = aip.text.trim_end(data.first_part)
 
 local ai_content_for_prompt = aip.file.load(data.ai_responses_for_prompt_path).content
@@ -757,7 +764,7 @@ aip.file.save(data.prompt_path, prompt_content)
 
 -- print("Executed from your @coder prompt file:" .. data.prompt_file_rel_path)
 
--- == Build the Response
+-- === Build the Response
 local response = "✅ pro@coder task done.\n"
 
 if data.write_mode then
