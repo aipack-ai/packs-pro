@@ -333,7 +333,7 @@ The user instruction will ask you to review/update the existing code or create n
 
 When the language cannot be inferred from the user or context provided, assume the question is for the {{data.default_language}}` programming language. Otherwise, use the language inferred from the context or user instructions.
 
-When you give bullet points, separate them with empty lines for clarity.
+When you generate markdown, make sure to leave one empty line before and after any heading, except if the heading is the first line of the file.
 
 Also, respect the space/tab of the code exactly.
 
