@@ -600,7 +600,7 @@ First, here are some important knowledge, guidelines, and best practices I like 
 
 {{#each data.knowledge_files}}
 
-<KNOWLEDGE_FILE file="{{this.path}}">
+<KNOWLEDGE_FILE file_path="{{this.path}}">
 {{this.content}}
 </KNOWLEDGE_FILE>
 

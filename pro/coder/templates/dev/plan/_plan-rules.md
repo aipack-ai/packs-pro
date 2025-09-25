@@ -2,11 +2,11 @@
 
 This file gives the rules on how to manage the plan files, the `plan-todo.md` and `plan-done.md` files. 
 
-By default, the `plan-todo.md` and `plan-done.md` are located in the same folder as the `_plan-rules.md` file except if told otherwise by the user instruction. 
-
 - `plan-todo.md` - Contains the steps of a plan that are not done yet, and order from top to bottom. Meaning the top most step are to be done first. 
 
 - `plan-done.md` - Contains the steps that have been completed. it follow the same format as the plan-todo steps, but with different `status` and `time`
+
+By default, the `plan-todo.md` and `plan-done.md` are located in the same folder as the `_plan-rules.md` folder. 
 
 The user might ask to create or update the plan, or perform a step. When performing a step, perform the step from the top. 
 
