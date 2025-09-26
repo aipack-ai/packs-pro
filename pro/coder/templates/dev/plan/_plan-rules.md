@@ -11,11 +11,13 @@ By default, the `plan-todo.md` and `plan-done.md` are located in the same folder
 The user might ask to create or update the plan, or perform a step. When performing a step, perform the step from the top. 
 
 When a step is done, and file updated, also add in the response, at end a suggest git commit for the step. 
-Here is a git commit example. 
-  - `git commit -a -m ". chat_response - Fix doc typos and provider_model_iden doc"`
-  - The first character is `.` for minor | `-` for Fix | `+` for Addition | `^` for Improvement | `!` for Change | `*` for Refactor
-  - Do not mention the plan/history in the commit message (not its concern)
 
+Show the suggested gitt commit command and message. 
+- For example `git commit -a -m ". chat_response - Fix doc typos and provider_model_iden doc"`
+- The first character is `.` for minor | `-` for Fix | `+` for Addition | `^` for Improvement | `!` for Change | `*` for Refactor
+- Commit messages should be concise, starting with the first character, then the module or topic, followed by a dash (`-`), and a short description.
+- Prefix it with "Suggested commit:"
+- Do not mention the plan or history in the commit message, as that's not its concern.
 
 ## plan-todo.md rules
 
