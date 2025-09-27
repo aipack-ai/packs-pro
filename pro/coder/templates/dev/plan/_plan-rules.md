@@ -1,40 +1,49 @@
-# Rules to create/update the plan files
+# Rules for creating/updating the plan files
 
-This file gives the rules on how to manage the plan files, the `plan-todo.md` and `plan-done.md` files. 
+This file provides the rules for managing the plan files: `plan-todo.md` and `plan-done.md`. 
 
-- `plan-todo.md` - Contains the steps of a plan that are not done yet, and order from top to bottom. Meaning the top most step are to be done first. 
+- `plan-todo.md` - Contains the steps of a plan that are not done yet, ordered from top to bottom. This means the topmost step is to be done first. 
 
-- `plan-done.md` - Contains the steps that have been completed. it follow the same format as the plan-todo steps, but with different `status` and `time`
+- `plan-done.md` - Contains the steps that have been completed. It follows the same format as the plan-todo steps, but with different `status` and `time`.
 
-By default, the `plan-todo.md` and `plan-done.md` are located in the same folder as the `_plan-rules.md` folder. 
+By default, the `plan-todo.md` and `plan-done.md` files are located in the same folder as the `_plan-rules.md` file. 
 
-The user might ask to create or update the plan, or perform a step. When performing a step, perform the step from the top. 
+A user might ask to create or update the plan, or to perform a step. When performing a step, do the topmost step first. 
 
-When a step is done, and file updated, also add in the response, at end a suggest git commit for the step. 
+When a step is completed and the files are updated, also add to the response, at the end, a suggested git commit for the change. 
 
-Show the suggested gitt commit command and message. 
-- For example `git commit -a -m ". chat_response - Fix doc typos and provider_model_iden doc"`
-- The first character is `.` for minor | `-` for Fix | `+` for Addition | `^` for Improvement | `!` for Change | `*` for Refactor
+Show the suggested git commit command that the should may want to do for this step, formatted like the example show in 'suggested_git_command_example' tag (make sure exact format). 
+
+<suggested_git_command_example>
+Suggested commit: 
+
+```sh
+#!git-commit-suggestion
+git commit -a -m ". chat_response - Fix doc typos and provider_model_iden doc"
+```
+</suggested_git_command_example>
+
+Here is the git commit messageformatting rules:
+
+- The first character is `.` for minor, `-` for fix, `+` for addition, `^` for improvement, `!` for change, and `*` for refactor
 - Commit messages should be concise, starting with the first character, then the module or topic, followed by a dash (`-`), and a short description.
 - Prefix it with "Suggested commit:"
 - Do not mention the plan or history in the commit message, as that's not its concern.
 
 ## plan-todo.md rules
 
-- The `plan-todo.md` is a work plan file that is used to describe the work that needs to be done
-- The format is that each step is under `## Step - short title for the work`
+- The `plan-todo.md` file is a work plan used to describe tasks that need to be done.
+- Each step is under a heading in the form `## Step - short title for the work`
 - Followed by `status: not_started`
-- If you have today's date, add below it `time-created: ...` with the local date/time formatted in RFC 3339 (second precision)
-- Then an empty line, and the description of the step (what needs to be done). Concise but complete.
-- When it is implemented, move that section to the `work-history.md` with `status: done` and remove it from the list below.
-- We go from the top down, meaning the next step to be done is at the top.
-- If there is a missing file, update the work plan, mark the plan "in_progress", and state the blocker; then, on the next run, the user will probably solve the blocker.
+- If you have today's date, add `time-created: ...` below it, using the local date/time formatted in RFC 3339 (second precision)
+- Then an empty line and a concise but complete description of the step (what needs to be done).
+- When it is implemented, move that section to the `work-history.md` file with `status: done` and remove it from the list below.
+- Steps are ordered top to bottom, so the next step to be done is at the top.
+- If a file is missing, update the work plan, mark the plan as "in_progress", and state the blocker. On the next run, the user will likely resolve the blocker.
 
 ## plan-done.md rules
 
-- This is where the completed work goes.
-- Similar format to the `plan-todo.md`.
-- Below the `time-created: ...` add a `time-done: ...` so that we know when it was created and done.
+- This is where completed work goes.
+- Use a similar format to `plan-todo.md`.
+- Below `time-created: ...`, add a `time-done: ...` so we know when it was created and completed.
 - This file lists the steps from oldest to newest, with the newest at the bottom.
-
-
