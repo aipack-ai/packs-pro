@@ -23,10 +23,12 @@ git commit -a -m ". chat_response - Fix doc typos and provider_model_iden doc"
 ```
 </suggested_git_command_example>
 
+Note that the code block is only 2 lines, no empty line. 
+
 Here is the git commit messageformatting rules:
 
 - The first character is `.` for minor, `-` for fix, `+` for addition, `^` for improvement, `!` for change, and `*` for refactor
-- Commit messages should be concise, starting with the first character, then the module or topic, followed by a dash (`-`), and a short description.
+- Commit messages should be concise, starting with the first character, space, then the module or topic, space, followed by a dash (`-`), space, and a short description.
 - Prefix it with "Suggested commit:"
 - Do not mention the plan or history in the commit message, as that's not its concern.
 
