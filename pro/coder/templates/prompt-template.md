@@ -1,56 +1,42 @@
 ```yaml
 #!meta (parametric prompt)
 
-## Add absolute, relative, ~/, or some@pack knowledge globs.
-## They will be included in the prompt as knowledge files.
+# See README.md for more documentation
+
 knowledge_globs:
-# - path/to/knowledge/**/*.md         # Your own best practices
-# - core@doc/**/*.md                  # To help code .aip aipack agents
-# - pro@rust10x/guide/base/**/*.md    # Some Rust best practices
+# - /rel/or/abs/path/to/**/*.md      
+# - pro@coder/doc/README.md
+# - core@doc/**/*.md
 
-# If not set, context_globs and working_globs won't be evaluated
-base_dir: "" # Leave empty for workspace root; make sure to refine context_globs
+base_dir: "" 
 
-## Files that will be included in your prompt as context files.
-## Relative to base_dir, try to keep them as narrow as possible for a large codebase
-## The manifest file like package.json or Cargo.toml are good context for the AI at relatively low context cost/size
+## File path & content included in prompt
 context_globs:
 # - package.json    # e.g., for Node.js
 # - Cargo.toml      # e.g., for Rust
   - src/**/*.*      # Narrow glob when more than 10 files
 
-## Relative to base_dir. Only include paths (not content) in the prompt.
-## (A good way to give the AI a cheap overview of the overall structure of the project)
+## Only matched file paths included in prompt
 structure_globs:
   - src/**/*.*
 
 ## Working Globs - Create a task per file or file group.
 # working_globs:
-#   - src/**/*.js        # This will do one working group per matched .js
-#   - ["css/*.css"]      # When in a sub array, this will put all of the css in the same working group
-# input_concurrency: 2   # Number of concurrent tasks (default set in the config TOML files)
+#   - src/**/*.js
+#   - ["css/*.css"]
+# input_concurrency: 2
 
-## Max size in KB of all included file (safeguard, default 1000, for 1MB)
 # max_files_size_kb: 1000
 
-## Note: This will add or override the model_aliases defined in
-##       .aipack/config.toml, ~/.aipack-base/config-user.toml, ~/.aipack-base/config-default.toml
 # model_aliases:
 #   gpro: gemini-2.5-pro # example
 
-## Typically, leave this commented for "search_replace_auto", which is the most efficient
-## file_content_mode: whole # default "search_replace_auto"
-#
-## Set to true to write the files (otherwise, they will be shown below the `====` separator)
+## Set to true to write the files
 write_mode: false
-
-## MODEL: Here you can use any full model name or model aliases defined above and in the config.toml
-## such as ~/.aipack-base/config-default.toml
-## For OpenAI and Gemini model, can use -low, -medium, -high suffix for reasoning control
 
 model: gpt-5-mini # set it to "gpt-5" for normal coding
 
-## To see docs, type "Show Doc" and then press `r` in the aip terminal
+## See README.md for more info
 ```
 
 ====
