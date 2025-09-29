@@ -127,9 +127,10 @@ end
 print("Prompt file ➜ " .. prompt_file_rel_path)
 
 local should_cache_context_files = false
-if working_refs_list ~= nil then
-    should_cache_context_files = true
-end
+-- NOTE: For now, always false. 
+-- if working_refs_list ~= nil then
+--     should_cache_context_files = true
+-- end
 
 -- === Compute file_content_mode
 -- file_content_mode = "whole" or file_content_mode = "search_replace_auto"
@@ -325,7 +326,7 @@ print(task_info)
 return base
 ```
 
-# System `cache = true`
+# System `cache = false`
 
 You are a senior developer expert who has deep expertise in many languages and creates production-grade quality code (simple and scalable).
 
@@ -343,7 +344,7 @@ When existing code, do not perform reformatting or make unnecessary changes unle
 
 It's very important that all file markdown code blocks you provide use four backticks notation at the start and end. 
 
-# System `cache = true`
+# System `cache = false`
 
 {{#if data.file_content_mode.whole}}
 
@@ -374,7 +375,7 @@ Make sure the code block start and ends with 4 backticks markdown code block.
 
 {{/if}}
 
-# System `cache = true`
+# System `cache = false`
 
 {{#if data.file_content_mode.search_replace_auto}}
 
@@ -508,7 +509,7 @@ function hello_world(name) {
 
 {{/if}}
 
-# System `cache = true`
+# System `cache = false`
 
 Here are some some general language best practices to follow when providing code.
 
@@ -545,7 +546,7 @@ Here are some some general language best practices to follow when providing code
 - When you provide file paths/names in markdown text, put them under ticks, like `some/path/to/file.rs`.
 - Do not remove code regions except if explicitly asked.
 
-# System `cache = true`
+# System `cache = false`
 
 ## This Coder Agent Documentation if question asked
 
@@ -592,7 +593,7 @@ Here is the documentation to show when user as "show doc"
 > Happy coding!
 
 
-# User `cache = true`
+# User `cache = false`
 
 {{#if data.knowledge_files}}
 
@@ -608,7 +609,7 @@ First, here are some important knowledge, guidelines, and best practices I like 
 
 {{/if}}
 
-# User `cache = true`
+# User `cache = false`
 
 {{#if data.structure_refs}}
 
