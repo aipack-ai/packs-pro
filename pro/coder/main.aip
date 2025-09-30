@@ -30,7 +30,7 @@ local prompt_file_rel_path = aip.path.diff(prompt_file.path, CTX.WORKSPACE_DIR)
 local prompt_dir_rel_path  = aip.path.diff(prompt_absolute_dir, CTX.WORKSPACE_DIR)
 
 -- Save the dev plan files only if not present
-p_tmpl.save_dev_plan_files(prompt_dir_rel_path)
+p_tmpl.init_fixed_files(prompt_dir_rel_path)
 
 -- === Extract data from prompt files
 -- Split the prompt into inst and content

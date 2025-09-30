@@ -5,7 +5,7 @@
 
 knowledge_globs:
 # - /rel/or/abs/path/to/**/*.md      
-# - pro@coder/doc/README.md
+# - pro@coder/README.md
 # - core@doc/**/*.md
 
 base_dir: "" 

@@ -1,4 +1,4 @@
-# pro@coder README
+# pro@coder documentation
 
 This is the documentation and usage guide for the `pro@coder` AI Pack.
 

@@ -2,7 +2,6 @@
 
 local TEMPLATES_DIR = CTX.AGENT_FILE_DIR .. "/templates"
 
-
 -- ==== Support Functions
 
 -- Save the For each template_files, if the file name is not int he dest_dir, will copy it
@@ -44,20 +43,32 @@ function save_prompt_file(prompt_path)
   end
 end
 
--- Save the plan files if needed
--- NOTE: Will support only one level down (which is the case)
-function save_dev_plan_files(prompt_dir) 
-  local dev_plan_dir = prompt_dir .. "/dev/plan"
-  local template_files = aip.file.list(TEMPLATES_DIR .. "/dev/plan/*.md")
+function init_fixed_files(prompt_dir)
+  local files_to_init = {
+    { src_path  = CTX.AGENT_FILE_DIR .. "/README.md",
+      dest_path = prompt_dir .. "/README.md"
+    },
+    {
+      src_path  = CTX.AGENT_FILE_DIR .. "/templates/dev/plan/_plan-rules.md",
+      dest_path = prompt_dir .. "/dev/plan/_plan-rules.md"
+    }
+  }
 
-  save_template_files(template_files, dev_plan_dir)
+  for _, f in ipairs(files_to_init) do
+    if not aip.path.exists(f.dest_path) then
+      local content = aip.file.load(f.src_path).content
+      aip.file.save(f.dest_path, content)
+    end
+  end
+
 end
+
 
 -- ==== Return
 
 return {
-  save_dev_plan_files = save_dev_plan_files,
-  save_prompt_file    = save_prompt_file
+  save_prompt_file    = save_prompt_file,
+  init_fixed_files    = init_fixed_files,
 }
 
 
