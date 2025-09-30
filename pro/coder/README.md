@@ -4,6 +4,13 @@ This is the documentation and usage guide for the `pro@coder` AI Pack.
 
 The `pro@coder` pack provides AI-powered coding assistance through parametric prompts that allow you to configure context, working files, and AI model settings for your coding tasks.
 
+The key concept of `pro@coder` is to give you full control over the AI context, enabling you to guide the AI to code the way you want, rather than adapting to the AI's default approach. This is done in part by splitting files into `knowledge`, `context`, and `working` (for concurrency) categories.
+
+[Workflow](#setup--workflow) | [Coder Intro](#coder-promptmd) | [Coder Parameters](#parametric-block-format) | [AIPack config override](#aipack-config-override)
+
+
+## Setup & Workflow
+
 How to install and run the AI Pack:
 
 ```sh
@@ -14,11 +21,6 @@ aip install pro@coder
 aip run pro@coder
 ```
 
-[Workflow](#workflow) | [Coder Intro](#coder-promptmd) | [Coder Parameters](#parametric-block-format) | [AIPack config override](#aipack-config-override)
-
-
-## Workflow
-
 1. Run `aip run pro@coder` to create your parametric prompt file
 2. Edit the YAML configuration block to specify your context files, working files, and model
 3. Write your coding instructions above the `====` separator
@@ -28,7 +30,7 @@ aip run pro@coder
 
 More: 
 
-- See [Plan Based Development](#plan-based-development)
+- See [Plan-Based Development](#plan-based-development)
 
 
 ## coder-prompt.md
@@ -49,7 +51,7 @@ A coder prompt file consists of three main sections:
 
 3. **AI Info Section** - Below the `====` separator. Lines prefixed with `>` are meta information about the AI execution (additional info is also available), followed by AI responses and generated code.
 
-Also, when `write_mode: true`, the file content will be removed from the AI response section (below the `====`) and saved to its corresponding file path
+Also, when `write_mode: true`, the file content will be removed from the AI response section (below the `====`) and saved to its corresponding file path.
 
 ### Coder Parameters
 
@@ -112,20 +114,38 @@ model: gpt-5-mini # set it to "gpt-5" for normal coding
 
 #### knowledge_globs
 
-Array of glob patterns for knowledge files that will be included as system/knowledge context. These can be:
+Array of glob patterns for knowledge files that will be included as knowledge to the AI. These can be:
 
 - Absolute paths
 - Relative paths (to workspace root)
 - Home directory paths (`~/`)
 - Pack references (`some@pack/path/**/*.md`)
 
+This is a great place to put some relatively fix content, like coding best practices, documentation of some libraries, some relatively fix rules on how to create/maintain plan, spec, requirement type of content. 
+
 Example:
 
 ```yaml
 knowledge_globs:
-  - path/to/knowledge/**/*.md
-  - core@doc/**/*.md
-  - pro@rust10x/guide/base/**/*.md
+  - path/to/knowledge/**/*.md           # Can be relative to workspace or absolute
+  - pro@coder/README.md                 # This is this README.md from the pro@coder, 
+                                        # can be used to ask question about pro dcoe
+  - core@doc/**/*.md                    # core@doc is a built-in pack with the AI Pack doc
+  - pro@rust10x/guide/base/**/*.md      # aip install pro@rust10x, and then this will be aiable
+```
+
+For advanced users, here we can also put the "rules" of the plan or spec base folder like 
+
+```yaml
+knowledge_globs:
+  - .aipack/.prompt/pro@coder/dev/plan/_plan-rules.md
+```
+
+And then, in the `context_globs` we can put the plan minus this file by excluding the `_` like
+
+```yaml
+context_globs:
+  - .aipack/.prompt/pro@coder/dev/plan/[!_]*.md
 ```
 
 #### base_dir
@@ -136,18 +156,25 @@ Base directory for resolving `context_globs`, `working_globs`, and `structure_gl
 
 Array of glob patterns (relative to `base_dir`) for files to include as context. These files will be described to the AI as "User's context files". Keep these as narrow as possible for large codebases.
 
+This is a great place to put the code we want to send to the AI for a particular task. 
+For small codebases, we can have relatively wide globs like `src/**/*.ts`, but as the codebase becomes larger (>5k LOC), using narrower globs can be very effective at improving cost, accuracy, and speed, while minimizing costs.
+
 Example:
 
 ```yaml
 context_globs:
   - package.json
-  - Cargo.toml
-  - src/**/*.*
+  - src/main.ts
+  - src/event/*.ts
 ```
 
 #### structure_globs
 
 Array of glob patterns (relative to `base_dir`) for files whose paths (not content) will be included in the prompt. This provides the AI with an overview of the project structure at low context cost.
+
+Typically, wider glob patterns for source code are a good idea here, as this is a relatively context-efficient way to provide an overview of the system without making the context overly large.
+
+This also acts as a good forcing factor for having good module and file naming structures, allowing us to pass as much information as possible with the minimum token cost.
 
 Example:
 
@@ -218,7 +245,7 @@ Boolean flag controlling file writing behavior:
 - `true`: Files are written directly to disk
 
 - When `write_mode: false`, the content below the `====` that doesn't start with `>` will be sent back as context to the AI. This allows for controlled conversations.
-- When `write_mode: true`, the content below the `====` is **NOT** sent to the LLM; only what is given in the parametric prompt is sent. This allows for clean prompts without confusion from previous answers.
+- When `write_mode: true`, the content below the `====` is **NOT** sent to the LLM; only the content specified in the parametric prompt is sent. This allows for clean prompts without confusion from previous answers.
     - To keep historical context, you can use the plan-based prompting technique and put those files in the `context_globs` parameter.
 
 
