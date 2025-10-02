@@ -27,7 +27,7 @@ local prompt_file = p_utils.prep_prompt_file(input, {
     default_prompt_path = prompt_file_path
 })
 local prompt_file_rel_path = aip.path.diff(prompt_file.path, CTX.WORKSPACE_DIR)
-local prompt_dir_rel_path  = aip.path.diff(prompt_absolute_dir, CTX.WORKSPACE_DIR)
+local prompt_dir_rel_path  = prompt_file.dir
 
 -- Save the dev plan files only if not present
 p_tmpl.init_fixed_files(prompt_dir_rel_path)
