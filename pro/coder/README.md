@@ -62,17 +62,20 @@ Here is the fully documented parametric code block with its possible values:
 
 ## Add absolute, relative, ~/, or some@pack knowledge globs.
 ## They will be included in the prompt as knowledge files.
+## (relative to workspace dir, i.e. .aipack/ parent dir)
 knowledge_globs:
 # - path/to/knowledge/**/*.md         # Your own best practices
 # - core@doc/**/*.md                  # To help code .aip aipack agents
 # - pro@rust10x/guide/base/**/*.md    # Some Rust best practices
 
 # If not set, context_globs and working_globs won't be evaluated
+## (relative to workspace dir)
 base_dir: "" # Leave empty for workspace root; make sure to refine context_globs
 
 ## Files that will be included in your prompt as context files.
 ## Relative to base_dir, try to keep them as narrow as possible for a large codebase
 ## The manifest file like package.json or Cargo.toml are good context for the AI at relatively low context cost/size
+## (relative to base_dir)
 context_globs:
 # - package.json    # e.g., for Node.js
 # - Cargo.toml      # e.g., for Rust
@@ -80,6 +83,7 @@ context_globs:
 
 ## Relative to base_dir. Only include paths (not content) in the prompt.
 ## (A good way to give the AI a cheap overview of the overall structure of the project)
+## (relative to base_dir)
 structure_globs:
   - src/**/*.*
 

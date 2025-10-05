@@ -3,24 +3,29 @@
 
 # See README.md for more documentation
 
+## (relative to workspace dir, i.e. .aipack/ parent dir)
 knowledge_globs:
 # - /rel/or/abs/path/to/**/*.md      
 # - pro@coder/README.md
 # - core@doc/**/*.md
 
+## (relative to workspace dir)
 base_dir: "" 
 
 ## File path & content included in prompt
+## (relative to base_dir)
 context_globs:
 # - package.json    # e.g., for Node.js
 # - Cargo.toml      # e.g., for Rust
   - src/**/*.*      # Narrow glob when more than 10 files
 
 ## Only matched file paths included in prompt
+## (relative to base_dir)
 structure_globs:
   - src/**/*.*
 
 ## Working Globs - Create a task per file or file group.
+## (relative to base_dir)
 # working_globs:
 #   - src/**/*.js
 #   - ["css/*.css"]
