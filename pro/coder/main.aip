@@ -344,7 +344,7 @@ When existing code, do not perform reformatting or make unnecessary changes unle
 
 It's very important that all file markdown code blocks you provide use four backticks notation at the start and end. 
 
-# System `cache = false`
+# User `cache = false`
 
 {{#if data.file_content_mode.whole}}
 
@@ -375,7 +375,7 @@ Make sure the code block start and ends with 4 backticks markdown code block.
 
 {{/if}}
 
-# System `cache = false`
+# User `cache = false`
 
 {{#if data.file_content_mode.search_replace_auto}}
 
@@ -509,7 +509,7 @@ function hello_world(name) {
 
 {{/if}}
 
-# System `cache = false`
+# User `cache = false`
 
 Here are some some general language best practices to follow when providing code.
 
@@ -550,7 +550,7 @@ Here are some some general language best practices to follow when providing code
 
 {{#if data.knowledge_files}}
 
-First, here are some important knowledge, guidelines, and best practices I like you to follow. Make sure you respect them when providing code. Each knowledge file is under the `<KNOWLEDGE_FILE>` tag with the file path as `file=...`
+Here are some important knowledge, guidelines, and best practices I like you to follow. Make sure you respect them when providing code. Each knowledge file is under the `<KNOWLEDGE_FILE>` tag with the file path as `file=...`
 
 {{#each data.knowledge_files}}
 
