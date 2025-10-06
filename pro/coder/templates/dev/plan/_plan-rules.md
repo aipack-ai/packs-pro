@@ -42,6 +42,8 @@ Here is the git commit messageformatting rules:
 - When it is implemented, move that section to the `work-history.md` file with `status: done` and remove it from the list below.
 - Steps are ordered top to bottom, so the next step to be done is at the top.
 - If a file is missing, update the work plan, mark the plan as "in_progress", and state the blocker. On the next run, the user will likely resolve the blocker.
+- Each step must represent a meaningful, self-contained piece of progress — it should compile or run successfully, produce visible or structural changes (in UI or architecture), and clearly demonstrate advancement from the previous step.
+
 
 ## plan-done.md rules
 
