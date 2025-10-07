@@ -10,6 +10,8 @@ By default, the `plan-todo.md` and `plan-done.md` files are located in the same 
 
 A user might ask to create or update the plan, or to perform a step. When performing a step, do the topmost step first. 
 
+When the user ask to create or update the plan file(s), do not do any steps, just update the needed plan files. 
+
 Make sure to follow the code block notation with the file name so that the file get created. 
 
 ## plan-todo.md rules
