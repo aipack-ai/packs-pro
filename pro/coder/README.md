@@ -102,8 +102,8 @@ structure_globs:
 #   gpro: gemini-2.5-pro # example
 
 ## Typically, leave this commented for "search_replace_auto", which is the most efficient
-## file_content_mode: whole # default "search_replace_auto"
-#
+# file_content_mode: whole # default "search_replace_auto"
+
 ## Set to true to write the files (otherwise, they will be shown below the `====` separator)
 write_mode: false
 
