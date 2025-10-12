@@ -255,7 +255,6 @@ if working_refs and #working_refs > 1 then
     new_context_refs = {}
     for _, ref in ipairs(base.context_refs) do
         if not working_set[ref.path] then
-            print("ref.path", ref.path)
             table.insert(new_context_refs, ref)
         end
     end
