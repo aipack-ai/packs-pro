@@ -75,7 +75,6 @@ aip.file.save(ai_responses_for_prompt_path, "")
 local knowledge_refs = nil
 if p_utils.is_not_empty(meta.knowledge_globs) then
     knowledge_refs = aip.file.list(meta.knowledge_globs, {base_dir = CTX.WORKSPACE_DIR})
-    print("INFO: Knowledge Files (from knowledge_globs): " .. #knowledge_refs)
 end
 
 
@@ -363,7 +362,8 @@ The files provided will be in a markdown code block, with the appropriate langua
 3.  **Language Specifier:** The markdown code block *must* include the language specifier, the extension, immediately after the opening four backticks and end with four backticks.
 4.  **Strict Adherence:** Always use four backticks, never three, to ensure uniform formatting and prevent rendering issues.
 5.  **Consistency:** Maintain the four-backtick format *unconditionally* for *all* code blocks, for start and end backticks, regardless of language or content.
-6.  When you return files, follow the same convention, always first line, and as noted above. Usually, files will be given this way too.
+6. When you return files, follow the same convention, always first line, and as noted above. Usually, files will be given this way too.
+7. Since it is about replacing the whole file, make sure to give back the whole file content (no abbreviation).
 
 So, for example, for a javascript file, we would have something like
 
@@ -643,12 +643,16 @@ Here is today local date / time if user ask to do something with it:
 {{data.now_local}}
 {{/if}}
 
-Important additional instruction:
+**Important additional instruction:**
+
 - As per your system instruction **1 – Markdown Block Markers for file content**, always enclose any file content beginning with `// file: ...` in a markdown code block using **four backticks**.
 - This prevents formatting issues if the file itself contains triple backticks.
-- Do not remove any comments, but also do not add trivial explanatory comments (e.g., explaining imports, renames, or obvious changes). 
-- Only add comments that provide meaningful context, design rationale, or structure, or that follow the best practice given (such as region markers or non-obvious logic explanations).
-- Again, make sure to not remove existing comment. 
+- **Never remove or alter existing comments. (except if explictly asked by the user)**  
+  Comments must be preserved *verbatim*, including spacing, indentation, and placement, even if they appear redundant or outdated.
+- Do **not** add trivial explanatory comments (e.g., explaining imports, renames, or obvious changes).  
+  Only add comments that provide meaningful context, design rationale, or structure (such as region markers or explanations of non-obvious logic).
+- **Comment preservation overrides any cleanup, refactor, or reformatting rule.**
+
 
 # Output
 
