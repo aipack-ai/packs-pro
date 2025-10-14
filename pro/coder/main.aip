@@ -18,16 +18,24 @@ if not aip.semver.compare(CTX.AIPACK_VERSION, ">", "0.6.11") then
 end
 
 -- === Init the prompt file if needed
-local prompt_absolute_dir  = CTX.WORKSPACE_AIPACK_DIR .. "/.prompt/" .. CTX.PACK_IDENTITY
-local prompt_file_path     = prompt_absolute_dir .. "/coder-prompt.md"
+local default_prompt_absolute_dir  = CTX.WORKSPACE_AIPACK_DIR .. "/.prompt/" .. CTX.PACK_IDENTITY
+local default_prompt_file_path     = default_prompt_absolute_dir .. "/coder-prompt.md"
 
 local input = inputs and inputs[1] or nil
 
 local prompt_file = p_utils.prep_prompt_file(input, {
-    default_prompt_path = prompt_file_path
+    default_prompt_path = default_prompt_file_path
 })
-local prompt_file_rel_path = aip.path.diff(prompt_file.path, CTX.WORKSPACE_DIR)
+
+-- if path start with "./"
+local prompt_file_rel_path = nil
+if prompt_file.path:sub(1, 2) == "./" then
+    prompt_file_rel_path = prompt_file.path:sub(3)
+else
+    prompt_file_rel_path = aip.path.diff(prompt_file.path, CTX.WORKSPACE_DIR)
+end
 local prompt_dir_rel_path  = prompt_file.dir
+
 
 -- Save the dev plan files only if not present
 p_tmpl.init_fixed_files(prompt_dir_rel_path)
@@ -59,7 +67,7 @@ inst = aip.text.trim(inst_content)
 -- === Determine if we should skip
 if inst == "" then
     local msg = "Empty instruction. Open & Edit prompt file:\n\n"
-    msg = msg .. "➜ " .. prompt_file_rel_path .. "    (And press [r] for Replay)"
+    msg = msg .. "➜ " .. prompt_file_rel_path .. "\n\n(And press [r] for Replay)"
     return aip.flow.skip(msg)
 end
 

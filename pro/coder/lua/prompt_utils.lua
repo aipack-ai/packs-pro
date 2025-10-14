@@ -1,4 +1,5 @@
-local p_tmpl   = require("prompt_tmpl")
+local p_tmpl           = require("prompt_tmpl")
+local PROMPT_FILE_NAME = "coder-prompt.md"
 
 -- Returns FileRecord
 function prep_prompt_file(input, options) 
@@ -13,7 +14,7 @@ function prep_prompt_file(input, options)
   elseif type(input) == "string" then
       -- remove the trailing /
       prompt_path =  input:gsub("/+$", "")
-      prompt_path = aip.text.ensure(input, {prefix = "./", suffix = "/prompt.md"})
+      prompt_path = aip.text.ensure(input, {prefix = "./", suffix = "/" .. PROMPT_FILE_NAME})
   else
       prompt_path = input.path
   end
