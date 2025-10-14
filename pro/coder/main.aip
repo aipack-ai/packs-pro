@@ -10,7 +10,7 @@ local p_tmpl   = require("prompt_tmpl")
 local consts   = require("consts")
 
 -- === Check AIPACK Version
-if not aip.semver.compare(CTX.AIPACK_VERSION, ">", "0.6.11") then
+if not aip.semver.compare(CTX.AIPACK_VERSION, ">", "0.8.0") then
     local msg = "\nWARNING - This pack requires AIPACK_VERSION 0.6.12 or above, but " .. CTX.AIPACK_VERSION .. " is currently installed"
     msg = msg .. "\n\nACTION  - Update your aipack `cargo install aipack` (to check your aipack version run 'aip -V')"
     print(msg)
