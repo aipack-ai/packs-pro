@@ -1,8 +1,41 @@
-Here are some new features of Rust Edition 2024.
+Here are some important new guideline to follow when writing Rust code. 
+
+Some are new features of Rust Edition 2024 and modern Rust that needs to be follows.
 
 Make sure to use them when appropriate.
 
-## Rust Edition 2024 change overview
+### if-let-chain is now supported
+
+Now the Rust compiler support let-chain 
+
+So, do this style when possible: 
+
+```rust
+if let Some(name) = person_name
+     && name.contains("John") {
+    // do stuff
+}
+```
+
+Rather than the old way: 
+
+```rust
+if let Some(name) = person_name { 
+    if name.contains("John") {
+        // do stuff
+    }
+}
+```
+
+### Inline macro values
+
+For `println!` `assert...!` and all of those macro that take string literal, now when simple variables they should be inline. 
+
+So, do this `println!("Hello {name}")` rather than `println!("Hello {}", name)`
+
+When composed variable name, then, keep it separate (for example `println!("Hello {}", person.name)` is still ok
+
+### Future and IntoFuture
 
 - The `Future` and `IntoFuture` traits are now part of the prelude.
 - `IntoIterator` for `Box<[T]>`
