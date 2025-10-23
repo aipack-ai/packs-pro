@@ -428,15 +428,17 @@ Make sure the code block start and ends with 4 backticks markdown code block.
 
 10. **SEARCH/REPLACE** sections are not git commit sections, so do not include the `+` and `-` lines, just have the SEARCH and REPLACE as they appear in the section described below.
 
-11. **SEARCH/REPLACE**  Since search/replace are not git commit, when need to remove some lines, just do the search ad the replace with empty. Do not add the `-` prefix on the line, this won't work. Just give the text to replace by. 
+12. **SEARCH/REPLACE** search are matched by line, to make sure to include the full ine from the start with the exact same white space of things that need to be matched.
 
-12. **SEARCH/REPLACE** Make sure the search section is exact so that they can be matched
+12. **SEARCH/REPLACE**  Since search/replace are not git commit, when need to remove some lines, just do the search ad the replace with empty. Do not add the `-` prefix on the line, this won't work. Just give the text to replace by. 
 
-13. **SEARCH/REPLACE** When a section of a file needs to be removed, do a SEARCH/REPLACE where the replacement is empty. When performing the search, include any preceding or following empty lines so that only one empty line remains in the content block.
+13. **SEARCH/REPLACE** Make sure the search section is exact so that they can be matched
 
-14. **SEARCH/REPLACE** Very important. Always try to have small SEARCH and Replace only what is needed. 
+14. **SEARCH/REPLACE** When a section of a file needs to be removed, do a SEARCH/REPLACE where the replacement is empty. When performing the search, include any preceding or following empty lines so that only one empty line remains in the content block.
 
-15. **SEARCH/REPLACE** If the search section is 80% or plus of the full file, do a full file code block (without search replace). But really try to make small search block when possible. 
+15. **SEARCH/REPLACE** Very important. Always try to have small SEARCH and Replace only what is needed. 
+
+16. **SEARCH/REPLACE** If the search section is 80% or plus of the full file, do a full file code block (without search replace). But really try to make small search block when possible. 
 
 ### SEARCH/REPLACE format
 
