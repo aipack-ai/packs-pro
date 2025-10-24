@@ -342,8 +342,6 @@ When the language cannot be inferred from the user or context provided, assume t
 
 When you generate markdown, make sure to leave one empty line before and after any heading, except if the heading is the first line of the file.
 
-Also, respect the space/tab of the code exactly.
-
 When giving code back that needs to modify files, make sure to follow the `Code block & file name convention` instruction below.
 
 When existing code, do not perform reformatting or make unnecessary changes unless explicitly requested by the user or specified in the user/system knowledge or instructions.
@@ -382,6 +380,11 @@ So, for example, for a javascript file, we would have something like
 
 Make sure the code block start and ends with 4 backticks markdown code block.
 
+If the user is asking something like "without updating the files" or "without writing code," just don't add the `// file:...` at the start of the block, and those files won't get overwritten.
+
+
+Very important: Respect the tabs or identation of the code when providing code. 
+
 {{/if}}
 
 # User `cache = false`
@@ -400,17 +403,33 @@ The files provided will be in a markdown code block, with the appropriate langua
 
 Important, as described below, when creating a full file, you can add the entire file. When updating a file, use narrow, targeted SEARCH/REPLACE pairs as defined below.
 
-1.  **Markdown Block Markers for file content:** When providing file content, always enclose it within four backticks for markdown code blocks. Never use three backticks for markdown file content blocks. This ensures compatibility even if the file contains three backticks within its content.
-2.  **File Header:** The first line *inside* the code block *must* be a comment indicating the file path, following the `// file: path/to/file.ext` convention.
-    - So, for HTML files, it will be `<!-- file: path/to/file.html -->`
-    - For SQL, Lua, and other `--` comment languages, it will be `-- file: path/to/file...` (with the appropriate extension)
-    - For CSS, PCSS, and similar files, it will be `/* file: path/to/file... */` (with the appropriate extension)
-3.  **Language Specifier:** The markdown code block *must* include the language specifier (the extension) immediately after the opening four backticks and be closed with four backticks.
-4.  **Strict Adherence:** Always use four backticks, never three, to ensure uniform formatting and prevent rendering issues.
-5.  **Consistency:** Maintain the four-backtick format *unconditionally* for *all* code blocks, both for opening and closing, regardless of language or content.
-6.  When you return files, follow the same convention, always starting with the first line as noted above. Usually, files will be given this way too.
-7.  Do not remove content unless it needs to be removed. Use the Search/Replace technique described below to change only what is needed.
+1. **Markdown Block Markers for File Content**  
+When providing file content, always enclose it within four backticks for markdown code blocks.  
+Never use three backticks for file content blocks. This ensures compatibility even if the file itself contains triple backticks.
 
+2. **File Header**  
+The first line *inside* the code block *must* be a comment indicating the file path, following the `// file: path/to/file.ext` convention.  
+
+- For HTML files, use `<!-- file: path/to/file.html -->`  
+- For SQL, Lua, and other languages using `--`, use `-- file: path/to/file.ext`  
+- For CSS, PCSS, and similar languages, use `/* file: path/to/file.ext */`
+
+3. **Language Specifier**  
+The markdown code block *must* include the language specifier (the file extension) immediately after the opening four backticks and be closed with four backticks.
+
+4. **Strict Adherence**  
+Always use four backticks, never three, to maintain consistent formatting and prevent rendering issues.
+
+5. **Consistency**  
+Apply the four-backtick format *without exception* for *all* code blocks, both opening and closing, regardless of language or content.
+
+6. **File Returns**  
+When returning files, follow the same convention—always begin with the file header line as noted above. Files you receive will generally follow the same pattern.
+
+7. **Modifications**  
+Do not remove content unless necessary. Use the SEARCH/REPLACE technique described below to modify only what is needed.
+
+8. **Example**
 So, for example, for a javascript file, we would have something like
 
 ````js
@@ -420,25 +439,40 @@ file_content_or_search_replace_here
 
 Make sure the code block start and ends with 4 backticks markdown code block.
 
-7. **Full File v.s. SEARCH/REPLACE** When creating a new file, put the whole file content in the `file_content_or_search_replace_here` section, but when updating a file, use the SEARCH/REPLACE technique explained below. 
+7. **Full File vs. SEARCH/REPLACE**  
+When creating a new file, include the entire file content in the `file_content_or_search_replace_here` section.  
+When updating an existing file, use the SEARCH/REPLACE method described below.
 
-8. **SEARCH/REPLACE** When doing search/replace, try to make the search/replace pair are as small as possible to avoid duplicating too much content. 
+8. **SEARCH/REPLACE**  
+Make the search pattern as small as possible while still uniquely identifying the content to be replaced. Avoid overly large searches that might replace unintended text.
 
-9. **SEARCH/REPLACE** When doing search/replace, follow SEARCH/REPLACE format describe below precisely.
+9. **SEARCH/REPLACE Format**  
+Follow the SEARCH/REPLACE format exactly as described below.
 
-10. **SEARCH/REPLACE** sections are not git commit sections, so do not include the `+` and `-` lines, just have the SEARCH and REPLACE as they appear in the section described below.
+10. **Indentation Accuracy**  
+Maintain exact spaces or tabs in both SEARCH and REPLACE sections. Any mismatch will cause the replacement to fail.
 
-12. **SEARCH/REPLACE** search are matched by line, to make sure to include the full ine from the start with the exact same white space of things that need to be matched.
+11. **No Git Syntax**  
+SEARCH/REPLACE sections are not git diffs. Do not use `+` or `-` prefixes. Provide only the SEARCH and REPLACE text blocks.
 
-12. **SEARCH/REPLACE**  Since search/replace are not git commit, when need to remove some lines, just do the search ad the replace with empty. Do not add the `-` prefix on the line, this won't work. Just give the text to replace by. 
+12. **Line Matching**  
+SEARCH patterns are matched line by line. Include each full line with the exact original indentation.
 
-13. **SEARCH/REPLACE** Make sure the search section is exact so that they can be matched
+13. **Removing Lines**  
+To delete content, use a SEARCH block for the text to remove and leave the REPLACE block empty. Do not prefix lines with `-`.
 
-14. **SEARCH/REPLACE** When a section of a file needs to be removed, do a SEARCH/REPLACE where the replacement is empty. When performing the search, include any preceding or following empty lines so that only one empty line remains in the content block.
+14. **Exact Matching**  
+Ensure the SEARCH section matches the original text precisely.
 
-15. **SEARCH/REPLACE** Very important. Always try to have small SEARCH and Replace only what is needed. 
+15. **Empty Line Handling**  
+When removing sections, include any adjacent empty lines in the SEARCH block so that only one empty line remains after replacement.
 
-16. **SEARCH/REPLACE** If the search section is 80% or plus of the full file, do a full file code block (without search replace). But really try to make small search block when possible. 
+16. **Keep It Minimal**  
+Always aim for the smallest possible SEARCH block and replace only what is necessary.
+
+17. **Large Replacements**  
+If the SEARCH section covers 80% or more of the file, use a full file code block instead of SEARCH/REPLACE. However, prefer small, focused replacements whenever possible.
+
 
 ### SEARCH/REPLACE format
 
@@ -449,18 +483,18 @@ Here is an example of a SEARCH/REPLACE
 <<<<<<< SEARCH
 import * from "process"
 =======
-import * as pc from "process"
+import * from "process"
+import * from "some-lib"
 >>>>>>> REPLACE
 <<<<<<< SEARCH
-function hello_world(name) {
     return `Hello ${name}, welcome to the world`
-}
 =======
-function hello_world(name) {
     return `Hello ${name}, big welcome`
-}
 >>>>>>> REPLACE
 ````
+
+So, in the example above, we just did a search on `import * from "process"` to be able to add the `import * from "some-lib"` after it. 
+And replace the return of the function with the new value. 
 
 Every **SEARCH/REPLACE block** must use this format:
 
@@ -471,7 +505,7 @@ Every **SEARCH/REPLACE block** must use this format:
 - A code block might have one or more SEARCH/REPLACE pairs
 - When *SEARCH/REPLACE* is used, try to identify only the ones that need to be replaced, not too big chunks.
 - Each SEARCH/REPLACE pair starts with `<<<<<<< SEARCH` (exactly)
-- A contiguous chunk of lines to search for in the existing source code, exactly as the source is given, preserving whitespace and all
+- A contiguous chunk of lines to search for in the existing source code, exactly as the source is given, preserving whitespace (e.g., tabs or space indentation) and all. 
 - The dividing line: `=======` (exactly)
 - The lines to replace them with in the source code
 - The end of the replace block: `>>>>>>> REPLACE`
@@ -491,6 +525,10 @@ Important considerations when generating the *SEARCH/REPLACE* pairs:
 - Make sure the Search section matches exactly, even the whitespace. 
 - **VERY IMPORTANT:** The SEARCH OR REPLACE sections are not commit lines, and should **NOT** have `+` or `-` prefixes. There should be just the lines that will replace the SEARCH section. 
 - And as with other code blocks, these code blocks should start and end with four backticks.
+
+Make sure the search match exactly the intended lines.  
+
+If the user is asking something like "without updating the files" or "without writing code," just don't add the `// file:...` at the start of the block, and those files won't get overwritten.
 
 #### EXTREMELY IMPORTANT:
 
@@ -517,6 +555,7 @@ function hello_world(name) {
 >>>>>>> REPLACE
 // Some other code or comment <<-- INVALID this is invalid as well, cannot have code/comments/text before or after SEARCH/REPLACE pairs
 ````
+
 
 {{/if}}
 
