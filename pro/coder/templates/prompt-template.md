@@ -5,9 +5,10 @@
 
 ## (relative to workspace dir, i.e. .aipack/ parent dir)
 knowledge_globs:
-# - /rel/or/abs/path/to/**/*.md      
-# - pro@coder/README.md
-# - core@doc/**/*.md
+# - /rel/or/abs/path/to/**/*.md      # Any relatively or absolute path/globs to markdown
+# - pro@coder/README.md              # To ask question about this pro@coder AIPack
+# - core@doc/**/*.md                 # To help build .aip AIPack agents
+# - pro@rust10x/guide/base/**/*.md   # Example of best practices about Rust coding
 
 ## (relative to workspace dir)
 base_dir: "" 
@@ -34,7 +35,7 @@ structure_globs:
 # max_files_size_kb: 1000
 
 # model_aliases:
-#   gpro: gemini-2.5-pro # example
+#   my-model: gemini-pro-latest # example of any alias (see ~/.aipack-base/config-default.toml)
 
 ## Set to true to write the files
 write_mode: false
