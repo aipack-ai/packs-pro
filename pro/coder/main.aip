@@ -111,7 +111,7 @@ if base_dir ~= nil then
 
     -- Prep working_refs_list
     if p_utils.is_not_empty(meta.working_globs) then
-        working_refs_list = p_utils.compute_working_refs_list(meta.working_globs)
+        working_refs_list = p_utils.compute_working_refs_list(meta.working_globs, base_dir)
         -- OLD WAY
         -- working_refs = aip.file.list(meta.working_globs, {base_dir = base_dir})
     end

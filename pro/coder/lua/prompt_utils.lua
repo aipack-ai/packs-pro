@@ -122,9 +122,17 @@ end
 -- - `working_globs: (string | string[])[]` - List of string or array of string
 -- Returns: 
 -- - `FileInfo[][]` - List of file refs
-function compute_working_refs_list(working_globs)
+function compute_working_refs_list(working_globs, base_dir)
     local root_working_globs    = nil
     local grouped_working_globs = nil
+
+    local list_opts = base_dir and {base_dir = base_dir} or nil
+    local function list_files(globs)
+        if list_opts then
+            return aip.file.list(globs, list_opts)
+        end
+        return aip.file.list(globs)
+    end
 
     for _, item in ipairs(working_globs) do
         if type(item) == "string" then
@@ -143,7 +151,7 @@ function compute_working_refs_list(working_globs)
     -- For the root working blobs, populate the result (item become {item})
     if root_working_globs then
         result = result or {}
-        local root_files = aip.file.list(root_working_globs)
+        local root_files = list_files(root_working_globs)
         for _, f in ipairs(root_files) do
             table.insert(result, {f})
         end
@@ -153,7 +161,7 @@ function compute_working_refs_list(working_globs)
     if grouped_working_globs then
         result = result or {}
         for _, group in ipairs(grouped_working_globs) do
-            local group_files = aip.file.list(group)
+            local group_files = list_files(group)
             if #group_files > 0 then
                 table.insert(result, group_files)
             end
