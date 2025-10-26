@@ -2,15 +2,17 @@
 
 This file defines how to manage the plan files: `path/to/plan-1-todo-steps.md`, `path/to/plan-2-current-step.md`, and `path/to/plan-3-done-steps.md`.
 
-- `plan-1-todo-steps.md` lists upcoming steps, ordered top to bottom. The topmost item is the next step to activate.
+- `path/to/plan-1-todo-steps.md` lists upcoming steps, ordered top to bottom. The topmost item is the next step to activate.
 
-- `plan-2-current-step.md` holds the single step in progress, marked `status: current`. It is created only when implementation begins by moving the topmost todo step into it (typically triggered by "do next step" or an explicit request to continue work). It represents what has just been worked on in the latest turn and what is currently being worked on by the AI; it is not a queue of upcoming steps. If work spans multiple turns, add sub-steps here.
+- `path/to/plan-2-current-step.md` holds the single step in progress, marked `status: current`. It is created only when implementation begins by moving the topmost todo step into it (typically triggered by "do next step" or an explicit request to continue work). It represents what has just been worked on in the latest turn and what is currently being worked on by the AI; it is not a queue of upcoming steps. If work spans multiple turns, add sub-steps here.
 
-- `plan-3-done-steps.md` archives completed steps, marked `status: done`, with a concise summary.
+- `path/to/plan-3-done-steps.md` archives completed steps, marked `status: done`, with a concise summary.
 
 Current is created when implementation starts and exists only to reflect the work that is actively being performed by the AI, including what has just been implemented. Do not treat the current step as the "next to do"; it mirrors the work just performed and the ongoing work until the user says "do next step" or "continue to work on current step". Do not create or keep a current step during planning-only phases.
 
-Unless specified otherwise, these files live in the same directory as this `_plan-rules.md` file.
+Unless specified otherwise, these files live in the same directory as this `path/to/_plan-rules.md` file.
+
+Also, when just building the plan-1-todo-steps, do not create empty plan-2-current-step and plan-3-done-steps if they do not exist. Only create when needed. 
 
 Some rules on the markdown formatting: 
 
@@ -18,6 +20,7 @@ Some rules on the markdown formatting:
 - When the bullet points have long line or sub bullet points, have a empty line between the top level bullet points 
 - For headings, except for the `## Step` and `## Sub Step`, leave exactly one empty line after the heading
     - For `## Step` and `## Sub Step`, do not insert any empty line after the heading. The `status: ...` line must be immediately after the heading with no blank line in between, followed by any `time-...` fields on subsequent lines. 
+    
 
 ## Core flow
 
@@ -25,7 +28,7 @@ Some rules on the markdown formatting:
 
 - Always move a step from todo to current before doing any work on it. Never move a todo step directly to done.
 
-- Create `plan-2-current-step.md` only when beginning implementation. When beginning work, move the topmost step from `plan-1-todo-steps.md` into it and set `status: current`.
+- Create `path/to/plan-2-current-step.md` only when beginning implementation. When beginning work, move the topmost step from `path/to/plan-1-todo-steps.md` into it and set `status: current`.
 
 - When the user says "do next step":
   - If a current step exists, finalize it, move it to done with `status: done`. If a next todo step exists, activate the topmost todo as the new current. If there are no remaining todo steps, inform the user that there are no more steps to be done.
@@ -34,6 +37,7 @@ Some rules on the markdown formatting:
 - When a step becomes current, keep its original todo content verbatim. Only add supplementary sections like `### Implementation Considerations` or sub-steps as needed.
 
 - While continuing work on the current step, append sub-steps and notes to the same section. Do not create another top-level step.
+- When a step primarily defines or specifies something, ensure the immediately following todo step includes an explicit reference to that definition, pointing to plan-2-current-step.md or plan-3-done-steps.md and the step heading, so downstream work picks up the defined content.
 
 ## plan-1-todo-steps.md rules
 
@@ -45,8 +49,9 @@ Some rules on the markdown formatting:
 - If available, add `time-created: ...` using local time in RFC 3339 (second precision), for example `2025-10-26T09:52:21-07:00`.
 
 - After an empty line, provide a concise, complete description of the step.
+- When a step will build on a definition or specification from a previous step, include an explicit reference in the body, for example "References: see the definition in plan-2-current-step.md or plan-3-done-steps.md, step 'Step - ...'". This ensures the next step picks up the defined content from current or done.
 
-- When a step is activated, move the entire step to `plan-2-current-step.md`, change `status` to `current`, and remove it from todo. Preserve all original content.
+- When a step is activated, move the entire step to `path/to/plan-2-current-step.md`, change `status` to `current`, and remove it from todo. Preserve all original content.
 
 ## plan-2-current-step.md rules
 
@@ -72,7 +77,7 @@ Some rules on the markdown formatting:
 
 ## plan-3-done-steps.md rules
 
-- Only steps that have been in `plan-2-current-step.md` as `status: current` can be moved here.
+- Only steps that have been in `path/to/plan-2-current-step.md` as `status: current` can be moved here.
 
 - Use the same heading format as the other files.
 
