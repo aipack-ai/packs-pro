@@ -96,6 +96,9 @@ structure_globs:
 ## Max size in KB of all included files (safeguard, default 1000, for 1MB)
 # max_files_size_kb: 1000
 
+## (default true) Will tell the AI to suggest a git commit
+# suggest_git_commit: false
+
 ## Note: This will add or override the model_aliases defined in
 ##       .aipack/config.toml, ~/.aipack-base/config-user.toml, ~/.aipack-base/config-default.toml
 # model_aliases:

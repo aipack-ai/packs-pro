@@ -84,23 +84,3 @@ Some rules on the markdown formatting:
 
 - List steps from oldest to newest, newest at the bottom.
 
-## For each implementation of a step or sub-step
-
-When you implement or update a current step (including sub-steps), suggest a git commit command using the following format:
-
-- Prefix the message with a symbol: `.` minor, `-` fix, `+` addition, `^` improvement, `!` change, `>` refactor.
-
-- Format: `<symbol> <module/topic> - <short description>`.
-
-- If new files were created, prepend `git add -A .`.
-
-(Put this in at the top of your response. )
-
-Example:
-
-<suggested_git_command>
-git commit -a -m ". chat_response - Fix doc typos and provider_model_iden doc"
-</suggested_git_command>
-
-
-

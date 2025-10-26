@@ -24,6 +24,44 @@ function build_info_lines(ai_response, data)
     return content
 end
 
+
+function process_ui_directives(content)
+  -- if API not here, then do nothing
+  if aip.tag == nil or aip.tag.extract == nil
+     or aip.task == nil or aip.task.pin == nil
+     or aip.text == nil or aip.text.trim == nil then
+    return
+  end
+
+  local elems = aip.tag.extract(content, {"suggested_git_command", "aip_to_pin"}) or {}
+  if type(elems) ~= "table" then return end
+
+  for _, elem in ipairs(elems) do
+    if elem.tag == "suggested_git_command" then
+      -- process git commit suggestion
+      aip.task.pin("gitc", 0, {
+        label   = "Git Commit",
+        content = aip.text.trim(elem.content)
+      })
+
+    elseif elem.tag == "aip_to_pin" and elem.attrs then
+      local name = elem.attrs.name
+      local body = aip.text.trim(elem.content or "")
+      if name and body ~= "" then
+        aip.task.pin(name, 0, {
+          label   = name,
+          content = body
+        })
+      end
+    end
+  end
+end
+
+
+
+-- ==== RETURN
+
 return {
-  build_info_lines = build_info_lines
+  process_ui_directives = process_ui_directives,
+  build_info_lines      = build_info_lines
 }

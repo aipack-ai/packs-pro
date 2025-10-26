@@ -166,6 +166,9 @@ else
 
 end
 
+-- default rue
+local suggest_git_commit = meta.suggest_git_commit or true
+
 -- === Build the input base
 local input_base = {
     max_files_size_kb            = max_files_size_kb,
@@ -186,7 +189,8 @@ local input_base = {
     should_cache_context_files   = should_cache_context_files,
     prompt_files_path            = prompt_files_path,
     ai_responses_for_raw_path    = ai_responses_for_raw_path,
-    ai_responses_for_prompt_path = ai_responses_for_prompt_path
+    ai_responses_for_prompt_path = ai_responses_for_prompt_path,
+    suggest_git_commit           = suggest_git_commit, 
 }
 
 -- === Preps the inputs
@@ -702,6 +706,39 @@ Here is today local date / time if user ask to do something with it:
   Only add comments that provide meaningful context, design rationale, or structure (such as region markers or explanations of non-obvious logic).
 - **Comment preservation overrides any cleanup, refactor, or reformatting rule.**
 
+# User
+
+{{#if data.suggest_git_commit}}
+## For each implementation of a step or sub-step
+
+When you perform a change suggest a git commit command inside a `suggested_git_command`. For Example:  
+
+<suggested_git_command>
+git commit -a -m ". chat_response - Fix doc typos and provider_model_iden doc"
+</suggested_git_command>
+
+### Format of the commit (if not already given by the user)
+
+If the user has not specified the git format it would like to use in knownledge, instruction, or context, use the following format. 
+
+- Prefix the message with a symbol: `.` minor, `-` fix, `+` addition, `^` improvement, `!` breaking public api changes, `>` refactor.
+
+- Use `+` when it is a new feature that was not there before. 
+
+- `^` when small to medium improvement of existing feature. 
+
+- `>` If same funtionality but code refactor.
+
+- Then, `-` when fixing an issue, `!` when breaking public api. 
+
+-  `.` when not sure or relatively small, like typo, minor fix, adding comments, ...
+
+- Format: `<symbol> <module/topic> - <short description>`.
+
+- If new files were created, prepend `git add -A .` (for now do not give specific file path, just the `-A .` )
+
+(Put this in at the top of your response)
+{{/if}}
 
 # Output
 
@@ -756,6 +793,9 @@ if data.write_mode == true then
         end
     end
 end
+
+-- === Process the eventual content to pin/print
+o_utils.process_ui_directives(second_part)
 
 -- === Append to the second_part to ai_content_for_prompt file
 second_part = aip.text.trim_start(second_part)
