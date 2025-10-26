@@ -28,7 +28,7 @@ Some rules on the markdown formatting:
 - Create `plan-2-current-step.md` only when beginning implementation. When beginning work, move the topmost step from `plan-1-todo-steps.md` into it and set `status: current`.
 
 - When the user says "do next step":
-  - If a current step exists, finalize it, move it to done with `status: done`, then activate the next topmost todo as the new current.
+  - If a current step exists, finalize it, move it to done with `status: done`. If a next todo step exists, activate the topmost todo as the new current. If there are no remaining todo steps, inform the user that there are no more steps to be done.
   - If there is no current step, activate the topmost todo as current and proceed.
 
 - When a step becomes current, keep its original todo content verbatim. Only add supplementary sections like `### Implementation Considerations` or sub-steps as needed.
@@ -66,9 +66,9 @@ Some rules on the markdown formatting:
 
 - When the user requests to move on:
   - If there are no sub-steps, move the step as-is to done with `status: done`.
-  - If there are many sub-steps or back-and-forth, consolidate them into a concise set of instructions or summary, then mark `status: done` and archive.
+  - If there are many sub-steps or back-and-forth, consolidate them into a concise set of instructions or summary, then mark `status: done` and archive, except when the step is primarily defining or specifying something. In that case, do not consolidate, carry the entire content verbatim into done so that subsequent steps have full information.
 
-- After archiving the current step, immediately activate the next topmost todo as the new current to continue the flow.
+- After archiving the current step, if a next todo exists, immediately activate the topmost todo as the new current to continue the flow. If there are no remaining todo steps, inform the user that there are no more steps to be done.
 
 ## plan-3-done-steps.md rules
 
@@ -81,6 +81,8 @@ Some rules on the markdown formatting:
 - If there were no additional sub-steps while current, carry the content over verbatim so nothing is lost.
 
 - Provide a consolidated summary capturing key details, decisions, and answers without the iterative back-and-forth.
+
+- For steps whose primary purpose is to define or specify something, do not consolidate or shorten. Carry the entire content verbatim so subsequent steps have the full reference for downstream work.
 
 - List steps from oldest to newest, newest at the bottom.
 
