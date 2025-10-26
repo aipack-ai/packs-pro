@@ -1,87 +1,106 @@
 # Rules for creating/updating the plan files
 
-This file provides the rules for managing the plan files: `path/to/plan-1-todo-steps.md`, `path/to/plan-2-current-step.md`, and `path/to/plan-3-done-steps.md`. 
+This file defines how to manage the plan files: `path/to/plan-1-todo-steps.md`, `path/to/plan-2-current-step.md`, and `path/to/plan-3-done-steps.md`.
 
-- `path/to/plan-1-todo-steps.md` - Contains the ordered list of upcoming steps that have not started yet. The topmost step is the next one to activate. 
+- `plan-1-todo-steps.md` lists upcoming steps, ordered top to bottom. The topmost item is the next step to activate.
 
-- `path/to/plan-2-current-step.md` - Contains the step that is currently being executed with status `current`, along with its working notes and sub-steps. 
+- `plan-2-current-step.md` holds the single step in progress, marked `status: current`. It is created only when implementation begins by moving the topmost todo step into it (typically triggered by "do next step" or an explicit request to continue work). It represents what has just been worked on in the latest turn and what is currently being worked on by the AI; it is not a queue of upcoming steps. If work spans multiple turns, add sub-steps here.
 
-- `path/to/plan-3-done-steps.md` - Contains the steps that have been fully completed, summarized, and marked as `done`.
+- `plan-3-done-steps.md` archives completed steps, marked `status: done`, with a concise summary.
 
-Except if the user specifies otherwise, the path (i.e., `path/to/`) for `path/to/plan-1-todo-steps.md`, `path/to/plan-2-current-step.md`, and `path/to/plan-3-done-steps.md` files is the same directory as this `path/to/_plan-rules.md` file. 
+Current is created when implementation starts and exists only to reflect the work that is actively being performed by the AI, including what has just been implemented. Do not treat the current step as the "next to do"; it mirrors the work just performed and the ongoing work until the user says "do next step" or "continue to work on current step". Do not create or keep a current step during planning-only phases.
 
-The data flow moves from `plan-1-todo-steps.md` to `plan-2-current-step.md`, then to `plan-3-done-steps.md`. When a step leaves the todo file, it must first be copied into the current file and marked `status: current` before any execution notes or work begins. When the current step is finished and the user requests the next step, consolidate it and move it to the done file before promoting the next todo entry, never skipping the current file stage. 
+Unless specified otherwise, these files live in the same directory as this `_plan-rules.md` file.
 
-If `plan-2-current-step.md` is missing or empty, create it and insert the activated step with `status: current` before continuing. 
+Some rules on the markdown formatting: 
 
-Do not mark a todo step as done or move it to `plan-3-done-steps.md` until it has been recorded in `plan-2-current-step.md`, and do not use placeholder text such as "no active step" in place of a current step.
+- Use `-` character for bullet points. 
+- When the bullet points have long line or sub bullet points, have a empty line between the top level bullet points 
+- For headings, except for the `## Step` and `## Sub Step`, leave exactly one empty line after the heading
+    - For `## Step` and `## Sub Step`, do not insert any empty line after the heading. The `status: ...` line must be immediately after the heading with no blank line in between, followed by any `time-...` fields on subsequent lines. 
 
-When the user requests to "do next step" or something similar, always move the topmost entry from `plan-1-todo-steps.md` into `plan-2-current-step.md` (creating the file if it does not exist) and update its status to `current` before any work begins. 
+## Core flow
 
-Only after the user asks again for the next step should the current entry be finalized, moved to `plan-3-done-steps.md`, and replaced by the next todo item. Never move a todo entry directly into `plan-3-done-steps.md`. 
+- When asked to create or update the plan, do not implement any step. Only create or modify the plan files. Implementation work begins only when the user explicitly requests "do next step" or "continue to work on current step".
 
-When implementing a step (and moving it to plan-2-current-step), or updating a current step with sub steps, keep all original content verbatim from its todo entry and only augment it with additional subsections (for example, `### Implementation Considerations`, `### Other Implementation Notes`) so that no planned detail is lost, and more information is given if/when needed.
+- Always move a step from todo to current before doing any work on it. Never move a todo step directly to done.
 
-If/when sub steps are requested, `plan-2-current-step.md` should have a `### sub-step - SUB_STEP_SHORT_DESCRIPTION`. The implementation considerations and notes will be under a fourth-level heading `#### Implementation Considerations`
+- Create `plan-2-current-step.md` only when beginning implementation. When beginning work, move the topmost step from `plan-1-todo-steps.md` into it and set `status: current`.
 
-A user might ask to create or update the plan, or to perform a step. When performing a step, do the topmost step first. 
+- When the user says "do next step":
+  - If a current step exists, finalize it, move it to done with `status: done`, then activate the next topmost todo as the new current.
+  - If there is no current step, activate the topmost todo as current and proceed.
 
-When the user asks to create or update the plan file(s), do not perform any steps; just update the necessary plan files. 
+- When a step becomes current, keep its original todo content verbatim. Only add supplementary sections like `### Implementation Considerations` or sub-steps as needed.
 
-Make sure to follow the code block notation with the file name so that the file gets created. 
+- While continuing work on the current step, append sub-steps and notes to the same section. Do not create another top-level step.
 
 ## plan-1-todo-steps.md rules
 
-- The `plan-1-todo-steps.md` file is a work plan used to describe tasks that need to be done next.
-- Each step is under a heading in the form `## Step - short title for the work`
-- Followed by `status: not_started`
-- If you have today's date, add `time-created: ...` below it, using the local date/time formatted in RFC 3339 (second precision)
-- Then an empty line and a concise but complete description of the step (what needs to be done).
-- When a step becomes active, move the entire step to `plan-2-current-step.md`, update its `status` to `current`, and remove it from this file. Keep every detail from the original todo entry intact when copying, and only append new subsections, such as `### Implementation Considerations`, if needed for extra context so that nothing is lost. Do not send a not_started step directly to `plan-3-done-steps.md`; it must exist in the current plan first.
-- Steps are ordered top to bottom, so the next step to be done is at the top.
-- If a file is missing, update the work plan, mark the plan as "in_progress", and state the blocker. On the next run, the user will likely resolve the blocker.
+- Creating or updating the plan is planning-only. Do not begin implementing any step while composing or editing the plan files.
+- Each step uses a heading `## Step - short title for the work`.
+
+- Include `status: not_started`.
+
+- If available, add `time-created: ...` using local time in RFC 3339 (second precision), for example `2025-10-26T09:52:21-07:00`.
+
+- After an empty line, provide a concise, complete description of the step.
+
+- When a step is activated, move the entire step to `plan-2-current-step.md`, change `status` to `current`, and remove it from todo. Preserve all original content.
 
 ## plan-2-current-step.md rules
 
-- The `plan-2-current-step.md` file holds the step that is currently in progress with `status: current`.
-- If the `plan-2-current-step.md` file does not exist, create it and move the topmost step from `plan-1-todo-steps.md` into it before logging any progress or marking any step as done.
-- Every step pulled from `plan-1-todo-steps.md` must be written into this file and marked `status: current` before any progress can be logged or the step can later be archived.
-- Retain the full body from the todo entry when it becomes current, adding follow-up sections (for example, `### Implementation Considerations`) only as supplementary context without deleting the original content.
+- Contains exactly one step with `status: current` only while implementation is in progress. If there is no active implementation, this file may be absent or empty. Create it and activate the topmost todo only when beginning implementation.
+
+- Copy the full body from todo when the step becomes current; do not delete details. Add follow-up sections as needed without altering the original text.
+
 - Keep the same heading format `## Step - short title for the work`.
-- Preserve the `time-created: ...` value from when the step was first planned, and add any additional timestamps when relevant, formatted in RFC 3339 (second precision).
-- Use the body of the section to track sub-steps, communication summaries, design notes, and outstanding questions so the full context stays with the active step.
-  - Add sub-bullets or nested headings to capture each follow-up action or clarification in chronological order.
-- When the user wants to continue working on the current step, append the new context under the same section as sub-steps without creating a new top-level step.
-- Do not leave `plan-2-current-step.md` with placeholder text such as "no active step"; always maintain the real current step content until it is completed and moved to `plan-3-done-steps.md`.
-- When the user requests to move to the next step: 
-    - if the current step does not have sub steps, just move it as is to `plan-3-done-steps.md` with `status: done` (keeping all information of that step).
-    - If the current step has extensive back-and-forth and therefore sub-steps, consolidate the sub-steps into one set of instructions that captures all the necessary details, update the status to `done`, and move the step to `plan-3-done-steps.md`.
-    - Then activate the next step from `plan-1-todo-steps.md`, update its status to `current`, and move it into `plan-2-current-step.md` to continue the flow. 
 
-## For each implementation of a step or substep
+- Preserve the original `time-created: ...`. Add new timestamps only when relevant, using RFC 3339 (second precision).
 
-When a step is implemented (created or updated in plan-2-current-step), either as the current step or a revision/sub-step of the current step, suggest a git commit message with the following format in the `suggested_git_command` tag:
+- Use the body to track sub-steps, design notes, decisions, and outstanding questions in chronological order.
+
+- Sub-steps format:
+  - `### sub-step - SUB_STEP_SHORT_DESCRIPTION`
+  - Under it, use `#### Implementation Considerations` (and other fourth-level headings as needed).
+
+- When the user requests to move on:
+  - If there are no sub-steps, move the step as-is to done with `status: done`.
+  - If there are many sub-steps or back-and-forth, consolidate them into a concise set of instructions or summary, then mark `status: done` and archive.
+
+- After archiving the current step, immediately activate the next topmost todo as the new current to continue the flow.
+
+## plan-3-done-steps.md rules
+
+- Only steps that have been in `plan-2-current-step.md` as `status: current` can be moved here.
+
+- Use the same heading format as the other files.
+
+- Set `status: done`. Keep the original `time-created: ...`, and add `time-done: ...` when finalized.
+
+- If there were no additional sub-steps while current, carry the content over verbatim so nothing is lost.
+
+- Provide a consolidated summary capturing key details, decisions, and answers without the iterative back-and-forth.
+
+- List steps from oldest to newest, newest at the bottom.
+
+## For each implementation of a step or sub-step
+
+When you implement or update a current step (including sub-steps), suggest a git commit command using the following format:
+
+- Prefix the message with a symbol: `.` minor, `-` fix, `+` addition, `^` improvement, `!` change, `>` refactor.
+
+- Format: `<symbol> <module/topic> - <short description>`.
+
+- If new files were created, prepend `git add -A .`.
+
+(Put this in at the top of your response. )
+
+Example:
 
 <suggested_git_command>
 git commit -a -m ". chat_response - Fix doc typos and provider_model_iden doc"
 </suggested_git_command>
 
-If new files were created, add a `git add -A .` before the `git commit...` so that the user can add those new files to Git. 
 
-Put the this `suggested_git_command` at the very top of your response. 
 
-Here is the git commit message formatting rules:
-
-- The first character is `.` for minor, `-` for fix, `+` for addition, `^` for improvement, `!` for change, and `>` for refactor
-- Commit messages should be concise, starting with the first character, space, then the module or topic, space, followed by a dash (-), space, and a short description.
-- Prefix it with "Suggested commit:"
-- Do not mention the plan or history in the commit message, as that's not its concern.
-
-## plan-3-done-steps.md rules
-
-- This is where completed work goes after leaving `plan-2-current-step.md`; only steps that have been recorded there as `status: current` may be moved here.
-- Use the same heading format as the other plan files.
-- Set `status: done`, keep the original `time-created: ...`, and add a `time-done: ...` when the step is finalized.
-- If the step had no additional sub-steps or discussion while current, carry the content over verbatim so that no information from the original plan is lost.
-- Provide a consolidated summary that captures the key implementation details, decisions, and user answers without the iterative back-and-forth.
-- List the steps from oldest to newest, with the newest at the bottom.
