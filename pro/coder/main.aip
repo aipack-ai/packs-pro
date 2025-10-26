@@ -723,11 +723,11 @@ If the user has not specified the git format it would like to use in knownledge,
 
 - Prefix the message with a symbol: `.` minor, `-` fix, `+` addition, `^` improvement, `!` breaking public api changes, `>` refactor.
 
-- Use `+` when it is a new feature that was not there before. 
+- Use `+` when it is a new feature that was not there before (do not use this when it's same feature, different code layout, that's refactoring). 
 
 - `^` when small to medium improvement of existing feature. 
 
-- `>` If same funtionality but code refactor.
+- `>` If no fixes, or new functionality, but just a code refactor, relayout and such. 
 
 - Then, `-` when fixing an issue, `!` when breaking public api. 
 
