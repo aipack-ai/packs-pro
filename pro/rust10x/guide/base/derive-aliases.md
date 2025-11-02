@@ -76,6 +76,8 @@ In this example, this is an alias for a simple tuple struct that wraps a primiti
 
 Note that we can use the `crate::Cmp!` that was defined, and even in the same `derive_alias!` we can use aliases defined earlier in the block. 
 
+Also, note that when in a `derive_alias!...` we use a fully qualified alias name like `crate::Cmp!`
+
 ### Usage of the derive aliases
 
 Use `macro_rules_attribute`'s `derive` proc macro. Keep it namespaced (short), for example `mra`.
@@ -84,16 +86,20 @@ For example:
 
 ```rust
 use macro_rules_attribute as mra;
+use crate::model::ScalarStruct;
+use crate::Cmp;
 
-#[mra::derive(
-  Debug,
-  crate::model::ScalarStruct!
-)]
+#[mra::derive(Debug, ScalarStruct!)]
 pub struct Id(i64);
+
+#[mra::derive(Cmp!)]
+pub struct OtherType(i32);
 ```
 
-### Important Consideration
+- Make sure that when we use `mra::derive` the aliases are in scope (for example, `use crate::model::ScalarStruct;`), so that `mra::derive` can stay on one line by default. Follow the existing layout if it is already multiline.
 
-Overlapping aliases.
+### DO NOT derive overlapping aliases
 
 If two aliases expand to any common derive traits, do not use them together. Choose the alias that covers the broader set, then add any missing derives explicitly.
+
+For example, `Cmp!` and `Hash!` overlap, therefore they cannot be used in the same derive.
