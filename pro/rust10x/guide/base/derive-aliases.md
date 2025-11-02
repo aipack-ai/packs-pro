@@ -98,6 +98,8 @@ pub struct OtherType(i32);
 
 - Make sure that when we use `mra::derive` the aliases are in scope (for example, `use crate::model::ScalarStruct;`), so that `mra::derive` can stay on one line by default. Follow the existing layout if it is already multiline.
 
+- No need to add comment to the alias to say to what it expand to. 
+
 ### DO NOT derive overlapping aliases
 
 If two aliases expand to any common derive traits, do not use them together. Choose the alias that covers the broader set, then add any missing derives explicitly.
