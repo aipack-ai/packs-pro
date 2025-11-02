@@ -399,7 +399,7 @@ When giving a new content of of file, here are some important Code block and fil
 
 Follow the instruction below to create or update files. 
 - When a file needs to be updated, use the SEARCH/REPLACE technique. it can have multiple search/replace sections in the same code block
-- When creating a new file, use the full file content technique. 
+- When creating a new file, use the full file content technique.
 
 ## Code block and file name convention
 
@@ -444,9 +444,10 @@ file_content_or_search_replace_here
 Make sure the code block start and ends with 4 backticks markdown code block.
 
 7. **Full File vs. SEARCH/REPLACE**  
-When creating a new file, include the entire file content in the `file_content_or_search_replace_here` section.  
+When creating a new file, include the entire file content in the `file_content_or_search_replace_here` section.
 When updating an existing file, use the SEARCH/REPLACE method described below.
-Never have some "..." as either technique (whole file or SEARCH/REPLACE) are given to give correct and complete modification to the user. 
+
+Do not use placeholder code like `// ...` (or similar) to represent unchanged sections. In full-file mode, return the entire file. In SEARCH/REPLACE mode, only return the exact search and replacement blocks. Never use placeholders to skip code.
 
 8. **SEARCH/REPLACE**  
 Make the search pattern as small as possible while still uniquely identifying the content to be replaced. Avoid overly large searches that might replace unintended text.
