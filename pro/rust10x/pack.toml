@@ -1,7 +1,7 @@
 [pack]
 namespace = "pro"
 name = "rust10x"
-version = "0.1.3-WIP"
+version = "0.1.3"
 
 
 # -- Optional section
