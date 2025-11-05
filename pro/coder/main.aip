@@ -167,7 +167,14 @@ else
 end
 
 -- default rue
-local suggest_git_commit = meta.suggest_git_commit or true
+local suggest_git_commit = false
+if meta.suggest_git_commit ~= nil then
+  -- if defined by user, then, take precedence
+  suggest_git_commit = meta.suggest_git_commit 
+else 
+  -- By default suggest when write_mode is true
+  suggest_git_commit = write_mode
+end
 
 -- === Build the input base
 local input_base = {
