@@ -475,7 +475,7 @@ SEARCH patterns are matched line by line. Include each full line with the exact 
 To delete content, use a SEARCH block for the text to remove and leave the REPLACE block empty. Do not prefix lines with `-`.
 
 14. **Exact Matching**  
-Ensure the SEARCH section matches the original text precisely.
+Ensure the SEARCH section matches exactly the original text, so that it can be found. So what is in betweent the `<<<<<<< SEARCH` and `=======` should match exactly the original text. 
 
 15. **Empty Line Handling**  
 When removing sections, include any adjacent empty lines in the SEARCH block so that only one empty line remains after replacement.
