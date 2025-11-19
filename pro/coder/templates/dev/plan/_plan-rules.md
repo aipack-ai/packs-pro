@@ -14,7 +14,7 @@ Current is created when implementation starts, and exists only to reflect the wo
 
 - If the user continues to ask to do something when there is nothing in the todo file, just say that there are no more items in the plan-1-todo-steps file.
 
-- When the user say there is a bug in the current step, fix the bug and update the current step with the substep as defined below. Same if the user say it wants to add something new to the current step. Just a sub step, as defined below. 
+- When the user says there is a bug in the current step, fix the bug and update the current step with the sub-step as defined below. The same applies if the user says it wants to add something new to the current step. Just a sub-step, as defined below. 
 
 
 **Imports on files location**
@@ -23,17 +23,17 @@ Unless specified otherwise, these three files live in the same directory as this
 
 So, for example, if the _plan-rules.md file path is `some/path/to/_plan-rules.md` then we will have `some/path/to/plan-1-plan-steps.md` and similar for the other files. 
 
-So, plan-1-plan-steps, ... are in the same folder than the _plan-rules.md
+So, plan-1-plan-steps, etc. are in the same folder as the _plan-rules.md.
 
 **Markdown formatting rules:** 
 
-- Favor bullet points format when mulitple point per step needs to be given. 
+- Favor bullet point format when multiple points per step need to be given. 
 - Use `-` character for bullet points
 - When bullet points have a long line or sub-bullet points, include an empty line between the top-level bullet points
 - For headings, except for the `## Step` and `### Sub Step`, leave exactly one empty line after the heading
     - For `## Step ...` and `### Sub Step ...`, do not insert any empty line after the heading. The `      status: ...` line must be immediately after the heading with no blank line in between, followed by any `time-...` fields on subsequent lines. 
 
-- Info alignment: It's important that the values of all of the values for status:, time-created, time-current, and time-done, align, so, they should have the appropriate spaces. For example: 
+- Info alignment: It is important that the values of all of the values for status:, time-created, time-current, and time-done, align, so they should have the appropriate spaces. For example: 
 
 ```
 ## Step - ...
@@ -42,13 +42,14 @@ time-created:
    time-done:
 ```
 
-  - So, the `      status:` will be prefixed with 6 spaces
-  - the `   time-done:` prefixed three spaces
-  - and `time-created:` or `time-current:` does not need any space prefixes. 
+- Steps should not be numbered, so just as shown above.
+- So, the `      status:` will be prefixed with 6 spaces
+- the `   time-done:` prefixed with 3 spaces
+- and `time-created:` or `time-current:` does not need any space prefixes. 
 
 
-- Below the step, all `       status:` will have 6 spaces prefix to align with the properties
-- As well as all `   time-done:` will have 3 spaces prefix to align with other properties
+- Below the step, all `       status:` will have a 6-space prefix to align with the properties
+- As well as all `   time-done:` will have a 3-space prefix to align with other properties
 
 **Step Rules:** Each step must be defined in a way that does not break the code or existing functionality. To implement a large feature, there can be multiple steps, but none of them should break the code or what is already working.
 
@@ -95,7 +96,7 @@ time-created:
 
 - Contains exactly one step with `      status: current` only while implementation is in progress. If there is no active implementation, this file may be absent or empty. Create it and activate the topmost todo only when beginning implementation.
 
-- This file is here in case the user wants new things or if something needs to be fixed (see sub step below)
+- This file is here in case the user wants new things or if something needs to be fixed (see sub-step below)
 
 - Copy the full body from todo when the step becomes current; do not delete details. Add follow-up sections as needed without altering the original text.
 
@@ -150,4 +151,3 @@ IF_NEEDED_OTHER_SUB_STEP_SECTION_FOR_ADDITIONAL_INFORMATION
 - For steps whose primary purpose is to define or specify something, do not consolidate or shorten. Carry the entire content verbatim so subsequent steps have the full reference for downstream work.
 
 - List steps from oldest to newest, newest at the bottom.
-
