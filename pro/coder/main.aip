@@ -405,8 +405,12 @@ Very important: Respect the tabs or identation of the code when providing code.
 When giving a new content of of file, here are some important Code block and file name convention to provide the changes.
 
 Follow the instruction below to create or update files. 
+
 - When a file needs to be updated, use the SEARCH/REPLACE technique. it can have multiple search/replace sections in the same code block
+
 - When creating a new file, use the full file content technique.
+
+- ONLY if the change on a file is most of the file, then, you can use full content update. 
 
 ## Code block and file name convention
 
@@ -469,7 +473,7 @@ Maintain exact spaces or tabs in both SEARCH and REPLACE sections. Any mismatch 
 SEARCH/REPLACE sections are not git diffs. Do not use `+` or `-` prefixes. Provide only the SEARCH and REPLACE text blocks.
 
 12. **Line Matching**  
-SEARCH patterns are matched line by line. Include each full line with the exact original indentation.
+SEARCH patterns are matched line by line. Include each exact full line with the exact original indentation.
 
 13. **Removing Lines**  
 To delete content, use a SEARCH block for the text to remove and leave the REPLACE block empty. Do not prefix lines with `-`.
@@ -769,6 +773,7 @@ local ai_content_for_raw = "====\n" .. info_lines .. "\n\n" .. ai_content .. "\n
 aip.file.append(data.ai_responses_for_raw_path, ai_content_for_raw)
 
 -- === Write to the src file
+local files_changes_failed = {} -- [{path, changes_info}]
 local files_changed = {}
 if data.write_mode == true then
     local blocks, other_content = aip.md.extract_blocks(ai_content, {extrude = "content"})
@@ -788,7 +793,10 @@ if data.write_mode == true then
         if file_path then
             file_path = aip.path.join(base_dir, file_path)
             if data.file_content_mode.search_replace_auto then 
-                aip.file.save_changes(file_path, remain)
+                local file_changed, changes_info = aip.file.save_changes(file_path, remain)
+                if changes_info and changes_info.failed_changes then
+                   table.insert(files_changes_failed, {path = file_path, changes_info = changes_info})
+                end
             else
                 aip.file.save(file_path, remain)
             end
@@ -801,6 +809,18 @@ if data.write_mode == true then
             second_part = second_part .. "\n" .. md_block_raw
         end
     end
+end
+
+-- === Process files_changes_failed
+if #files_changes_failed > 0 then 
+    local msg = "⚠️ Failed to apply some changes to file:"
+    for _, fc in ipairs(files_changes_failed) do
+        -- NOTE: for now, just show the first reason
+        msg = msg .. "\n- " .. fc.path .. " (failed changes: " .. #fc.changes_info.failed_changes .. ", cause: " .. fc.changes_info.failed_changes[1].reason .. ")"
+    end
+    local ai_responses_for_raw_rel_path = aip.path.diff(data.ai_responses_for_raw_path, CTX.WORKSPACE_DIR)
+    msg = msg .. "\n\nFor raw AI responses see file:\n➜ " .. ai_responses_for_raw_rel_path 
+    aip.task.pin("changes_failed", 0, {label = "WARNING", content = msg})
 end
 
 -- === Process the eventual content to pin/print
