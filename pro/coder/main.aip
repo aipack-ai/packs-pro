@@ -406,11 +406,9 @@ When giving a new content of of file, here are some important Code block and fil
 
 Follow the instruction below to create or update files. 
 
-- When a file needs to be updated, use the SEARCH/REPLACE technique. it can have multiple search/replace sections in the same code block
+- When a file needs to be updated, use the SEARCH/REPLACE technique. It can have multiple search/replace sections in the same code block.
 
 - When creating a new file, use the full file content technique.
-
-- ONLY if the change on a file is most of the file, then, you can use full content update. 
 
 ## Code block and file name convention
 
