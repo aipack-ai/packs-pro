@@ -432,92 +432,84 @@ Very important: Respect the tabs or identation of the code when providing code.
 # User `cache = false`
 
 {{#if data.file_content_mode.search_replace_auto}}
+When giving a new content of a file, here are some important AIP File Change format conventions to provide the changes.
 
-When giving a new content of of file, here are some important AIP File Change format convention to provide the changes.
-
-Follow the instruction below to create or update files. 
+Follow the instructions below to create or update files.
 
 - When a file needs to be updated, use the SEARCH/REPLACE technique. It can have multiple search/replace sections in the same code block.
-
 - When creating a new file, use the full file content technique.
 
-## AIP File Change format convention instructions
+## AIP File Change Format Convention Instructions
 
 The files provided will be in a markdown code block, with the appropriate language (file extension) with the first line following this format (with the comment language).
 
-Important, as described below, when creating a full file, you can add the entire file. When updating a file, use narrow, targeted SEARCH/REPLACE pairs as defined below.
+Important: When creating a full file, you can add the entire file. When updating a file, use narrow, targeted SEARCH/REPLACE pairs as defined below.
 
-1.  **AIP_FILE_CHANGE** 
-Wrapper `AIP_FILE_CHANGE` tag with a `file_path` attribute for the file path
+1. **AIP_FILE_CHANGE**  
+   Wrapper `AIP_FILE_CHANGE` tag with a `file_path` attribute for the file path.
 
-2.  **Markdown Code Block Markers for file content:** 
-When providing file content, always enclose it within four backticks in markdown code blocks. Never use three backticks for markdown file content blocks. This ensures compatibility even if the file contains three backticks within its content.
+2. **Markdown Code Block Markers for File Content**  
+   When providing file content, always enclose it within four backticks in markdown code blocks. Never use three backticks for markdown file content blocks. This ensures compatibility even if the file contains three backticks within its content.
 
 3. **Language Specifier**  
-The markdown code block *must* include the language specifier (the file extension) immediately after the opening four backticks and be closed with four backticks.
+   The markdown code block must include the language specifier (the file extension) immediately after the opening four backticks and be closed with four backticks.
 
 4. **Strict Adherence**  
-Always use four backticks, never three, to maintain consistent formatting and prevent rendering issues.
+   Always use four backticks, never three, to maintain consistent formatting and prevent rendering issues.
 
 5. **Consistency**  
-Apply the four-backtick format *without exception* for *all* code blocks, both opening and closing, regardless of language or content.
+   Apply the four-backtick format without exception for all code blocks, both opening and closing, regardless of language or content.
 
 6. **File Returns**  
-When returning files, follow the same convention—always begin with the file header line as noted above. Files you receive will generally follow the same pattern.
+   When returning files, follow the same convention—always begin with the file header line as noted above. Files you receive will generally follow the same pattern.
 
 7. **Modifications**  
-Do not remove content unless necessary. Use the SEARCH/REPLACE technique described below to modify only what is needed.
+   Do not remove content unless necessary. Use the SEARCH/REPLACE technique described below to modify only what is needed.
 
-8. **Example**
-So, for example, for a javascript file, we would have something like
+8. **Full File vs. SEARCH/REPLACE**  
+   When creating a new file, include the entire file content in the `file_content_or_search_replace_here` section (do not use SEARCH/REPLACE blocks).  
+   When updating an existing file, use the SEARCH/REPLACE method described below (except when most of the file needs to be rewritten entirely).
 
-<AIP_FILE_CHANGE file_path="path/to/file.ts">
-````js
-file_content_or_search_replace_here
-````
-</AIP_FILE_CHANGE>
+   Do not use placeholder code like `// ...` to represent unchanged sections.  
+   In full-file mode, return the entire file.  
+   In SEARCH/REPLACE mode, only return the exact search and replacement blocks.  
+   Never use placeholders to skip code.
 
-Make sure the code block start and ends with 4 backticks markdown code block.
+9. **SEARCH/REPLACE**  
+   Make the search pattern as small as possible while still uniquely identifying the content to be replaced. Avoid overly large searches that might replace unintended text.
 
-7. **Full File vs. SEARCH/REPLACE**  
-When creating a new file, include the entire file content in the `file_content_or_search_replace_here` section (do not use SEARCH/REPLACE block).
+10. **SEARCH/REPLACE Format**  
+    Follow the SEARCH/REPLACE format exactly as described below.
 
-When updating an existing file, use the SEARCH/REPLACE method described below (except when most of the file needs to be rewritten entirely)
+11. **Indentation Accuracy**  
+    Maintain exact spaces or tabs in both SEARCH and REPLACE sections. Any mismatch will cause the replacement to fail.
 
-Do not use placeholder code like `// ...` (or similar) to represent unchanged sections. In full-file mode, return the entire file. In SEARCH/REPLACE mode, only return the exact search and replacement blocks. Never use placeholders to skip code.
+12. **No Git Syntax**  
+    SEARCH/REPLACE sections are not git diffs. Do not use `+` or `-` prefixes. Provide only the SEARCH and REPLACE text blocks.
 
-8. **SEARCH/REPLACE**  
-Make the search pattern as small as possible while still uniquely identifying the content to be replaced. Avoid overly large searches that might replace unintended text.
+13. **Line Matching**  
+    SEARCH patterns are matched line by line. Include each exact full line with the exact original indentation.
 
-9. **SEARCH/REPLACE Format**  
-Follow the SEARCH/REPLACE format exactly as described below.
+14. **Removing Lines**  
+    To delete content, use a SEARCH block for the text to remove and leave the REPLACE block empty. Do not prefix lines with `-`.
 
-10. **Indentation Accuracy**  
-Maintain exact spaces or tabs in both SEARCH and REPLACE sections. Any mismatch will cause the replacement to fail.
+15. **Exact Matching**  
+    Ensure the SEARCH section matches exactly the original text, so that it can be found. The SEARCH section must match every character, including whitespace and indentation.
 
-11. **No Git Syntax**  
-SEARCH/REPLACE sections are not git diffs. Do not use `+` or `-` prefixes. Provide only the SEARCH and REPLACE text blocks.
+16. **Empty Line Handling**  
+    When removing sections, include any adjacent empty lines in the SEARCH block so that only one empty line remains after replacement.
 
-12. **Line Matching**  
-SEARCH patterns are matched line by line. Include each exact full line with the exact original indentation.
+17. **Keep It Minimal**  
+    Always aim for the smallest possible SEARCH block and replace only what is necessary.
 
-13. **Removing Lines**  
-To delete content, use a SEARCH block for the text to remove and leave the REPLACE block empty. Do not prefix lines with `-`.
+18. **Large Replacements**  
+    If the SEARCH section covers 80% or more of the file, use a full file code block instead of SEARCH/REPLACE. However, prefer small, focused replacements whenever possible.
 
-14. **Exact Matching**  
-Ensure the SEARCH section matches exactly the original text, so that it can be found. So what is in betweent the `<<<<<<< SEARCH` and `=======` should match exactly the original text. 
+19. **Verbatim SEARCH Blocks Only**  
+    The SEARCH section must contain text copied verbatim from the original file, with no alterations, no normalization, no auto-formatting, no whitespace adjustments, and no line-wrapping changes.
 
-For example, sometimes the SEARCH section might be a partial markdown code block, but it is ok not to close the code block in the SEARCH section when there is a partial markdown match.
-
-15. **Empty Line Handling**  
-When removing sections, include any adjacent empty lines in the SEARCH block so that only one empty line remains after replacement.
-
-16. **Keep It Minimal**  
-Always aim for the smallest possible SEARCH block and replace only what is necessary.
-
-17. **Large Replacements**  
-If the SEARCH section covers 80% or more of the file, use a full file code block instead of SEARCH/REPLACE. However, prefer small, focused replacements whenever possible.
-
+20. **No Inference or Correction**  
+    Do not infer missing characters, fix typos, adjust indentation, or auto-correct formatting in
 
 ### SEARCH/REPLACE format
 
@@ -539,56 +531,46 @@ import * from "some-lib"
 ````
 </AIP_FILE_CHANGE>
 
-So, in the example above, we just did a search on `import * from "process"` to be able to add the `import * from "some-lib"` after it. 
-And replace the return of the function with the new value. 
+### Additional SEARCH/REPLACE Strictness Rules
 
-Every **SEARCH/REPLACE block** must use this format:
+The following rules refine and strengthen the SEARCH/REPLACE behavior. They **do not repeat** the general rules already defined earlier; they only add the critical constraints needed to ensure accurate, reliable updates.
 
-- In a code block, four backticks (i.e. quad backticks) as defined previously
-- A code block corresponds to one file, meaning if multiple SEARCH/REPLACE are needed for a file, put them in the same code block as described below. 
-- Only use this *SEARCH/REPLACE block* when only part of the file needs to be replaced, not the whole file. Otherwise, provide the whole file content as described for new files. 
-- A code block might have one or more SEARCH/REPLACE pairs
-- When *SEARCH/REPLACE* is used, try to identify only the ones that need to be replaced, not too big chunks.
-- Each SEARCH/REPLACE pair starts with `<<<<<<< SEARCH` (exactly)
-- A contiguous chunk of lines to search for in the existing source code, exactly as the source is given, preserving whitespace (e.g., tabs or space indentation) and all. 
-- The dividing line: `=======` (exactly)
-- The lines to replace them with in the source code
-- The end of the replace block: `>>>>>>> REPLACE`
-- Put all of the SEARCH/REPLACE in the same code block for the same file, with no comment or text between.  
-- Do not have other code after a `>>>>>>> REPLACE`, it must be another SEARCH/REPLACE pair.
-- If a code block has more than one SEARCH/REPLACE section, then all SEARCH/REPLACE pairs need to be consecutive. 
+**Verbatim SEARCH Requirements**
+- The SEARCH block must be copied **exactly** from the user-provided file content, with **no changes whatsoever**.
+- This includes preserving all whitespace: leading spaces, trailing spaces, tabs, and blank lines.
+- Do not auto-correct typos, re-indent, normalize formatting, or “fix” code in the SEARCH block.
 
-Important considerations when generating the *SEARCH/REPLACE* pairs: 
+**No Guessing or Reconstruction**
+- The SEARCH content must come **only** from the exact file content supplied by the user in the current request.
+- If any part of the needed SEARCH text is missing, incomplete, or ambiguous, **stop and ask the user** instead of trying to infer or reconstruct the content.
 
-- Keep *SEARCH/REPLACE* pairs concise.
-- Check that the SEARCH section is an exact match of the original text, character for character.  
-- Make sure the code block starts and ends with 4 backticks. 
-- Break large *SEARCH/REPLACE* blocks into a series of smaller pairs that each change a small portion of the file.
-- Include just the changing lines, and a few surrounding lines if needed for uniqueness.
-- Do not include long runs of unchanging lines in *SEARCH/REPLACE* blocks.
-- To move code within a file, use 2 *SEARCH/REPLACE* blocks: 1 to delete it from its current location, 1 to insert it in the new location.
-- Make sure the Search section matches exactly, even the whitespace. 
-- **VERY IMPORTANT:** The SEARCH OR REPLACE sections are not commit lines, and should **NOT** have `+` or `-` prefixes. There should be just the lines that will replace the SEARCH section. 
-- And as with other code blocks, these code blocks should start and end with four backticks.
+**Minimal but Unambiguous Match**
+- Keep SEARCH blocks as small as possible while still uniquely identifying the intended lines.
+- If the same lines appear multiple times in the file, include just enough surrounding context to disambiguate—no more.
 
-Make sure the search match exactly the intended lines.  
+**Code Block Requirements**
+- All SEARCH/REPLACE pairs for a file must appear together in a **single**, uninterrupted quad-backtick code block.
+- No explanation, comments, or blank lines may appear inside the code block between SEARCH/REPLACE sections.
 
-If the user is asking something like "without updating the files" or "without writing code," just don't add the `AIP_FILE_CHANGE` tag, and those files won't get overwritten.
+**Safety and Failure Prevention**
+- If unsure whether a SEARCH block is a perfect match, **do not output a replacement**.  
+  Ask the user for the exact lines needed.
 
-#### EXTREMELY IMPORTANT:
+These additions ensure that SEARCH/REPLACE updates remain precise, minimal, and fully reliable when used in combination with the main specification above.
 
-When providing a SEARCH/REPLACE code block, if multiple SEARCH/REPLACE pairs, they MUST be consecutive, they cannot have code in between. 
+#### EXTREMELY IMPORTANT — Block Integrity
 
-Something like this would be invalid: 
+When using SEARCH/REPLACE, all pairs for a file must appear **back-to-back** inside the same quad-backtick code block, with **no comments, no code, and no text of any kind** between or around them.
 
-<AIP_FILE_CHANGE file_path="path/to/file.ts">
+Invalid example (do NOT do this):
+  
 ````js
 <<<<<<< SEARCH
 import * from "process"
 =======
 import * as pc from "process"
 >>>>>>> REPLACE
-// Some code or comment <<-- INVALID cannot have code or comment in between search/replace pairs
+// ❌ Invalid: comments or code between pairs
 <<<<<<< SEARCH
 function hello_world(name) {
     return `Hello ${name}, welcome to the world`
@@ -598,9 +580,9 @@ function hello_world(name) {
     return `Hello ${name}, big welcome`
 }
 >>>>>>> REPLACE
-// Some other code or comment <<-- INVALID this is invalid as well, cannot have code/comments/text before or after SEARCH/REPLACE pairs
+// ❌ Invalid: text after the final replace
 ````
-</AIP_FILE_CHANGE>
+
 
 {{/if}}
 
