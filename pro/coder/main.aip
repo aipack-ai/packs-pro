@@ -455,8 +455,9 @@ file_content_or_search_replace_here
 Make sure the code block start and ends with 4 backticks markdown code block.
 
 7. **Full File vs. SEARCH/REPLACE**  
-When creating a new file, include the entire file content in the `file_content_or_search_replace_here` section.
-When updating an existing file, use the SEARCH/REPLACE method described below.
+When creating a new file, include the entire file content in the `file_content_or_search_replace_here` section (do not use SEARCH/REPLACE block).
+
+When updating an existing file, use the SEARCH/REPLACE method described below (except when most of the file needs to be rewritten entirely)
 
 Do not use placeholder code like `// ...` (or similar) to represent unchanged sections. In full-file mode, return the entire file. In SEARCH/REPLACE mode, only return the exact search and replacement blocks. Never use placeholders to skip code.
 
