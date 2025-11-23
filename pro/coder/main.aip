@@ -71,13 +71,23 @@ if inst == "" then
     return aip.flow.skip(msg)
 end
 
+-- === Clean legacy file (since 0.2.27)
+local legacy_prompt_files_path            = prompt_file.dir .. "/" .. ".cache/prompt_files_path.md"
+if aip.path.exists(legacy_prompt_files_path) then 
+    aip.file.delete(legacy_prompt_files_path)
+end
+
 -- === Prep the cache files
-local prompt_files_path            = prompt_file.dir .. "/" .. ".cache/prompt_files_path.md"
+local prompt_files_path            = prompt_file.dir .. "/" .. ".cache/last_prompt_files_path.md"
 aip.file.save(prompt_files_path, "")
 local ai_responses_for_raw_path    = prompt_file.dir .. "/" .. ".cache/last_ai_responses_for_raw.md"
 aip.file.save(ai_responses_for_raw_path, "")
 local ai_responses_for_prompt_path = prompt_file.dir .. "/" .. ".cache/last_ai_responses_for_prompt.md"
 aip.file.save(ai_responses_for_prompt_path, "")
+local last_file_change_fails_report_path = prompt_file.dir .. "/" .. ".cache/last_file_change_fails_report.md"
+if aip.path.exists(last_file_change_fails_report_path) then 
+    aip.file.delete(last_file_change_fails_report_path)
+end
 
 -- === Prep knowledge_refs
 local knowledge_refs = nil
@@ -92,7 +102,6 @@ local base_dir = meta.base_dir or ""
 local context_refs        = nil
 local structure_refs      = nil
 local working_refs_list   = nil
-
 
 if base_dir ~= nil then
     -- Remove the trailing /
@@ -197,6 +206,7 @@ local input_base = {
     prompt_files_path            = prompt_files_path,
     ai_responses_for_raw_path    = ai_responses_for_raw_path,
     ai_responses_for_prompt_path = ai_responses_for_prompt_path,
+    last_file_change_fails_report_path  = last_file_change_fails_report_path,
     suggest_git_commit           = suggest_git_commit, 
 }
 
@@ -825,14 +835,28 @@ end
 
 -- === Process files_changes_failed
 if #files_changes_failed > 0 then 
-    local msg = "⚠️ Failed to apply some changes to file:"
+    local ai_res_path =  aip.path.diff(data.ai_responses_for_raw_path, CTX.WORKSPACE_DIR)
+    local fail_report_content = "❗ Here are the file change search misses.\nSee full AI response at:\n" .. ai_res_path
+
+    fail_report_content = fail_report_content .. "\n\n" .. "Below are the search misses by file:"
+
+    local msg = "❗❗❗ Failed to apply some changes to file(s) ❗❗❗\n"
     for _, fc in ipairs(files_changes_failed) do
         -- NOTE: for now, just show the first reason
         msg = msg .. "\n- " .. fc.path .. " (failed changes: " .. #fc.changes_info.failed_changes .. ", cause: " .. fc.changes_info.failed_changes[1].reason .. ")"
+
+        fail_report_content = fail_report_content .. "\n\n# " .. fc.path .. "\n\nFailed searches:"
+        for _, fail_change in ipairs(fc.changes_info.failed_changes) do
+            fail_report_content = fail_report_content .. "\n\n````\n" .. fail_change.search .. "\n````"
+        end
     end
     local ai_responses_for_raw_rel_path = aip.path.diff(data.ai_responses_for_raw_path, CTX.WORKSPACE_DIR)
-    msg = msg .. "\n\nFor raw AI responses see file:\n➜ " .. ai_responses_for_raw_rel_path 
+
+    msg = msg .. "\n\nFor full raw AI response, see file:\n➜ " .. ai_responses_for_raw_rel_path 
+
     aip.task.pin("changes_failed", 0, {label = "WARNING", content = msg})
+
+    aip.file.append(data.last_file_change_fails_report_path, fail_report_content .. "\n\n")
 end
 
 -- === Process the eventual content to pin/print
