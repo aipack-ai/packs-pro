@@ -507,6 +507,8 @@ To delete content, use a SEARCH block for the text to remove and leave the REPLA
 14. **Exact Matching**  
 Ensure the SEARCH section matches exactly the original text, so that it can be found. So what is in betweent the `<<<<<<< SEARCH` and `=======` should match exactly the original text. 
 
+For example, sometimes the SEARCH section might be a partial markdown code block, but it is ok not to close the code block in the SEARCH section when there is a partial markdown match.
+
 15. **Empty Line Handling**  
 When removing sections, include any adjacent empty lines in the SEARCH block so that only one empty line remains after replacement.
 
