@@ -40,7 +40,8 @@ structure_globs:
 ## Set to true to write the files
 write_mode: false
 
-model: gpt-5.1-codex # or "codex" as an alias, or "codex-mini", or any other model name or aliases
+# Full model name or config-default aliases like "opus", "codex", "codex-mini", "gpro" for gemini 3 pro
+model: gpt-5.1-codex 
 
 ## See README.md for more info
 ```
