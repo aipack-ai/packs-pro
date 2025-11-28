@@ -33,7 +33,7 @@ function process_ui_directives(content)
     return
   end
 
-  local elems = aip.tag.extract(content, {"suggested_git_command", "aip_to_pin"}) or {}
+  local elems = aip.tag.extract(content, {"suggested_git_command", "aip_to_pin", "missing_files"}) or {}
   if type(elems) ~= "table" then return end
 
   for _, elem in ipairs(elems) do
@@ -53,6 +53,22 @@ function process_ui_directives(content)
           content = body
         })
       end
+
+    elseif elem.tag == "missing_files" then 
+      local info = aip.tag.extract_as_map(elem.content, {"mf_message", "mf_files"})
+      if info.mf_message and info.mf_files then
+        local mf_msg = aip.text.trim(info.mf_message.content)
+        aip.task.pin("mf_msg", 0, {
+          label   = "Missing Info:",
+          content = mf_msg
+        })
+        local mf_files = info.mf_files.content:gsub("^\n", "") -- remove first empty line
+        aip.task.pin("mf_files", 0, {
+          label   = "Missing Files:",
+          content = mf_files
+        })
+                
+      end 
     end
   end
 end

@@ -387,7 +387,6 @@ print(task_info)
 
 
 -- The augmented base becomes the data.
-print(base.attachments)
 return aip.flow.data_response({
     data        = base,
     attachments = base.attachments,
@@ -782,6 +781,8 @@ When you perform one or more file changes, suggest a git commit command inside a
 git commit -a -m ". chat_response - Fix doc typos and provider_model_iden doc"
 </suggested_git_command>
 
+However, do not add this if there is no file changed. 
+
 ### Format of the commit (if not already given by the user)
 
 If the user has not specified the git format it would like to use in knownledge, instruction, or context, use the following format. 
@@ -804,6 +805,21 @@ If the user has not specified the git format it would like to use in knownledge,
 
 (Put this in at the top of your response)
 {{/if}}
+
+If you do not have have some files that you should have, answer the missing files under a `<missing_files>` tag like for example: 
+
+<missing_files>
+<mf_message>
+HERE_THE_MESSAGE_TO_THE_USER
+</mf_message>
+<mf_files>
+  - FILE_PATH
+  - FILE_PATH
+  - ...
+</mf_files>
+</missing_files>
+
+
 
 # Output
 
