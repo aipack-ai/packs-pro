@@ -71,6 +71,27 @@ if inst == "" then
     return aip.flow.skip(msg)
 end
 
+-- === Extract the eventual md ref
+local attachments = nil
+if aip.md.extract_refs then -- api from api v0.8.10
+    local md_refs = aip.md.extract_refs(inst)
+
+    if #md_refs > 0 then
+    attachments = {}
+    for _, md_ref in ipairs(md_refs) do
+        if md_ref.inline and md_ref.kind == "File" then
+            local file_path = prompt_dir_rel_path .. "/" .. md_ref.target;
+            file_path = aip.path.resolve(file_path)
+            table.insert(attachments, {
+                file_source = file_path,
+                title       = md_ref.text,
+            })
+        end
+    end
+    end
+end
+
+
 -- === Clean legacy file (since 0.2.27)
 local legacy_prompt_files_path            = prompt_file.dir .. "/" .. ".cache/prompt_files_path.md"
 if aip.path.exists(legacy_prompt_files_path) then 
@@ -187,6 +208,7 @@ end
 
 -- === Build the input base
 local input_base = {
+    attachments                  = attachments,
     max_files_size_kb            = max_files_size_kb,
     write_mode                   = write_mode,
     file_content_mode            = file_content_mode,
@@ -314,9 +336,21 @@ if total_size > max_files_size_b then
     return aip.flow.skip(msg)
 end
 
+-- extract attachments (nil if empty or undefined)
+local attachments = nil
+if base.attachments and #base.attachments > 0 then
+  attachments = base.attachments
+end
 
 -- Save the prompt_files_path
 local prompt_files_content = "====\n\n"
+if attachments then
+    prompt_files_content = prompt_files_content .. "# Attachments" .. "\n"
+    for _, att in ipairs(attachments) do
+        prompt_files_content = prompt_files_content .. "\n- " .. att.file_source
+    end
+    prompt_files_content = prompt_files_content .. "\n\n"
+end
 prompt_files_content = prompt_files_content .. "# Knowledge Files" .. "\n\n" .. p_utils.file_refs_to_md(base.knowledge_refs) .. "\n\n"
 prompt_files_content = prompt_files_content .. "# Context Files"   .. "\n\n" .. p_utils.file_refs_to_md(new_context_refs) .. "\n\n"
 prompt_files_content = prompt_files_content .. "# Working Files"   .. "\n\n" .. p_utils.file_refs_to_md(working_refs) .. "\n\n"
@@ -329,7 +363,6 @@ base.knowledge_files = p_utils.load_file_refs(CTX.WORKSPACE_DIR, base.knowledge_
 base.context_files   = p_utils.load_file_refs(base.base_dir, new_context_refs)
 base.working_files   = p_utils.load_file_refs(base.base_dir, working_refs)
 
-
 -- Add time if available
 if aip.time.weekday_local and aip.time.now_iso_local then
     base.now_local = aip.time.now_iso_local() .. " (" .. aip.time.weekday_local() .. ")"
@@ -339,10 +372,14 @@ local knowledge_file_count = tostring(base.knowledge_files and #base.knowledge_f
 local working_file_count = tostring(base.working_files and #base.working_files or 0)
 local context_file_count = tostring(base.context_files and #base.context_files or 0)
 local task_info = "Context Files: " .. context_file_count .. " | Working Files: " .. working_file_count .. " | Knowledge Files: " .. knowledge_file_count
-if total_size > 0 then
-    local total_size_fmt = aip.text.format_size(total_size, {trim = true})
-    task_info = task_info .. "\nTotal files size: " .. total_size_fmt
+if attachments then
+    task_info = task_info .. " | Attachments: " .. #attachments
 end
+-- Disable, because now it won't include the attachments size
+-- if total_size > 0 then
+--     local total_size_fmt = aip.text.format_size(total_size, {trim = true})
+--     task_info = task_info .. "\nTotal files size: " .. total_size_fmt
+-- end
 if base.now_local then
    task_info = task_info .. "\nTime: " .. base.now_local
 end
@@ -350,7 +387,11 @@ print(task_info)
 
 
 -- The augmented base becomes the data.
-return base
+print(base.attachments)
+return aip.flow.data_response({
+    data        = base,
+    attachments = base.attachments,
+})
 ```
 
 # System `cache = false`
@@ -419,7 +460,7 @@ So, for example, for a javascript file, we would have something like
 ````js
 FILE_CONTENT_HERE
 ````
-</api_file_change>
+</AIP_FILE_CHANGE>
 
 Make sure the code block start and ends with 4 backticks markdown code block.
 
