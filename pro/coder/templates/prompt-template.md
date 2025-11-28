@@ -40,7 +40,8 @@ structure_globs:
 ## Set to true to write the files
 write_mode: false
 
-# Full model name or config-default aliases like "opus", "codex", "codex-mini", "gpro" for gemini 3 pro
+# Full model name or aliases "opus", "gpro" (for Gemini 3 Pro), "codex", "flash" (latest Gemini Flash)
+# Customize reasoning effort with -high, -medium, or -low suffix (e.g., "opus-high", "gpro-low")
 model: gpt-5.1-codex 
 
 ## See README.md for more info

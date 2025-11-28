@@ -114,6 +114,8 @@ write_mode: false
 ## such as ~/.aipack-base/config-default.toml
 ## For OpenAI and Gemini models, you can use the -low, -medium, or -high suffix for reasoning control
 
+# Full model name or aliases "opus", "gpro" (for Gemini 3 Pro), "codex", "flash" (latest Gemini Flash)
+# Customize reasoning effort with -high, -medium, or -low suffix (e.g., "opus-high", "gpro-low")
 model: gpt-5-mini # set it to "gpt-5" for normal coding
 
 ## To see docs, type "Show Doc" and then press `r` in the aip terminal
