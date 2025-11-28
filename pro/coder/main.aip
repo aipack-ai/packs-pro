@@ -806,7 +806,7 @@ If the user has not specified the git format it would like to use in knownledge,
 (Put this in at the top of your response)
 {{/if}}
 
-If you do not have have some files that you should have, answer the missing files under a `<missing_files>` tag like for example: 
+When ask to update some file, if you do not have have some files that you should have, answer the missing files under a `<missing_files>` tag like for example: 
 
 <missing_files>
 <mf_message>
@@ -819,7 +819,7 @@ HERE_THE_MESSAGE_TO_THE_USER
 </mf_files>
 </missing_files>
 
-
+Note that sometime, the user will ask to create new files, so, that's ok, you can create them. 
 
 # Output
 
