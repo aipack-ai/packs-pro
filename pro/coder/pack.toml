@@ -1,7 +1,7 @@
 [pack]
 namespace = "pro"
 name      = "coder"
-version   = "0.2.28"
+version   = "0.2.29-WIP"
 
 # -- Optional section
 license  = "MIT or Apache 2"
