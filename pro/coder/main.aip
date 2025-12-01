@@ -163,10 +163,18 @@ end
 -- === More logic
 print("Prompt file ➜ " .. prompt_file_rel_path)
 
-local should_cache_context_files = false
+
+-- === Defined the explicit cache strategy (for Anthropic)
+
+-- NOTE: For the WIP, we will do true for now. 
+--       Will probably 
+local cache_pre_prompts = true
+local cache_knowledge_files = true
+
 -- NOTE: For now, always false. 
+local cache_context_files = false
 -- if working_refs_list ~= nil then
---     should_cache_context_files = true
+--     cache_context_files = true
 -- end
 
 -- === Compute file_content_mode
@@ -224,12 +232,16 @@ local input_base = {
     base_dir                     = base_dir,
     structure_refs               = structure_refs,
     context_refs                 = context_refs,
-    should_cache_context_files   = should_cache_context_files,
     prompt_files_path            = prompt_files_path,
+    suggest_git_commit           = suggest_git_commit,
+    -- prompt explicit caching
+    cache_pre_prompts            = cache_pre_prompts,
+    cache_knowledge_files        = cache_knowledge_files,
+    cache_context_files          = cache_context_files,
+    -- output files
     ai_responses_for_raw_path    = ai_responses_for_raw_path,
     ai_responses_for_prompt_path = ai_responses_for_prompt_path,
     last_file_change_fails_report_path  = last_file_change_fails_report_path,
-    suggest_git_commit           = suggest_git_commit, 
 }
 
 -- === Preps the inputs
@@ -393,7 +405,7 @@ return aip.flow.data_response({
 })
 ```
 
-# System `cache = false`
+# System `cache = {{data.cache_pre_prompts}}`
 
 You are a senior developer expert who has deep expertise in many languages and creates production-grade quality code (simple and scalable).
 
@@ -469,7 +481,7 @@ Very important: Respect the tabs or identation of the code when providing code.
 
 {{/if}}
 
-# User `cache = false`
+# User `cache = {{data.cache_pre_prompts}}`
 
 {{#if data.file_content_mode.search_replace_auto}}
 When giving a new content of a file, here are some important AIP File Change format conventions to provide the changes.
@@ -626,7 +638,7 @@ function hello_world(name) {
 
 {{/if}}
 
-# User `cache = false`
+# User `cache = {{data.cache_pre_prompts}}`
 
 Here are some some general language best practices to follow when providing code.
 
@@ -663,7 +675,58 @@ Here are some some general language best practices to follow when providing code
 - When you provide file paths/names in markdown text, put them under ticks, like `some/path/to/file.rs`.
 - Do not remove code regions except if explicitly asked.
 
-# User `cache = false`
+# User `cache = {{data.cache_pre_prompts}}`
+
+{{#if data.suggest_git_commit}}
+## For each implementation of a step or sub-step
+
+When you perform one or more file changes, suggest a git commit command inside a `suggested_git_command`. For Example:  
+
+<suggested_git_command>
+git commit -a -m ". chat_response - Fix doc typos and provider_model_iden doc"
+</suggested_git_command>
+
+However, do not add this if there is no file changed. 
+
+### Format of the commit (if not already given by the user)
+
+If the user has not specified the git format it would like to use in knownledge, instruction, or context, use the following format. 
+
+- Prefix the message with a symbol: `.` minor, `-` fix, `+` addition, `^` improvement, `!` breaking public api changes, `>` refactor.
+
+- Use `+` when it is a new feature that was not there before (do not use this when it's same feature, different code layout, that's refactoring). 
+
+- `^` when small to medium improvement of existing feature. 
+
+- `>` If no fixes, or new functionality, but just a code refactor, relayout and such. 
+
+- Then, `-` when fixing an issue, `!` when breaking public api. 
+
+-  `.` when not sure or relatively small, like typo, minor fix, adding comments, ...
+
+- Format: `<symbol> <module/topic> - <short description>`.
+
+- If new files were created, prepend `git add -A .` (for now do not give specific file path, just the `-A .` )
+
+(Put this in at the top of your response)
+{{/if}}
+
+When ask to update some files, if you do not have have some files that you should have, answer the missing files under a `<missing_files>` tag like for example: 
+
+<missing_files>
+<mf_message>
+HERE_THE_MESSAGE_TO_THE_USER
+</mf_message>
+<mf_files>
+  - FILE_PATH
+  - FILE_PATH
+  - ...
+</mf_files>
+</missing_files>
+
+Note that sometime, the user will ask to create new files, so, that's ok, you can create them. 
+
+# User `cache = {{data.cache_knowledge_files}}`
 
 {{#if data.knowledge_files}}
 
@@ -695,7 +758,7 @@ Those are for your reference, in case there are referred somewhere.
 {{/if}}
 
 
-# User `cache = {{data.should_cache_context_files}}`
+# User `cache = {{data.cache_context_files}}`
 
 {{#if data.context_files}}
 
@@ -770,56 +833,7 @@ Here is today local date / time if user ask to do something with it:
   Only add comments that provide meaningful context, design rationale, or structure (such as region markers or explanations of non-obvious logic).
 - **Comment preservation overrides any cleanup, refactor, or reformatting rule.**
 
-# User
 
-{{#if data.suggest_git_commit}}
-## For each implementation of a step or sub-step
-
-When you perform one or more file changes, suggest a git commit command inside a `suggested_git_command`. For Example:  
-
-<suggested_git_command>
-git commit -a -m ". chat_response - Fix doc typos and provider_model_iden doc"
-</suggested_git_command>
-
-However, do not add this if there is no file changed. 
-
-### Format of the commit (if not already given by the user)
-
-If the user has not specified the git format it would like to use in knownledge, instruction, or context, use the following format. 
-
-- Prefix the message with a symbol: `.` minor, `-` fix, `+` addition, `^` improvement, `!` breaking public api changes, `>` refactor.
-
-- Use `+` when it is a new feature that was not there before (do not use this when it's same feature, different code layout, that's refactoring). 
-
-- `^` when small to medium improvement of existing feature. 
-
-- `>` If no fixes, or new functionality, but just a code refactor, relayout and such. 
-
-- Then, `-` when fixing an issue, `!` when breaking public api. 
-
--  `.` when not sure or relatively small, like typo, minor fix, adding comments, ...
-
-- Format: `<symbol> <module/topic> - <short description>`.
-
-- If new files were created, prepend `git add -A .` (for now do not give specific file path, just the `-A .` )
-
-(Put this in at the top of your response)
-{{/if}}
-
-When ask to update some file, if you do not have have some files that you should have, answer the missing files under a `<missing_files>` tag like for example: 
-
-<missing_files>
-<mf_message>
-HERE_THE_MESSAGE_TO_THE_USER
-</mf_message>
-<mf_files>
-  - FILE_PATH
-  - FILE_PATH
-  - ...
-</mf_files>
-</missing_files>
-
-Note that sometime, the user will ask to create new files, so, that's ok, you can create them. 
 
 # Output
 
