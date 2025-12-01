@@ -458,12 +458,10 @@ Here are some important AIP File Change format convention.
 The files provided will be in a markdown code block, with the appropriate language (file extension).
 
 1.  **AIP_FILE_CHANGE** Wrapper `AIP_FILE_CHANGE` tag with a `file_path` attribute for the file path
-2.  **Markdown Code Block Markers for file content:** When providing file content, always enclose it within four backticks in markdown code blocks. Never use three backticks for markdown file content blocks. This ensures compatibility even if the file contains three backticks within its content.
+2.  **Markdown Code Block Markers for file content:** When providing file content, the top code block (the one just below AIP_FILE_CHANGE tag) should always enclose it within four backticks in markdown code blocks. Never use three backticks for the top file content blocks. This ensures compatibility even if the file contains three backticks within its content.
 3.  **Language Specifier:** The markdown code block *must* include the language specifier, the extension, immediately after the opening four backticks and end with four backticks.
-4.  **Strict Adherence:** Always use four backticks, never three, to ensure uniform formatting and prevent rendering issues.
-5.  **Consistency:** Maintain the four-backtick format *unconditionally* for *all* code blocks, for start and end backticks, regardless of language or content.
-6. When you return files, follow the same convention, always first line, and as noted above. Usually, files will be given this way too.
-7. Since it is about replacing the whole file, make sure to give back the whole file content (no abbreviation).
+4. When you return files, follow the same convention, always first line, and as noted above. Usually, files will be given this way too.
+5. Since it is about replacing the whole file, make sure to give back the whole file content (no abbreviation).
 
 So, for example, for a javascript file, we would have something like
 
@@ -500,25 +498,16 @@ Important: When creating a full file, you can add the entire file. When updating
 1. **AIP_FILE_CHANGE**  
    Wrapper `AIP_FILE_CHANGE` tag with a `file_path` attribute for the file path.
 
-2. **Markdown Code Block Markers for File Content**  
-   When providing file content, always enclose it within four backticks in markdown code blocks. Never use three backticks for markdown file content blocks. This ensures compatibility even if the file contains three backticks within its content.
-
-3. **Language Specifier**  
+2. **Language Specifier**  
    The markdown code block must include the language specifier (the file extension) immediately after the opening four backticks and be closed with four backticks.
 
-4. **Strict Adherence**  
-   Always use four backticks, never three, to maintain consistent formatting and prevent rendering issues.
-
-5. **Consistency**  
-   Apply the four-backtick format without exception for all code blocks, both opening and closing, regardless of language or content.
-
-6. **File Returns**  
+3. **File Returns**  
    When returning files, follow the same convention—always begin with the file header line as noted above. Files you receive will generally follow the same pattern.
 
-7. **Modifications**  
+4. **Modifications**  
    Do not remove content unless necessary. Use the SEARCH/REPLACE technique described below to modify only what is needed.
 
-8. **Full File vs. SEARCH/REPLACE**  
+5. **Full File vs. SEARCH/REPLACE**  
    When creating a new file, include the entire file content in the `file_content_or_search_replace_here` section (do not use SEARCH/REPLACE blocks).  
    When updating an existing file, use the SEARCH/REPLACE method described below (except when most of the file needs to be rewritten entirely).
 
@@ -527,40 +516,40 @@ Important: When creating a full file, you can add the entire file. When updating
    In SEARCH/REPLACE mode, only return the exact search and replacement blocks.  
    Never use placeholders to skip code.
 
-9. **SEARCH/REPLACE**  
+6. **SEARCH/REPLACE**  
    Make the search pattern as small as possible while still uniquely identifying the content to be replaced. Avoid overly large searches that might replace unintended text.
 
-10. **SEARCH/REPLACE Format**  
+7. **SEARCH/REPLACE Format**  
     Follow the SEARCH/REPLACE format exactly as described below.
 
-11. **Indentation Accuracy**  
+8. **Indentation Accuracy**  
     Maintain exact spaces or tabs in both SEARCH and REPLACE sections. Any mismatch will cause the replacement to fail.
 
-12. **No Git Syntax**  
+9. **No Git Syntax**  
     SEARCH/REPLACE sections are not git diffs. Do not use `+` or `-` prefixes. Provide only the SEARCH and REPLACE text blocks.
 
-13. **Line Matching**  
+10. **Line Matching**  
     SEARCH patterns are matched line by line. Include each exact full line with the exact original indentation.
 
-14. **Removing Lines**  
+11. **Removing Lines**  
     To delete content, use a SEARCH block for the text to remove and leave the REPLACE block empty. Do not prefix lines with `-`.
 
-15. **Exact Matching**  
+12. **Exact Matching**  
     Ensure the SEARCH section matches exactly the original text, so that it can be found. The SEARCH section must match every character, including whitespace and indentation.
 
-16. **Empty Line Handling**  
+13. **Empty Line Handling**  
     When removing sections, include any adjacent empty lines in the SEARCH block so that only one empty line remains after replacement.
 
-17. **Keep It Minimal**  
+14. **Keep It Minimal**  
     Always aim for the smallest possible SEARCH block and replace only what is necessary.
 
-18. **Large Replacements**  
+15. **Large Replacements**  
     If the SEARCH section covers 80% or more of the file, use a full file code block instead of SEARCH/REPLACE. However, prefer small, focused replacements whenever possible.
 
-19. **Verbatim SEARCH Blocks Only**  
+16. **Verbatim SEARCH Blocks Only**  
     The SEARCH section must contain text copied verbatim from the original file, with no alterations, no normalization, no auto-formatting, no whitespace adjustments, and no line-wrapping changes.
 
-20. **No Inference or Correction**  
+17. **No Inference or Correction**  
     Do not infer missing characters, fix typos, adjust indentation, or auto-correct formatting in
 
 ### SEARCH/REPLACE format
@@ -825,7 +814,6 @@ Here is today local date / time if user ask to do something with it:
 
 **Important additional instruction:**
 
-- As per your system instruction **1 – Markdown Block Markers for file content**, always enclose any file content in a markdown code block using **four backticks**.
 - This prevents formatting issues if the file itself contains triple backticks.
 - **Never remove or alter existing comments. (except if explictly asked by the user)**  
   Comments must be preserved *verbatim*, including spacing, indentation, and placement, even if they appear redundant or outdated.
