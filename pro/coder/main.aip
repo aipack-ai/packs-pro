@@ -166,10 +166,13 @@ print("Prompt file ➜ " .. prompt_file_rel_path)
 
 -- === Defined the explicit cache strategy (for Anthropic)
 
--- NOTE: For the WIP, we will do true for now. 
---       Will probably 
-local cache_pre_prompts = true
-local cache_knowledge_files = true
+-- Default false
+local cache_pre_prompts = false
+local cache_knowledge_files = false
+if meta.cache_explicit then 
+    cache_pre_prompts = true
+    cache_knowledge_files = true
+end
 
 -- NOTE: For now, always false. 
 local cache_context_files = false

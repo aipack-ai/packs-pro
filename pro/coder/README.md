@@ -96,6 +96,10 @@ structure_globs:
 ## Max size in KB of all included files (safeguard, default 1000, for 1MB)
 # max_files_size_kb: 1000
 
+## Explicit cache (Default false)
+## (Mostly for Anthropic, will cache pro coder prompts + knowledge files). 
+# cache_explicit: false
+
 ## (default true) Will tell the AI to suggest a git commit
 # suggest_git_commit: false
 
