@@ -1,10 +1,10 @@
-Here are some important new guideline to follow when writing Rust code. 
+Here are some important new guideline to follow when writing Rust code with modern best practices. 
 
 Some are new features of Rust Edition 2024 and modern Rust that needs to be follows.
 
 Make sure to use them when appropriate.
 
-### if-let-chain is now supported
+## if-let-chain is now supported
 
 Now the Rust compiler support let-chain 
 
@@ -27,7 +27,7 @@ if let Some(name) = person_name {
 }
 ```
 
-### Inline macro values
+## Inline macro values
 
 For `println!` `assert...!` and all of those macro that take string literal, now when simple variables they should be inline. 
 
@@ -35,7 +35,7 @@ So, do this `println!("Hello {name}")` rather than `println!("Hello {}", name)`
 
 When composed variable name, then, keep it separate (for example `println!("Hello {}", person.name)` is still ok
 
-### Future and IntoFuture
+## Future and IntoFuture
 
 - The `Future` and `IntoFuture` traits are now part of the prelude.
 - `IntoIterator` for `Box<[T]>`
@@ -49,7 +49,7 @@ When composed variable name, then, keep it separate (for example `println!("Hell
     - default-features = false is no longer allowed in an inherited workspace dependency if the workspace dependency specifies default-features = true (or does not specify default-features).
 - Async closures (see below)
 
-### `async` closures
+## `async` closures
 
 Rust now supports asynchronous closures like `async || {}`.  
 New traits: `AsyncFn`, `AsyncFnMut`, `AsyncFnOnce`.
@@ -64,13 +64,13 @@ let closure = async || {
 
 More info: [RFC 3668](https://rust-lang.github.io/rfcs/3668-async-closures.html), [Stabilization PR](https://github.com/rust-lang/rust/pull/132706)
 
-### Hiding trait implementations from diagnostics
+## Hiding trait implementations from diagnostics
 
 You can now use `#[diagnostic::do_not_recommend]` to suppress confusing trait suggestion messages.
 
 More info: [RFC 2397](https://rust-lang.github.io/rfcs/2397-do-not-recommend.html), [Reference](https://doc.rust-lang.org/reference/attributes/diagnostics.html#the-diagnosticdo_not_recommend-attribute)
 
-### `FromIterator` and `Extend` for tuples
+## `FromIterator` and `Extend` for tuples
 
 Now supported for tuples of length 1 through 12. You can collect into multiple containers at once:
 
@@ -85,3 +85,5 @@ fn main() {
     println!("{tesseracts:?}");
 }
 ```
+
+

@@ -42,3 +42,8 @@ derive_more = {version = "2", features = ["from", "display"] }
 
 Some popular dependencies sections
 - `# -- Encoding` for all encryption, encoding, hash 
+
+
+## resolver
+
+When resolver needs to be specified use `resolver = "3"`
