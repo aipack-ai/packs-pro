@@ -117,9 +117,10 @@ write_mode: false
 ## such as ~/.aipack-base/config-default.toml
 ## For OpenAI and Gemini models, you can use the -low, -medium, or -high suffix for reasoning control
 
-# Full model name or aliases "opus", "gpro" (for Gemini 3 Pro), "codex", "flash" (latest Gemini Flash)
+# Full model names (any model name for available API Keys) 
+# or aliases "opus", "codex", "gpro" (for Gemini 3 Pro), "flash" (see ~/.aipack-base/config-default.toml)
 # Customize reasoning effort with -high, -medium, or -low suffix (e.g., "opus-high", "gpro-low")
-model: gpt-5-mini # set it to "gpt-5" for normal coding
+model: gpt-5.1 # set it to "gpt-5" for normal coding
 
 ## To see docs, type "Show Doc" and then press `r` in the aip terminal
 ```
@@ -235,10 +236,10 @@ Example:
 
 ```yaml
 model_aliases:
-  gpro: gemini-2.5-pro
-  flash: gemini-2.5-flash
+  gpro: gemini-pro-latest
+  flash: gemini-flash-latest
 ```
-_Note: These aliases are already present in the `~/.aipack-base/config-default.toml`._
+_Note: These aliases are already present in the `~/.aipack-base/config-default.toml` (and with the latest models)._
 
 #### file_content_mode
 
@@ -284,6 +285,7 @@ model: gpt-5-mini  # or "gpt-5" for normal coding
 As mentioned above, the `pro@coder` parametric prompt `coder-prompt.md` allows you to override the AI Pack workspace and base configurations. 
 
 The properties `aliases`, `model`, `input_concurrency`, and `temperature` will be merged, overriding parameters from the following configuration files, in order of precedence: 
+    - the `model_aliases` defined in the prompt
     - `.aipack/config.toml` (workspace file)
     - `~/.aipack-base/config-user.toml` (edit to customize global settings)
     - `~/.aipack-base/config-default.toml` (do not edit)

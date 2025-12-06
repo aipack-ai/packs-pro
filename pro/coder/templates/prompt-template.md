@@ -41,9 +41,10 @@ structure_globs:
 ## Set to true to write the files
 write_mode: false
 
-# Full model name or aliases "opus", "gpro" (for Gemini 3 Pro), "codex", "flash" (latest Gemini Flash)
+# Full model names (any model name for available API Keys) 
+# or aliases "opus", "codex", "gpro" (for Gemini 3 Pro), "flash" (see ~/.aipack-base/config-default.toml)
 # Customize reasoning effort with -high, -medium, or -low suffix (e.g., "opus-high", "gpro-low")
-model: gpt-5.1-codex 
+model: opus
 
 ## See README.md for more info
 ```
