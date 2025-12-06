@@ -97,8 +97,7 @@ structure_globs:
 # max_files_size_kb: 1000
 
 ## Explicit cache (Default false)
-## (Mostly for Anthropic, will cache pro coder prompts + knowledge files). 
-# cache_explicit: false
+# cache_explicit: false  # Explicit cache for pro@coder prompt and knowledge files (Anthropic only)
 
 ## (default true) Will tell the AI to suggest a git commit
 # suggest_git_commit: false

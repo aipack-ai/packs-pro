@@ -33,6 +33,7 @@ structure_globs:
 # input_concurrency: 2
 
 # max_files_size_kb: 1000
+# cache_explicit: false  # (default false) Explicit cache for pro@coder prompt and knowledge files (Anthropic only)
 
 # model_aliases:
 #   my-model: gemini-pro-latest # example of any alias (see ~/.aipack-base/config-default.toml)
