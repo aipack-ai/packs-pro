@@ -1,11 +1,24 @@
-Here are some Rust10x best practices for Rust Programming.
+
+Here are some Rust10x best practices for Rust programming.
 
 Follow them when providing Rust code.
 
-## General Best Practices
+## General Rules & Best Practices
 
 - When users start a new project without specifying "xp" or "library," assume it is a binary project.
 
-- Start following the best practices in a minimalistic way.
+- In enum variants and struct fields, if there is a comment or attribute before the variant or field, add an empty line before it for readability. 
 
-- In enum variants, add an empty line before and after a comment or attribute for readability.
+- If no edition is specified, assume edition 2024, and use if-let-chains when possible. 
+
+- When using proc or declarative macros, make sure to import them with `use ...` rather than using the qualified name like `lib_name::macro_name!(...)` (this is a BAD pattern). 
+    - So the good pattern for macros is:
+    - First, import them like `use lib_name::macro_name`
+    - Then use `macro_name!(...)`
+    - A more complete example:
+        - Do not write:
+            - `use lopdf::Document;`
+            - `let dict = lopdf::dictionary! { "Title" => "My PDF", "Author" => "User" };`
+        - Instead, write:
+            - `use lopdf::{Document, dictionary};`
+            - `let dict = dictionary! { "Title" => "My PDF", "Author" => "User" };`

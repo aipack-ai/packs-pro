@@ -1,32 +1,46 @@
+If no Cargo.toml or no edition 2024 available, assume that it is edition 2024. 
+
 Here are some important new guideline to follow when writing Rust code with modern best practices. 
 
 Some are new features of Rust Edition 2024 and modern Rust that needs to be follows.
 
 Make sure to use them when appropriate.
 
-## if-let-chain is now supported
+## Ref change
 
-IMPORTANT: Make sure to use the if-let-chain when using edition 2024 and above. 
+- In Rust 2024, explicit ref, ref mut, or mut annotations on a binding are only allowed if the pattern leading up to that binding is fully explicit (i.e. you did not rely on the so-called “match ergonomics”).
 
-Now the Rust compiler support let-chain 
+- So, In many cases where you previously might have written ref x, you no longer need it. 
 
-So, do this style when possible: 
+- So avoid the `ref ..` all together. 
+
+## if-let-chain is now supported, use it
+
+IMPORTANT: Make sure to use this if-let-chain when using edition 2024 and above.
+
+The Rust compiler now supports let-chain.
+
+So, use this style when possible:
 
 ```rust
 // NEW WAY with if-let-chain
-if let Some(name) = person_name
-     && name.contains("John") {
-    // do stuff
+if let Some(person) = maybe_person
+    && let Some(name) = person.name()
+    && name.contains("John")
+    && name.len() > 4 {
+    // do stuff with person and name
 }
 ```
 
-Rather than the old way: 
+Rather than the old way of writing nested if statements.
 
 ```rust
 // OLD WAY
-if let Some(name) = person_name { 
-    if name.contains("John") {
-        // do stuff
+if let Some(person) = maybe_person {
+    if let Some(name) = person.name() {
+        if name.contains("John") && name.len() > 4 {
+            // do stuff with person and name
+        }
     }
 }
 ```
