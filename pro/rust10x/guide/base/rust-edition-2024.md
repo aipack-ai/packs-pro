@@ -6,11 +6,14 @@ Make sure to use them when appropriate.
 
 ## if-let-chain is now supported
 
+IMPORTANT: Make sure to use the if-let-chain when using edition 2024 and above. 
+
 Now the Rust compiler support let-chain 
 
 So, do this style when possible: 
 
 ```rust
+// NEW WAY with if-let-chain
 if let Some(name) = person_name
      && name.contains("John") {
     // do stuff
@@ -20,6 +23,7 @@ if let Some(name) = person_name
 Rather than the old way: 
 
 ```rust
+// OLD WAY
 if let Some(name) = person_name { 
     if name.contains("John") {
         // do stuff
