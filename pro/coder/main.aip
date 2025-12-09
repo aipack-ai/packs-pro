@@ -596,6 +596,9 @@ The following rules refine and strengthen the SEARCH/REPLACE behavior. They **do
 - All SEARCH/REPLACE pairs for a file must appear together in a **single**, uninterrupted quad-backtick code block.
 - No explanation, comments, or blank lines may appear inside the code block between SEARCH/REPLACE sections.
 
+**Search section when search code block search 3 backtick**
+- In the `<<<<<<< SEARCH` region, when you replace a code block in a markdown file, make sure to use the same backticks as in the original file, usually three backticks.
+
 **Safety and Failure Prevention**
 - If unsure whether a SEARCH block is a perfect match, **do not output a replacement**.  
   Ask the user for the exact lines needed.
