@@ -182,18 +182,18 @@ local cache_context_files = false
 
 -- === Compute file_content_mode
 -- file_content_mode = "whole" or file_content_mode = "search_replace_auto"
-local user_file_conent_mode = meta.file_content_mode
+local user_file_content_mode = meta.file_content_mode
 
 -- This will have the `file_content_mode.search_replace_auto = true` or `file_content_mode.whole = true`
 local file_content_mode = {}
 -- If user gives it, then, we use what we set
-if user_file_conent_mode then
-  if user_file_conent_mode == "whole" then
+if user_file_content_mode then
+  if user_file_content_mode == "whole" then
     file_content_mode.whole = true
-  elseif user_file_conent_mode == "search_replace_auto" then
+  elseif user_file_content_mode == "search_replace_auto" then
     file_content_mode.search_replace_auto = true
   else
-    return aip.flow.skip("Error file_conent_mode value '" .. user_file_conent_mode .. "' is invalid.\nCan be 'whole' or 'search_replace_auto'" )
+    return aip.flow.skip("Error file_conent_mode value '" .. user_file_content_mode .. "' is invalid.\nCan be 'whole' or 'search_replace_auto'" )
   end 
 -- if user does not give anything, base on write_mode
 else
