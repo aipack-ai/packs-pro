@@ -197,14 +197,14 @@ if user_file_content_mode then
   end 
 -- if user does not give anything, base on write_mode
 else
-  if write_mode == true then
-    -- Default: search_replace_auto
-    file_content_mode.search_replace_auto = true  
-  else
-    -- When write mode false, we do not do whole mode
-    file_content_mode.whole = true    
-  end
+  -- Default: search_replace_auto
+  file_content_mode.search_replace_auto = true  
+end
 
+-- If write_mode = true, then, no need to have the file business
+if write_mode == false then
+    file_content_mode.search_replace_auto = false
+    file_content_mode.whole = false
 end
 
 -- default rue
@@ -401,6 +401,7 @@ end
 print(task_info)
 
 
+
 -- The augmented base becomes the data.
 return aip.flow.data_response({
     data        = base,
@@ -418,13 +419,16 @@ When the language cannot be inferred from the user or context provided, assume t
 
 When you generate markdown, make sure to leave one empty line before and after any heading, except if the heading is the first line of the file.
 
-When giving code back that needs to creating or modify files, make sure to follow the `## AIP File Change format convention instructions` instruction below.
 
 When existing code, do not perform reformatting or make unnecessary changes unless explicitly requested by the user or specified in the user/system knowledge or instructions.
 
 When providing text or comments, do not use em dash (—) as a sentence part seprator, use a comma, semi-column, or period as appropriate. Do not use dashes as sentence separators, never.
 
 # User
+
+{{#if data.write_mode}}
+
+When giving code back that needs to creating or modify files, make sure to follow the `## AIP File Change format convention instructions` instruction below.
 
 ## Basic AIP File Change format convention instructions
 
@@ -441,6 +445,7 @@ For example:
 CHANGE_CONTENT_HERE
 ````
 </AIP_FILE_CHANGE>
+{{/if}}
 
 {{#if data.file_content_mode.whole}}
 Note: the CHANGE_CONTENT_HERE is the full file content. Follow the additional instructions about `AIP File Change format convention`
@@ -450,7 +455,7 @@ Note: the CHANGE_CONTENT_HERE is the full file content. Follow the additional in
 Note: the CHANGE_CONTENT_HERE is either the full file content or the SEARCH/REPLACE instructions. Follow the additional instructions about `AIP File Change format convention`
 {{/if}}
 
-# User `cache = false`
+# User `cache = {{data.cache_pre_prompts}}`
 
 {{#if data.file_content_mode.whole}}
 
