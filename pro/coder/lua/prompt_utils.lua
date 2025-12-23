@@ -188,7 +188,6 @@ end
 
 return {
 	prep_prompt_file          = prep_prompt_file,
-	should_skip               = should_skip,
 	prep_inst_and_content     = prep_inst_and_content,
 	load_file_refs            = load_file_refs,
 	compute_working_refs_list = compute_working_refs_list,
