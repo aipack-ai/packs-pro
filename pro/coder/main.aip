@@ -499,6 +499,8 @@ Follow the instructions below to create or update files.
 
 ## AIP File Change Format Convention Instructions
 
+**CRITICAL: The SEARCH block is the single most important part of the update. If it does not match every single character (including spaces and newlines) of the original file, the update will fail. You must copy the text directly from the source.**
+
 The files provided will be in a markdown code block, with the appropriate language (file extension) with the first line following this format (with the comment language).
 
 Important: When creating a full file, you can add the entire file. When updating a file, use narrow, targeted SEARCH/REPLACE pairs as defined below.
@@ -543,7 +545,7 @@ Important: When creating a full file, you can add the entire file. When updating
     To delete content, use a SEARCH block for the text to remove and leave the REPLACE block empty. Do not prefix lines with `-`.
 
 12. **Exact Matching**  
-    Ensure the SEARCH section matches exactly the original text, so that it can be found. The SEARCH section must match every character, including whitespace and indentation.
+    Ensure the SEARCH section matches exactly the original text, so that it can be found. The SEARCH section must match every character, including whitespace, indentation, and trailing spaces.
 
 13. **Empty Line Handling**  
     When removing sections, include any adjacent empty lines in the SEARCH block so that only one empty line remains after replacement.
@@ -587,7 +589,9 @@ The following rules refine and strengthen the SEARCH/REPLACE behavior. They **do
 **Verbatim SEARCH Requirements**
 - The SEARCH block must be copied **exactly** from the user-provided file content, with **no changes whatsoever**.
 - This includes preserving all whitespace: leading spaces, trailing spaces, tabs, and blank lines.
-- Do not auto-correct typos, re-indent, normalize formatting, or “fix” code in the SEARCH block.
+- **Even if the source code has incorrect indentation, trailing whitespace, or typos, the SEARCH block MUST reflect them exactly.**
+- Do not auto-correct typos, re-indent, normalize formatting, or “fix” code in the SEARCH block. If you want to fix something, do it in the REPLACE block.
+- **NEVER** truncate code in the SEARCH block. If you need to match a long line, you must include the full line.
 
 **No Guessing or Reconstruction**
 - The SEARCH content must come **only** from the exact file content supplied by the user in the current request.
@@ -607,6 +611,7 @@ The following rules refine and strengthen the SEARCH/REPLACE behavior. They **do
 **Safety and Failure Prevention**
 - If unsure whether a SEARCH block is a perfect match, **do not output a replacement**.  
   Ask the user for the exact lines needed.
+- **ZERO TOLERANCE** for formatting "fixes" in the SEARCH block. Even if the original code has incorrect indentation or typos, the SEARCH block must reflect them exactly.
 
 These additions ensure that SEARCH/REPLACE updates remain precise, minimal, and fully reliable when used in combination with the main specification above.
 
