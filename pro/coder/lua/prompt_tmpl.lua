@@ -19,6 +19,10 @@ function init_fixed_files(prompt_dir)
 		{
 			src_path  = CTX.AGENT_FILE_DIR .. "/templates/dev/plan/_plan-rules.md",
 			dest_path = prompt_dir .. "/dev/plan/_plan-rules.md"
+		},
+		{
+			src_path  = CTX.AGENT_FILE_DIR .. "/templates/dev/chat/dev-chat.md",
+			dest_path = prompt_dir .. "/dev/chat/dev-chat.md"
 		}
 	}
 
