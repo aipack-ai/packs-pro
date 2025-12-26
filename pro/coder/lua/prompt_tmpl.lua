@@ -1,8 +1,14 @@
+local M = {}
+
 local TEMPLATES_DIR = CTX.AGENT_FILE_DIR .. "/templates"
+
+function M.load_template(rel_path)
+	return aip.file.load(TEMPLATES_DIR .. "/" .. rel_path)
+end
 
 -- Save a prompt file
 -- `prompt_path`    - the destination file path
-function save_prompt_file(prompt_path)
+function M.save_prompt_file(prompt_path)
 	local tmpl_path = TEMPLATES_DIR .. "/prompt-template.md"
 	if not aip.path.exists(prompt_path) then
 		local content = aip.file.load(tmpl_path).content
@@ -10,7 +16,7 @@ function save_prompt_file(prompt_path)
 	end
 end
 
-function init_fixed_files(prompt_dir)
+function M.init_fixed_files(prompt_dir)
 	local files_to_init = {
 		{
 			src_path  = CTX.AGENT_FILE_DIR .. "/README.md",
@@ -36,7 +42,4 @@ end
 
 -- ==== Return
 
-return {
-	save_prompt_file = save_prompt_file,
-	init_fixed_files = init_fixed_files,
-}
+return M

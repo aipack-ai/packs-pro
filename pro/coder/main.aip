@@ -9,6 +9,12 @@ local p_utils  = require("prompt_utils")
 local p_tmpl   = require("prompt_tmpl")
 local consts   = require("consts")
 
+-- Dictionary of instructions that will be used by this agent
+-- e.g. .file_content_change (for the whole/search_replace/... instructions), 
+--      .user_custom (for the git commit)
+--      .missing_files (for the missing files)
+local instructions  = {}
+
 -- === Check AIPACK Version
 if not aip.semver.compare(CTX.AIPACK_VERSION, ">", "0.8.4") then
     local msg = "\nWARNING - This pack requires AIPACK_VERSION 0.8.4 or above, but " .. CTX.AIPACK_VERSION .. " is currently installed"
@@ -207,7 +213,14 @@ if write_mode == false then
 end
 
 -- === Seed the file_content_mode.prompt
--- TODO
+local templates_dir = CTX.AGENT_FILE_DIR .. "/templates"
+if file_content_mode.whole then
+    local tmpl = p_tmpl.load_template("file-content-whole.md")
+    instructions.file_content_change = tmpl.content
+elseif file_content_mode.search_replace_auto then
+    local tmpl = p_tmpl.load_template("file-content-search-replace-auto.md")
+    instructions.file_content_change = tmpl.content
+end
 
 -- === Suggest Commit
 -- default true
@@ -220,8 +233,14 @@ else
   suggest_git_commit = write_mode
 end
 
+if suggest_git_commit then
+	local suggest_commit_content = p_tmpl.load_template("suggest-commit.md").content
+  instructions.suggest_commit = suggest_commit_content
+end
+
 -- === Build the input base
 local input_base = {
+	  instructions                 = instructions,
     attachments                  = attachments,
     max_files_size_kb            = max_files_size_kb,
     write_mode                   = write_mode,
@@ -239,7 +258,6 @@ local input_base = {
     structure_refs               = structure_refs,
     context_refs                 = context_refs,
     prompt_files_path            = prompt_files_path,
-    suggest_git_commit           = suggest_git_commit,
     -- prompt explicit caching
     cache_pre_prompts            = cache_pre_prompts,
     cache_knowledge_files        = cache_knowledge_files,
@@ -450,37 +468,18 @@ CHANGE_CONTENT_HERE
 </AIP_FILE_CHANGE>
 {{/if}}
 
-{{#if data.file_content_mode.whole}}
-Note: the CHANGE_CONTENT_HERE is the full file content. Follow the additional instructions about `AIP File Change format convention`
-{{/if}}
-
-{{#if data.file_content_mode.search_replace_auto}}
-Note: the CHANGE_CONTENT_HERE is either the full file content or the SEARCH/REPLACE instructions. Follow the additional instructions about `AIP File Change format convention`
-{{/if}}
 
 # User `cache = {{data.cache_pre_prompts}}`
 
-{{#if data.file_content_mode.whole}}
-{{data.file_content_mode.prompt}}
+{{#if data.instructions.file_content_change}}
+{{data.instructions.file_content_change}}
 {{/if}}
-
-# User `cache = {{data.cache_pre_prompts}}`
-
-{{#if data.file_content_mode.search_replace_auto}}
-{{data.file_content_mode.prompt}}
-{{/if}}
-
 
 # User `cache = {{data.cache_pre_prompts}}`
 
 Here are some some general language best practices to follow when providing code.
 
 ## Languages best practices
-
-### Rust
-
-- Mostly assume that there is a `Result<T>` type alias in the module import when doing a `use crate::Result` or whatever the used result is.
-- Keep code simple and to the point. Limit allocation when possible, but try to avoid creating types with lifetime when not strictly needed.
 
 ### HTML
 
@@ -510,38 +509,8 @@ Here are some some general language best practices to follow when providing code
 
 # User `cache = {{data.cache_pre_prompts}}`
 
-{{#if data.suggest_git_commit}}
-## For each implementation of a step or sub-step
-
-When you perform one or more file changes, suggest a git commit command inside a `suggested_git_command`. For Example:  
-
-<suggested_git_command>
-git commit -a -m ". chat_response - Fix doc typos and provider_model_iden doc"
-</suggested_git_command>
-
-However, do not add this if there is no file changed. 
-
-### Format of the commit (if not already given by the user)
-
-If the user has not specified the git format it would like to use in knownledge, instruction, or context, use the following format. 
-
-- Prefix the message with a symbol: `.` minor, `-` fix, `+` addition, `^` improvement, `!` breaking public api changes, `>` refactor.
-
-- Use `+` when it is a new feature that was not there before (do not use this when it's same feature, different code layout, that's refactoring). 
-
-- `^` when small to medium improvement of existing feature. 
-
-- `>` If no fixes, or new functionality, but just a code refactor, relayout and such. 
-
-- Then, `-` when fixing an issue, `!` when breaking public api. 
-
--  `.` when not sure or relatively small, like typo, minor fix, adding comments, ...
-
-- Format: `<symbol> <module/topic> - <short description>`.
-
-- If new files were created, prepend `git add -A .` (for now do not give specific file path, just the `-A .` )
-
-(Put this in at the top of your response)
+{{#if data.instructions.suggest_commit}}
+{{data.instructions.suggest_commit}}
 {{/if}}
 
 When ask to update some files, if you do not have have some files that you should have, answer the missing files under a `<missing_files>` tag like for example: 
