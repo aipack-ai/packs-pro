@@ -13,7 +13,7 @@ The CLI logic is organized within the `src/cli/` directory:
 - `src/cli/mod.rs`: Module definitions and re-exports.
 - `src/cli/cmd.rs`: Clap structure definitions (Parser, Subcommands, Args).
 - `src/cli/executor.rs`: The main entry point that routes commands.
-- `src/cli/exec_<topic>.rs`: Topic-specific execution logic (bridges CLI to handlers).
+- `src/cli/exec_<sub_command>.rs`: Topic-specific execution logic (bridges CLI to handlers).
 
 The domain logic lives in:
 
@@ -92,7 +92,9 @@ fn main() -> Result<()> {
 }
 ```
 
-### 4. `src/cli/exec_<topic>.rs`
+### 4. `src/cli/exec_<sub_command>.rs`
+
+When the sub_command become substantial, more than a dozen, then we split them into `exec_<sub_command>.rs` to be more foxued. 
 
 This file handles the translation from CLI-specific types (like `String` or `Vec<String>`) to domain types (like `SPath` or custom enums).
 
@@ -111,7 +113,7 @@ Handlers should be "CLI-clean". They should not depend on `clap` or any CLI-spec
 
 ### 6. Type Conversions
 
-Perform type conversions and validations as early as possible in the `exec_<topic>.rs` layer.
+Perform type conversions and validations as early as possible in the `exec_<sub_command>.rs` layer.
 
 - Flatten optional CLI arguments into clean internal types.
 - Validate file existence before calling handlers.
