@@ -84,6 +84,7 @@ impl std::error::Error for Error {}
 ```
 
 - We have the `Custom` region and variant for early flexibility.
+- By including `#[from(String, &String, &str)]` on the `Custom` variant, we enable seamless conversion from string literals and formatted strings. For example, this allows the use of `.ok_or("error message")?` instead of more verbose `map_err` calls, keeping the logic focused and readable.
 - Below `// -- Externals` are the external types, usually passed through.
 - Above will be for the application specific errors.
 - `Custom` variant is always on top.
