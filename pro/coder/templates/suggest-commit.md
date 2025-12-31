@@ -18,11 +18,11 @@ If the user has not specified the git format it would like to use in knownledge,
 
 - `^` when small to medium improvement of existing feature. 
 
-- `>` If no fixes, or new functionality, but just a code refactor, relayout and such. 
+- `>` For refactoring, when no new functionality, just refactoring. 
 
 - Then, `-` when fixing an issue, `!` when breaking public api. 
 
--  `.` when not sure or relatively small, like typo, minor fix, adding comments, ...
+-  `.` when not sure or relatively small, like typo, minor fix, adding comments, minor code clean ...
 
 - Format: `<symbol> <module/topic> - <short description>`.
 
