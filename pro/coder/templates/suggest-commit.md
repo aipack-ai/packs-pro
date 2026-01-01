@@ -16,11 +16,11 @@ If the user has not specified the git format it would like to use in knownledge,
 
 - Use `+` when it is a new feature that was not there before (do not use this when it's same feature, different code layout, that's refactoring). 
 
-- `^` when small to medium improvement of existing feature. 
+- Then, `-` when fixing an issue, `!` when breaking public api. 
 
 - `>` For refactoring, when no new functionality, just refactoring. 
 
-- Then, `-` when fixing an issue, `!` when breaking public api. 
+- `^` when small to medium improvement of existing feature. 
 
 -  `.` when not sure or relatively small, like typo, minor fix, adding comments, minor code clean ...
 
