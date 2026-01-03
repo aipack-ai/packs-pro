@@ -3,9 +3,9 @@
 For Rust unit tests, here is a good template to follow:
 
 - Let's assume the file is `src/support/text.rs`
-    - or one that gets flattened to this, for example, if `src/support/text/mod.rs` does a `pub use text_common::*` for the file `src/support/text/text_common.rs`
-- This function to test would be `replace_markers(...)`
-- When the test is inside a binary/lib code file, with the `mod tests {` follow that layout:
+    - Or one that gets flattened to this. For example, if `src/support/text/mod.rs` does a `pub use text_common::*` for the file `src/support/text/text_common.rs`
+- The function to test would be `crate::support::replace_markers(...)`
+- When the test is inside a binary or library code file, with `mod tests {`, follow this layout:
 
 ```rust
 // region:    --- Tests
@@ -14,9 +14,9 @@ For Rust unit tests, here is a good template to follow:
 mod tests {
 	type Result<T> = core::result::Result<T, Box<dyn std::error::Error>>; // For tests.
 
-    use super::*;
+  use super::*;
 
-    #[test]
+  #[test]
 	fn test_support_text_replace_markers_simple() -> Result<()>{
         // -- Setup & Fixtures
         // ... here the code that preps/sets the context for the tests
@@ -29,7 +29,7 @@ mod tests {
         // ... can be commented like `// check the blocks` and multiple lines below
     }
 
-    #[test]
+  #[test]
 	fn test_support_text_replace_markers_with_filter() -> Result<()>{
         // ... same structure as above.
     }
@@ -43,51 +43,94 @@ mod tests {
 
 ```
 
-- For those types of tests block, have the `use super::*;` as well as above
-- Do not use `unwrap()` but have `.ok_or("Should be ...")?` type of pattern when getting expected values (works well with the box dyn error type)
-- Make sure to have the `// region:    --- Tests` which will be at the top level now. That surrounds the `#[cfg(test)] mod test {...}`
-    - If no `#[cfg(test)]` which means the file is a dedicated test file, no need to add `// region:    --- Tests`
+- For these types of test blocks, have `use super::*;` as shown above.
+- Do not use `unwrap()`. Instead, use an `.ok_or("Should be ...")?`-style pattern when getting expected values (this works well with the boxed dyn error type).
+- Make sure to have `// region:    --- Tests` at the top level. It should surround the `#[cfg(test)] mod test {...}`.
+    - If there is no `#[cfg(test)]`, which means the file is a dedicated test file, there is no need to add `// region:    --- Tests`.
 
 - Include clear section comments in every test function:
   - `// -- Setup & Fixtures`
     - Use this section to initialize the environment and set up any necessary data or context.
   - `// -- Exec`
-    - Place the code that actually executes the function under test here for clarity.
+    - Put the code that executes the function under test here for clarity.
   - `// -- Check`
     - Use this section to include assertions and verify that the expected outcome is met.
   - `// -- Exec & Check`
-    - Use this section when the exec & tests are in the for loop, and put it above the `for ...`
+    - Use this section when exec and checks are in the `for` loop, and put it above the `for ...`.
 
 - Ensure the tests are wrapped in a dedicated test module with region comments:
   
   - Use:
-    - `// region:    --- Tests` at the beginning and
+    - `// region:    --- Tests` at the beginning, and
     - `// endregion: --- Tests` at the end.
-  - This helps in visual grouping and organization of the tests within any module.
+  - This helps with visual grouping and organization of the tests within any module.
 
 - For tests that require helper functions:
   
   - Have a nested support region marked with:
-    - `// region:    --- Support` and
+    - `// region:    --- Support`, and
     - `// endregion: --- Support` for additional helper functions used only during tests.
 
 - Always define a dedicated type alias for test results at the top of your tests:
   - For instance:
     - `type Result<T> = core::result::Result<T, Box<dyn std::error::Error>>;`
-  - This ensures uniform error handling and improves test readability.
-
+  - This ensures consistent error handling and improves test readability.
 
 - The name of the test function has the following format:
 - `test_[module_path_name]_[function_name]_[variant]()`
 - So, for example, we would have a function name like `test_support_text_replace_markers_simple`
-    - to test a function `replace_markers` in the module path `src/support/text`
-    - `support_text` is the module path name (make sure to look at the mod.rs, because submodules can be flattened out)
-    - `replace_markers` is the function that this test tests.
-    - `simple` is the first variant and first one to implement
-    - `with_filter` was the other variant to show that sometimes we want to be able to test different things.
-- NO NEED to repeat the crate/lib name in the test function name.
-    - For example, if the crate or lib is named `simple_fs`, do not do a name like `test_simple_fs_support_text_...` that would be silly.
-    - Just have `test_support_text_...`
+    - To test a function `replace_markers` in the module path `src/support/text`
+    - `support_text` is the module path name (make sure to look at the mod.rs, because submodules can be flattened out).
+    - `replace_markers` is the function being tested.
+    - `simple` is the first variant and the first one to implement.
+    - `with_filter` is another variant to show that sometimes we want to test different things.
+- No need to repeat the crate or library name in the test function name.
+    - For example, if the crate or library is named `simple_fs`, do not use a name like `test_simple_fs_support_text_...`. That would be silly.
+    - Just use `test_support_text_...`.
 
-- When need to create temp data files, For each function, have the paths like  `tests-data/.tmp/test_function_name/` and the `test_function_name` is the full unit test function. This way, all tests have their own. 
-- IMPORTANT: for the cleanup of file, comment out the `..remove..` code, so that the user has to activate it itself. to make sure we do not remove file automatically. 
+- When you need to create temp data files, for each function, use paths like `tests-data/.tmp/test_function_name/`, where `test_function_name` is the full unit test function name. This way, all tests have their own directory.
+- IMPORTANT: For cleanup, comment out the `..remove..` code so the user has to enable it manually. This ensures we do not remove files automatically.
+
+### For integration tests
+
+- Follow the best practices above.
+- The file does not need to include the comment section `// region:    --- Tests`.
+- All tests will be in files like `tests/tests_.....rs`, using the same suffix pattern mentioned above.
+- Each integration test will still use `type Result<T> = core::result::Result<T, Box<dyn std::error::Error>>; // For tests.`
+
+### test_support
+
+Unit tests or integration tests can have test support functions.
+
+- For unit tests, they will be under `src/_test_support/mod.rs` (exported as `test_support`).
+- For integration tests, they will be under `tests/test_support/mod.rs`.
+- The `mod.rs` will look something like:
+
+```rust
+//! Some support utilities for the tests
+//! Note: Must be imported in each test file
+
+#![allow(unused)] // For test support
+
+// region:    --- Modules
+
+mod asserts;
+mod helpers;
+mod seeders;
+
+pub use asserts::*; // could be assert utilities
+pub use helpers::*; // could be some test dir/file create/delete utilities 
+pub use seeders::*; // could be some data creation data. 
+
+type TestResult<T> = core::result::Result<T, Box<dyn std::error::Error>>; // For tests.
+
+// endregion: --- Modules
+```
+
+`TestResult` will use the same pattern as the other test result type, but it will have a specific alias so all tests can use the same type alias.
+
+In `helpers.rs`, one good function to have is `let test_dir = test_support::new_out_dir_path(prefix)?`.
+
+This will create a path like `tests/.out/prefix_unixtime_ms`, which will be unique enough and allows the test to create files as needed.
+
+Then you can have `test_support::delete_out_dir(test_dir)`, which will first verify that `test_dir` is below the current directory and contains `tests/.out` in the path, making it safer to remove.
