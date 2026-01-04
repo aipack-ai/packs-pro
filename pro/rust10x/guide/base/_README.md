@@ -33,4 +33,4 @@ Put them in a code comment region named `// region:    --- Iterator Implementati
 
 Before the `impl IntoIterator`, also add an `impl T { pub iter(&self) ... }` implementation block.
 
-This way, all iterator-related implementations are inside the `Iterator Implementations` region.
+This way, all iterator-related implementations are inside the `Iterator Implementations` region (this section should be only for iterator implementation)
