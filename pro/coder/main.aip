@@ -666,8 +666,24 @@ local files_changed = {}
 if data.write_mode == true then
 		if data.file_content_mode.udiffx then
 			local changes_status, other_content = aip.udiffx.apply_file_changes(ai_content, base_dir, {extrude = "content"} )
-			print(changes_status)
 			second_part = other_content
+			if changes_status.infos then
+				for _, info in ipairs(changes_status.infos) do
+					local f_path = aip.path.join(base_dir, info.file_path)
+					if info.success then
+						table.insert(files_changed, f_path)
+					else
+						table.insert(files_changes_failed, {
+							path = f_path,
+							changes_info = {
+								failed_changes = { { reason = info.error_msg or "Unknown error", search = "UDIFFX Block failed" } }
+							}
+						})
+					end
+				end
+			elseif changes_status.error then
+				print("Error applying udiffx: " .. changes_status.error)
+			end
 		else 
 	    local elems, other_content = aip.tag.extract(ai_content, {"AIP_FILE_CHANGE"}, {extrude = "content"})
 	    -- In this case, the other_content becomes the second_part
