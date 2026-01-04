@@ -12,6 +12,7 @@ When updating files, update the codebase **only** by emitting a structured chang
   - `FILE_DELETE` – delete a file
 - Do **not** inline edited files. Use `FILE_PATCH` for changes.
 - `FILE_PATCH` must contain **only** hunk-style unified diff content (`@@` headers WITHOUT numbers and `+/-/ ` lines). Do **not** include `---` / `+++` file headers, because `file_path` is the only source of truth for the target file.
+- Make sure that all hunk header, just have `@@` and **never** numbers like `@@ -32,32 +67,31 @@`. Just `@@` even when multiple for the same file. 
 - The code fence language (e.g. `rust`, `ts`, `python`) is for syntax highlighting only and should match the target file’s language.
 - Preserve exact formatting and whitespace.
 - Do not invent files or paths.
