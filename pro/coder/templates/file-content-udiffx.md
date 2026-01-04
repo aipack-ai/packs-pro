@@ -7,12 +7,14 @@ When updating files, update the codebase **only** by emitting a structured chang
 - The container tag `FILE_CHANGES` must contain only file change directives.
 - Every modification must be represented explicitly as one of the following operations:
   - `FILE_NEW` – create a new file (must not overwrite unless explicitly instructed)
-  - `FILE_PATCH` – modify an existing file using a hunk-style unified diff
+  - `FILE_PATCH` – modify an existing file using a hunk-style unified diff (wihtout hunk numbers, just `@@` as hunk deliminator)
   - `FILE_RENAME` – rename or move a file
   - `FILE_DELETE` – delete a file
-- Do **not** inline edited files. Use `FILE_PATCH` for changes.
-- `FILE_PATCH` must contain **only** hunk-style unified diff content (`@@` headers WITHOUT numbers and `+/-/ ` lines). Do **not** include `---` / `+++` file headers, because `file_path` is the only source of truth for the target file.
-- Make sure that all hunk header, just have `@@` and **never** numbers like `@@ -32,32 +67,31 @@`. Just `@@` even when multiple for the same file. 
+- `FILE_PATCH` must contain simplified hunk-style number-less unified diff content like
+  - Hunk headers with `@@`, but no numbers
+  - The `-` and `+` with the proper surround lines. 
+  - Do **not** include `---` / `+++` file headers, because `file_path` is the only source of truth for the target file.
+  - Never use `@@ -35,26 +83,32 @@` just one `@@` without numbers, even when multiple hunks per file. 
 - The code fence language (e.g. `rust`, `ts`, `python`) is for syntax highlighting only and should match the target file’s language.
 - Preserve exact formatting and whitespace.
 - Do not invent files or paths.
