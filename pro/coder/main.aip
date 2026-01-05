@@ -682,7 +682,7 @@ if data.write_mode == true then
 						table.insert(files_changes_failed, {
 							path = f_path,
 							changes_info = {
-								failed_changes = { { reason = info.error_msg or "Unknown error", search = "UDIFFX Block failed (see '.cache/last_ai_responses_for_raw.md'" } }
+								failed_changes = { { reason = item.error_msg or "Unknown error", search = "UDIFFX Block failed (see '.cache/last_ai_responses_for_raw.md'" } }
 							}
 						})
 					end
