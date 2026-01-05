@@ -204,20 +204,22 @@ if user_file_content_mode then
   end 
 -- if user does not give anything, base on write_mode
 else
-  -- Default: 
-  -- udiffx (for new AIPack >= 0.8.12)
-  if aip.udiffx then 
-  	file_content_mode.udiffx = true
-  -- search_replace_auto (for older AIPack without udiffx  AIPack <= 0.8.12)
-  else
-  	file_content_mode.search_replace_auto = true  
-  end
+	file_content_mode.search_replace_auto = true  
+  -- -- Default: 
+  -- -- udiffx (for new AIPack >= 0.8.12)
+  -- if aip.udiffx then 
+  -- 	file_content_mode.udiffx = true
+  -- -- search_replace_auto (for older AIPack without udiffx  AIPack <= 0.8.12)
+  -- else
+  -- 	file_content_mode.search_replace_auto = true  
+  -- end
 end
 
 -- If write_mode = true, then, turn the file_content_mode to false
 if write_mode == false then
     file_content_mode.search_replace_auto = false
     file_content_mode.whole = false
+    file_content_mode.udiffx = false
 end
 
 -- === Seed the file_content_mode.prompt
