@@ -20,6 +20,8 @@ When updating files, update the codebase **only** by emitting a structured chang
 - Do not invent files or paths.
 - If no changes are required, output nothing.
 
+IMPORTANT: Make sure to respect leading spaces for the hunk surround content. 
+
 You may include additional explanation before or after the `<FILE_CHANGES>` block; it will be shown to the user. Do not place anything inside `<FILE_CHANGES>` other than directives.
 
 ### Format
