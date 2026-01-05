@@ -667,16 +667,16 @@ if data.write_mode == true then
 		if data.file_content_mode.udiffx then
 			local changes_status, other_content = aip.udiffx.apply_file_changes(ai_content, base_dir, {extrude = "content"} )
 			second_part = other_content
-			if changes_status.infos then
-				for _, info in ipairs(changes_status.infos) do
-					local f_path = aip.path.join(base_dir, info.file_path)
-					if info.success then
+			if changes_status.items then
+				for _, item in ipairs(changes_status.items) do
+				local f_path = aip.path.join(base_dir, item.file_path)
+				if item.success then
 						table.insert(files_changed, f_path)
 					else
 						table.insert(files_changes_failed, {
 							path = f_path,
 							changes_info = {
-								failed_changes = { { reason = info.error_msg or "Unknown error", search = "UDIFFX Block failed" } }
+								failed_changes = { { reason = info.error_msg or "Unknown error", search = "UDIFFX Block failed (see '.cache/last_ai_responses_for_raw.md'" } }
 							}
 						})
 					end
