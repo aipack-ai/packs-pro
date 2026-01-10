@@ -22,6 +22,16 @@ Follow them when providing Rust code.
             - `use lopdf::{Document, dictionary};`
             - `let dict = dictionary! { "Title" => "My PDF", "Author" => "User" };`
 
+## Single-File Code Structure
+
+When writing or adding code to a file, follow this structure.
+
+- Public types in that file, if any, should be at the top, from the "container" type(s) to leaf ones.
+- If there are many types, put them in a code comment region called "Types" (see comments-best-practices.md for code comment regions).
+- Then add the public function or struct implementations for this module.
+- Then, if there are any private functions, implementations, or types for this module, put them in the "Support" code comment regions.
+- Then, at the end, if appropriate, add the unit tests under the "Tests" code region.
+
 ## Iterator Implementation
 
 When a user asks you to implement iterators for a type, implement:
@@ -33,4 +43,4 @@ Put them in a code comment region named `// region:    --- Iterator Implementati
 
 Before the `impl IntoIterator`, also add an `impl T { pub iter(&self) ... }` implementation block.
 
-This way, all iterator-related implementations are inside the `Iterator Implementations` region (this section should be only for iterator implementation)
+This way, all iterator-related implementations are inside the `Iterator Implementations` region (this section should be only for iterator implementations).
