@@ -18,7 +18,7 @@ base_dir: ""
 context_globs:
   # - package.json  # e.g., for Node.js
   # - Cargo.toml    # e.g., for Rust
-  # - README.md     # e.g., for Rust
+  # - README.md 
   - src/**/*.*      # Narrow glob when more than 10 files
 
 ## Only matched file paths included in prompt
@@ -41,6 +41,9 @@ structure_globs:
 
 ## Set to true to write the files
 write_mode: false
+
+## "udiffx" Experimental for now, will probably become the default.
+# file_content_mode: udiffx 
 
 # Full model names (any model name for available API Keys) 
 # or aliases "opus" (Opus 4.5), "flash" (Gemini flash 3) (see aliases ~/.aipack-base/config-default.toml)

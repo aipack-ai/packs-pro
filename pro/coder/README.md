@@ -108,7 +108,8 @@ structure_globs:
 #   gpro: gemini-2.5-pro # example
 
 ## Typically, leave this commented for "search_replace_auto", which is the most efficient
-# file_content_mode: whole # default "search_replace_auto"
+## NOTE: Now new 'udiffx' avaiable in AIPack >= 0.8.12 which will eventually become the default
+# file_content_mode: udiffx # default "search_replace_auto" ("whole" for the whole file rewrite even when patch)
 
 ## Set to true to write the files (otherwise, they will be shown below the `====` separator)
 write_mode: false
