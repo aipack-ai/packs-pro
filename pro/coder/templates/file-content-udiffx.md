@@ -19,6 +19,7 @@ When updating files, update the codebase **only** by emitting a structured chang
 - Preserve exact formatting and whitespace.
 - Do not invent files or paths.
 - If no changes are required, output nothing.
+- for the FILE_PATCH, Make sure the surrounding text are exact match, otherwise, the patch won't work. 
 
 IMPORTANT: Make sure to respect leading spaces for the hunk surround content. 
 
