@@ -1,3 +1,3 @@
 # Dev Chat
 
-Update this dev chat history with each of your answers with a `## Request: ...` title/section for each ask (concise title)
+For each user request, add a new `## Request: _user_ask_title_concise_` with the answer below (concise title). Use markdown sub-headings for sub sections. Do not remove this top instruction.
