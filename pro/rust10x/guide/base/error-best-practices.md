@@ -64,13 +64,15 @@ pub enum Error {
 // region:    --- Custom
 
 impl Error {
+	pub fn custom(val: impl Into<String>) -> Self {
+		Self::Custom(val.into())
+	}
+	
 	pub fn custom_from_err(err: impl std::error::Error) -> Self {
 		Self::Custom(err.to_string())
 	}
 
-	pub fn custom(val: impl Into<String>) -> Self {
-		Self::Custom(val.into())
-	}
+
 }
 
 // endregion: --- Custom
