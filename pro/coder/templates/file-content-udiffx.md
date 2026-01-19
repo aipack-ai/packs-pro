@@ -7,22 +7,22 @@ When updating files, update the codebase **only** by emitting a structured chang
 - The container tag `FILE_CHANGES` must contain only file change directives.
 - Every modification must be represented explicitly as one of the following operations:
   - `FILE_NEW` – create a new file (must not overwrite unless explicitly instructed)
-  - `FILE_PATCH` – modify an existing file using a hunk-style unified diff (wihtout hunk numbers, just `@@` as hunk deliminator)
+  - `FILE_PATCH` – modify an existing file using a hunk-style unified diff (without hunk numbers, just `@@` as the hunk delimiter)
   - `FILE_RENAME` – rename or move a file
   - `FILE_DELETE` – delete a file
-- `FILE_PATCH` must contain simplified hunk-style number-less unified diff content like
+- `FILE_PATCH` must contain simplified, hunk-style, number-less unified diff content like:
   - Hunk headers with `@@`, but no numbers
-  - The `-` and `+` with the proper surround lines. 
+  - The `-` and `+` lines with the proper surrounding lines.
   - Do **not** include `---` / `+++` file headers, because `file_path` is the only source of truth for the target file.
-  - Never use `@@ -35,26 +83,32 @@` just one `@@` without numbers, even when multiple hunks per file. 
-- The code fence language (e.g. `rust`, `ts`, `python`) is for syntax highlighting only and should match the target file’s language.
+  - Never use `@@ -35,26 +83,32 @@`, use just one `@@` without numbers, even when there are multiple hunks per file.
+- The code fence language (for example, `rust`, `ts`, `python`) is for syntax highlighting only and should match the target file’s language.
 - Preserve exact formatting and whitespace.
 - Do not invent files or paths.
 - If no changes are required, output nothing.
-- Very important, for the FILE_PATCH, Make sure the surrounding text are exact match, otherwise, the patch won't work. 
-- Very important as well, for the FILE_PATCH, The `-` patch lines need to match exactly the lines it supposed to remove, otherwise, the patch won't work. 
+- Very important: For `FILE_PATCH`, make sure the surrounding text is an exact match, otherwise the patch will not work.
+- Very important as well: For `FILE_PATCH`, the `-` patch lines need to match exactly the lines they are supposed to remove, otherwise the patch will not work.
 
-IMPORTANT: Make sure to respect leading spaces for the hunk surround content. 
+IMPORTANT: Make sure to respect leading spaces for the hunk surrounding content.
 
 You may include additional explanation before or after the `<FILE_CHANGES>` block; it will be shown to the user. Do not place anything inside `<FILE_CHANGES>` other than directives.
 
