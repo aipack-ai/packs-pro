@@ -19,6 +19,13 @@ The domain logic lives in:
 
 - `src/handlers/`: Implementation of tasks, free of CLI artifacts (e.g., no `clap` types).
 
+When user ask to do a very simple cli, with exec/all in main, then we have
+
+- `src/cmd.rs`: Clap structure
+- `src/main.rs`: the parse and exec logic
+
+This way simpler to start and then, can be upgraded to the full structure later. 
+
 ## Best Practices
 
 ### 1. `src/cli/cmd.rs`
