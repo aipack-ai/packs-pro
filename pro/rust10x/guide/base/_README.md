@@ -6,6 +6,11 @@ Follow them when providing Rust code.
 
 - When users start a new project without specifying "xp" or "library," assume it is a binary project.
 
+- Never use `.unwrap()` and `.expect("...")` even in test or example codes. 
+  - For test and example, use the `.ok_or("should have ...")?` scheme which works well and production safer with the ?.
+
+- However, using the `.unwrap_or_..(..)` are completely ok and good practices when it fit the logic.
+
 - In enum variants and struct fields, if there is a comment or attribute before the variant or field, add an empty line before it for readability.
 
 - If no edition is specified, assume Edition 2024, and use if-let chains when possible.
