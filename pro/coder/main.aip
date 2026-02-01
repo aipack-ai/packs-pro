@@ -5,16 +5,10 @@ Here we do the prep work in the "Before All" section in case we need to set `spl
 This will return inputs, where each input will have `.context_files: string[]`. This way, the input run can operate on multiple files or just get one file in the array (or eventually more than one).
 
 ```lua
+local p_proc   = require("prompt_processor")
 local p_utils  = require("prompt_utils")
 local p_tmpl   = require("prompt_tmpl")
 local consts   = require("consts")
-local p_proc   = require("prompt_processor")
-
--- Dictionary of instructions that will be used by this agent
--- e.g. .file_content_change (for the whole/search_replace/... instructions), 
---      .user_custom (for the git commit)
---      .missing_files (for the missing files)
-local instructions  = {}
 
 -- === Check AIPACK Version
 if not aip.semver.compare(CTX.AIPACK_VERSION, ">", "0.8.4") then
@@ -83,48 +77,9 @@ local last_file_change_fails_report_path = prompt_file.dir .. "/" .. ".cache/las
 if aip.path.exists(last_file_change_fails_report_path) then 
     aip.file.delete(last_file_change_fails_report_path)
 end
-
--- === Prep knowledge_refs
-local knowledge_refs = nil
-if p_utils.is_not_empty(meta.knowledge_globs) then
-    knowledge_refs = aip.file.list(meta.knowledge_globs, {base_dir = CTX.WORKSPACE_DIR})
-end
-
--- === Prep context_refs and working_refs
-local base_dir = meta.base_dir or ""
-
-local context_refs        = nil
-local structure_refs      = nil
-local working_refs_list   = nil
-
-if base_dir ~= nil then
-    -- Remove the trailing /
-    base_dir =  base_dir:gsub("/+$", "")
-
-    -- Prep structure_globs = "**/*.*"
-    local structure_globs = nil
-    if p_utils.is_not_empty(meta.structure_globs)  then
-        structure_refs = aip.file.list(meta.structure_globs, {base_dir = base_dir})
-    end
-
-    context_refs = {} -- probably need to be nil to be consistent
-    if p_utils.is_not_empty(meta.context_globs)  then
-        context_refs = aip.file.list(meta.context_globs, {base_dir = base_dir})
-    end
-
-    -- Prep working_refs_list
-    if p_utils.is_not_empty(meta.working_globs) then
-        working_refs_list = p_utils.compute_working_refs_list(meta.working_globs, base_dir)
-        -- OLD WAY
-        -- working_refs = aip.file.list(meta.working_globs, {base_dir = base_dir})
-    end
-else
-    print("INFO: No base_dir, update in place.")
-end
+local knowledge_refs, structure_refs, context_refs, working_refs_list, base_dir = p_proc.resolve_refs(meta)
 
 local write_mode = meta.write_mode or false
-
-local max_files_size_kb = meta.max_files_size_kb or consts.DEFAULT_MAX_FILES_SIZE_KB
 
 -- === Compute include_second_partby default we include second part if not nil
 local include_second_part = second_part ~= nil
@@ -154,54 +109,8 @@ local cache_context_files = false
 -- end
 
 -- === Compute file_content_mode
--- file_content_mode = "whole" or file_content_mode = "search_replace_auto"
-local user_file_content_mode = meta.file_content_mode
-
--- This will have the `file_content_mode.search_replace_auto = true` or `file_content_mode.whole = true`
-local file_content_mode = {}
--- If user gives it, then, we use what we set
-if user_file_content_mode then
-  if user_file_content_mode == "whole" then
-    file_content_mode.whole = true
-  elseif user_file_content_mode == "search_replace_auto" then
-    file_content_mode.search_replace_auto = true
-  elseif user_file_content_mode == "udiffx" then
-      file_content_mode.udiffx = true    
-  else
-    return aip.flow.skip("Error file_conent_mode value '" .. user_file_content_mode .. "' is invalid.\nCan be 'whole' or 'search_replace_auto'" )
-  end 
--- if user does not give anything, base on write_mode
-else
-	file_content_mode.search_replace_auto = true  
-  -- -- Default: 
-  -- -- udiffx (for new AIPack >= 0.8.12)
-  -- if aip.udiffx then 
-  -- 	file_content_mode.udiffx = true
-  -- -- search_replace_auto (for older AIPack without udiffx  AIPack <= 0.8.12)
-  -- else
-  -- 	file_content_mode.search_replace_auto = true  
-  -- end
-end
-
--- If write_mode = true, then, turn the file_content_mode to false
-if write_mode == false then
-    file_content_mode.search_replace_auto = false
-    file_content_mode.whole = false
-    file_content_mode.udiffx = false
-end
-
--- === Seed the file_content_mode.prompt
-local templates_dir = CTX.AGENT_FILE_DIR .. "/templates"
-if file_content_mode.whole then
-    local tmpl = p_tmpl.load_template("file-content-whole.md")
-    instructions.file_content_change = tmpl.content
-elseif file_content_mode.search_replace_auto then
-    local tmpl = p_tmpl.load_template("file-content-search-replace-auto.md")
-    instructions.file_content_change = tmpl.content
-elseif file_content_mode.udiffx then
-    local tmpl = p_tmpl.load_template("file-content-udiffx.md")
-    instructions.file_content_change = tmpl.content    
-end
+local file_content_mode, err = p_proc.get_file_content_mode(meta, write_mode)
+if err then return aip.flow.skip(err) end
 
 -- === Suggest Commit
 -- default true
@@ -214,40 +123,33 @@ else
   suggest_git_commit = write_mode
 end
 
-if suggest_git_commit then
-	local suggest_commit_content = p_tmpl.load_template("suggest-commit.md").content
-  instructions.suggest_commit = suggest_commit_content
-end
+local instructions = p_proc.prepare_instructions(file_content_mode, suggest_git_commit)
 
 -- === Build the input base
-local input_base = {
-	  instructions                 = instructions,
-    attachments                  = attachments,
-    max_files_size_kb            = max_files_size_kb,
-    write_mode                   = write_mode,
-    file_content_mode            = file_content_mode,
-    prompt_file_rel_path         = prompt_file_rel_path,
-    default_language             = meta.default_language or "Python",
-    knowledge_refs               = knowledge_refs,
-    first_part                   = first_part,
-    include_second_part          = include_second_part,
-    second_part                  = second_part,
-    prompt_path                  = prompt_file.path,
-    inst                         = inst,
-    knowledge_refs               = knowledge_refs,
-    base_dir                     = base_dir,
-    structure_refs               = structure_refs,
-    context_refs                 = context_refs,
-    prompt_files_path            = prompt_files_path,
-    -- prompt explicit caching
-    cache_pre_prompts            = cache_pre_prompts,
-    cache_knowledge_files        = cache_knowledge_files,
-    cache_context_files          = cache_context_files,
-    -- output files
-    ai_responses_for_raw_path    = ai_responses_for_raw_path,
-    ai_responses_for_prompt_path = ai_responses_for_prompt_path,
-    last_file_change_fails_report_path  = last_file_change_fails_report_path,
-}
+local input_base = p_proc.build_input_base({
+    meta                               = meta,
+    instructions                       = instructions,
+    attachments                        = attachments,
+    write_mode                         = write_mode,
+    file_content_mode                  = file_content_mode,
+    prompt_file_rel_path               = prompt_file_rel_path,
+    knowledge_refs                     = knowledge_refs,
+    first_part                         = first_part,
+    include_second_part                = include_second_part,
+    second_part                        = second_part,
+    prompt_path                        = prompt_file.path,
+    inst                               = inst,
+    base_dir                           = base_dir,
+    structure_refs                     = structure_refs,
+    context_refs                       = context_refs,
+    prompt_files_path                  = prompt_files_path,
+    cache_pre_prompts                  = cache_pre_prompts,
+    cache_knowledge_files              = cache_knowledge_files,
+    cache_context_files                = cache_context_files,
+    ai_responses_for_raw_path          = ai_responses_for_raw_path,
+    ai_responses_for_prompt_path       = ai_responses_for_prompt_path,
+    last_file_change_fails_report_path = last_file_change_fails_report_path,
+})
 
 -- === Preps the inputs
 local inputs = {}

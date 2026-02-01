@@ -54,4 +54,119 @@ function M.extract_attachments(inst, prompt_dir_rel_path)
 	return attachments
 end
 
+function M.resolve_refs(meta)
+	local p_utils = require("prompt_utils")
+	local knowledge_refs = nil
+	if p_utils.is_not_empty(meta.knowledge_globs) then
+		knowledge_refs = aip.file.list(meta.knowledge_globs, { base_dir = CTX.WORKSPACE_DIR })
+	end
+
+	local base_dir = meta.base_dir
+	local context_refs = nil
+	local structure_refs = nil
+	local working_refs_list = nil
+
+	if base_dir then
+		-- Remove the trailing /
+		base_dir = base_dir:gsub("/+$", "")
+
+		if p_utils.is_not_empty(meta.structure_globs) then
+			structure_refs = aip.file.list(meta.structure_globs, { base_dir = base_dir })
+		end
+
+		if p_utils.is_not_empty(meta.context_globs) then
+			context_refs = aip.file.list(meta.context_globs, { base_dir = base_dir })
+		end
+
+		if p_utils.is_not_empty(meta.working_globs) then
+			working_refs_list = p_utils.compute_working_refs_list(meta.working_globs, base_dir)
+		end
+	else
+		print("INFO: No base_dir, update in place.")
+	end
+
+	return knowledge_refs, structure_refs, context_refs, working_refs_list, base_dir
+end
+
+function M.get_file_content_mode(meta, write_mode)
+	local user_file_content_mode = meta.file_content_mode
+
+	local file_content_mode = {}
+	if user_file_content_mode then
+		if user_file_content_mode == "whole" then
+			file_content_mode.whole = true
+		elseif user_file_content_mode == "search_replace_auto" then
+			file_content_mode.search_replace_auto = true
+		elseif user_file_content_mode == "udiffx" then
+			file_content_mode.udiffx = true
+		else
+			return nil,
+				"Error file_conent_mode value '" ..
+				user_file_content_mode .. "' is invalid.\nCan be 'whole', 'search_replace_auto' or 'udiffx'"
+		end
+	else
+		file_content_mode.search_replace_auto = true
+	end
+
+	if write_mode == false then
+		file_content_mode.search_replace_auto = false
+		file_content_mode.whole = false
+		file_content_mode.udiffx = false
+	end
+
+	return file_content_mode
+end
+
+function M.prepare_instructions(file_content_mode, suggest_git_commit)
+	local p_tmpl = require("prompt_tmpl")
+	local instructions = {}
+
+	if file_content_mode.whole then
+		instructions.file_content_change = p_tmpl.load_template("file-content-whole.md").content
+	elseif file_content_mode.search_replace_auto then
+		instructions.file_content_change = p_tmpl.load_template("file-content-search-replace-auto.md").content
+	elseif file_content_mode.udiffx then
+		instructions.file_content_change = p_tmpl.load_template("file-content-udiffx.md").content
+	end
+
+	if suggest_git_commit then
+		instructions.suggest_commit = p_tmpl.load_template("suggest-commit.md").content
+	end
+
+	return instructions
+end
+
+function M.build_input_base(params)
+	local consts = require("consts")
+	local meta = params.meta
+
+	return {
+		instructions                       = params.instructions,
+		attachments                        = params.attachments,
+		max_files_size_kb                  = meta.max_files_size_kb or consts.DEFAULT_MAX_FILES_SIZE_KB,
+		write_mode                         = params.write_mode,
+		file_content_mode                  = params.file_content_mode,
+		prompt_file_rel_path               = params.prompt_file_rel_path,
+		default_language                   = meta.default_language or "Python",
+		knowledge_refs                     = params.knowledge_refs,
+		first_part                         = params.first_part,
+		include_second_part                = params.include_second_part,
+		second_part                        = params.second_part,
+		prompt_path                        = params.prompt_path,
+		inst                               = params.inst,
+		base_dir                           = params.base_dir,
+		structure_refs                     = params.structure_refs,
+		context_refs                       = params.context_refs,
+		prompt_files_path                  = params.prompt_files_path,
+		-- prompt explicit caching
+		cache_pre_prompts                  = params.cache_pre_prompts,
+		cache_knowledge_files              = params.cache_knowledge_files,
+		cache_context_files                = params.cache_context_files,
+		-- output files
+		ai_responses_for_raw_path          = params.ai_responses_for_raw_path,
+		ai_responses_for_prompt_path       = params.ai_responses_for_prompt_path,
+		last_file_change_fails_report_path = params.last_file_change_fails_report_path,
+	}
+end
+
 return M
