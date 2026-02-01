@@ -169,4 +169,27 @@ function M.build_input_base(params)
 	}
 end
 
+function M.prepare_inputs(working_refs_list, input_base, inst)
+	local inputs = {}
+
+	-- If we have working_refs, then, we split input per working_refs (i.e., files)
+	if working_refs_list ~= nil and #working_refs_list > 0 then
+		for _, working_refs in ipairs(working_refs_list) do
+			-- Note: We put the working_file into an array for later, to allow having one input to be multiple files
+			if #working_refs > 0 then
+				local msg = working_refs[1].path
+				if #working_refs > 1 then
+					msg = msg .. ", plus " .. (#working_refs - 1) .. " files"
+				end
+				local _display = "working files (" .. #working_refs .. "): " .. msg .. "\n\n" .. inst
+				table.insert(inputs, { base = input_base, working_refs = working_refs, _display = _display })
+			end
+		end
+	else
+		inputs = { { base = input_base, _display = inst } }
+	end
+
+	return inputs
+end
+
 return M

@@ -150,29 +150,8 @@ local input_base = p_proc.build_input_base({
     ai_responses_for_prompt_path       = ai_responses_for_prompt_path,
     last_file_change_fails_report_path = last_file_change_fails_report_path,
 })
-
 -- === Preps the inputs
-local inputs = {}
-
--- === working_refs
--- If we have working_refs, then, we split input per working_refs (i.e., files)
-if working_refs_list ~= nil and #working_refs_list > 0 then
-    -- IMPORTANT - NOW IGNORE (working_concurrency)
-    for _, working_refs in ipairs(working_refs_list) do
-        -- Note: We put the working_file into an array for later, to allow having one input to be multiple files
-        if #working_refs > 0 then
-            local msg = working_refs[1].path
-            if #working_refs > 1 then
-                msg = msg .. ", plus " .. (#working_refs - 1) .. " files"
-            end
-            local _display = "working files (" .. #working_refs .."): " .. msg .. "\n\n" .. inst
-            table.insert(inputs, {base = input_base, working_refs = working_refs , _display = _display})        
-        end
-    end    
-
-else
-    inputs = { {base = input_base, _display = inst} }
-end
+local inputs = p_proc.prepare_inputs(working_refs_list, input_base, inst)
 
 -- === Print Run Info
 local context_file_count   = input_base.context_refs and #input_base.context_refs or 0
@@ -189,7 +168,6 @@ concurrency_fmt = tostring(concurrency_fmt)
 local run_info = "Context Files: " .. context_file_count .. " | Working Groups: " .. working_group_count .. " | Knowledge Files: " .. knowledge_file_count
 run_info     =  run_info .. "\n(Write Mode: " .. write_mode_fmt .. ", Concurrency: " .. concurrency_fmt .. ")"
 print(run_info)
-
 
 -- === Compute the agent options
 options.model             = meta.model
