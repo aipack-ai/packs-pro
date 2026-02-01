@@ -72,9 +72,9 @@ end
 -- Splits the prompt Markdown content into instruction (first part) and previous content (second part).
 -- It also cleans the second part by removing any existing note blocks (lines starting with '>').
 local function extract_prompt_parts(prompt_content)
-	local p_utils = require("prompt_utils")
+	local u_data = require("utils_data")
 	-- Split the prompt into inst and content
-	local first_part, second_part = p_utils.prep_inst_and_content(prompt_content, "====", { content_is_default = false })
+	local first_part, second_part = u_data.prep_inst_and_content(prompt_content, "====", { content_is_default = false })
 
 	-- Clean the second_part
 	if second_part ~= nil then
@@ -130,9 +130,9 @@ end
 -- Resolves knowledge, structure, context, and working file globs from metadata into file lists.
 -- Uses the metadata 'base_dir' for workspace-relative lookups.
 local function resolve_refs(meta)
-	local p_utils = require("prompt_utils")
+	local u_utils = require("utils_data")
 	local knowledge_refs = nil
-	if p_utils.is_not_empty(meta.knowledge_globs) then
+	if u_utils.is_not_empty(meta.knowledge_globs) then
 		knowledge_refs = aip.file.list(meta.knowledge_globs, { base_dir = CTX.WORKSPACE_DIR })
 	end
 
@@ -145,16 +145,16 @@ local function resolve_refs(meta)
 		-- Remove the trailing /
 		base_dir = base_dir:gsub("/+$", "")
 
-		if p_utils.is_not_empty(meta.structure_globs) then
+		if u_utils.is_not_empty(meta.structure_globs) then
 			structure_refs = aip.file.list(meta.structure_globs, { base_dir = base_dir })
 		end
 
-		if p_utils.is_not_empty(meta.context_globs) then
+		if u_utils.is_not_empty(meta.context_globs) then
 			context_refs = aip.file.list(meta.context_globs, { base_dir = base_dir })
 		end
 
-		if p_utils.is_not_empty(meta.working_globs) then
-			working_refs_list = p_utils.compute_working_refs_list(meta.working_globs, base_dir)
+		if u_utils.is_not_empty(meta.working_globs) then
+			working_refs_list = u_utils.compute_working_refs_list(meta.working_globs, base_dir)
 		end
 	else
 		print("INFO: No base_dir, update in place.")
@@ -196,19 +196,19 @@ end
 
 -- Loads the appropriate Markdown templates for file changes and git commit suggestions.
 local function prepare_instructions(file_content_mode, suggest_git_commit)
-	local p_tmpl = require("prompt_tmpl")
+	local u_tmpl = require("utils_tmpl")
 	local instructions = {}
 
 	if file_content_mode.whole then
-		instructions.file_content_change = p_tmpl.load_template("file-content-whole.md").content
+		instructions.file_content_change = u_tmpl.load_template("file-content-whole.md").content
 	elseif file_content_mode.search_replace_auto then
-		instructions.file_content_change = p_tmpl.load_template("file-content-search-replace-auto.md").content
+		instructions.file_content_change = u_tmpl.load_template("file-content-search-replace-auto.md").content
 	elseif file_content_mode.udiffx then
-		instructions.file_content_change = p_tmpl.load_template("file-content-udiffx.md").content
+		instructions.file_content_change = u_tmpl.load_template("file-content-udiffx.md").content
 	end
 
 	if suggest_git_commit then
-		instructions.suggest_commit = p_tmpl.load_template("suggest-commit.md").content
+		instructions.suggest_commit = u_tmpl.load_template("suggest-commit.md").content
 	end
 
 	return instructions
@@ -281,8 +281,8 @@ end
 -- Handles version checks, prompt parsing, metadata extraction, and file resolution.
 -- Returns the prepared list of inputs and the global agent options.
 local function run_before_all(inputs)
-	local p_utils = require("prompt_utils")
-	local p_tmpl = require("prompt_tmpl")
+	local u_utils = require("utils_data")
+	local u_tmpl = require("utils_tmpl")
 
 	-- === Check AIPACK Version
 	local version_ok, version_err = check_version()
@@ -295,14 +295,14 @@ local function run_before_all(inputs)
 
 	local input = inputs and inputs[1] or nil
 
-	local prompt_file = p_utils.prep_prompt_file(input, {
+	local prompt_file = u_utils.prep_prompt_file(input, {
 		default_prompt_path = default_prompt_file_path
 	})
 
 	local paths = prepare_paths(prompt_file.path)
 
 	-- Save the dev plan files only if not present
-	p_tmpl.init_fixed_files(paths.prompt_dir)
+	u_tmpl.init_fixed_files(paths.prompt_dir)
 
 	-- === Extract data from prompt files
 	local first_part, second_part = extract_prompt_parts(prompt_file.content)

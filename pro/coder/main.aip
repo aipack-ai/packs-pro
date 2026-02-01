@@ -1,9 +1,9 @@
 # Before All
 
 ```lua
-local p_proc   = require("prompt_processor")
+local u_before_all   = require("utils_before_all")
 
-local new_inputs, options, err = p_proc.run_before_all(inputs)
+local new_inputs, options, err = u_before_all.run_before_all(inputs)
 if err then return aip.flow.skip(err) end
 
 return aip.flow.before_all_response({
@@ -15,7 +15,7 @@ return aip.flow.before_all_response({
 # Data
 
 ```lua
-local p_utils  = require("prompt_utils")
+local p_utils  = require("utils_data")
 
 -- This is the input format (.base, and the .working_refs)
 local base, working_refs = input.base, input.working_refs
@@ -329,7 +329,7 @@ Here is today local date / time if user ask to do something with it:
 # Output
 
 ```lua
-local o_utils = require("output_utils")
+local u_output = require("utils_output")
 
 local base_dir = data.base_dir
 
@@ -339,7 +339,7 @@ local ai_content = ai_response.content
 local second_part = ai_content
 
 -- Info lines
-local info_lines = o_utils.build_info_lines(ai_response, data)
+local info_lines = u_output.build_info_lines(ai_response, data)
 
 -- === Write to the ai_content_for_raw
 local ai_content_for_raw = "====\n" .. info_lines .. "\n\n" .. ai_content .. "\n\n"
@@ -433,7 +433,7 @@ if #files_changes_failed > 0 then
 end
 
 -- === Process the eventual content to pin/print
-o_utils.process_ui_directives(second_part)
+u_output.process_ui_directives(second_part)
 
 -- === Append to the second_part to ai_content_for_prompt file
 second_part = aip.text.trim_start(second_part)

@@ -1,4 +1,4 @@
-local p_tmpl           = require("prompt_tmpl")
+local p_tmpl           = require("utils_tmpl")
 local PROMPT_FILE_NAME = "coder-prompt.md"
 
 -- Returns FileRecord
