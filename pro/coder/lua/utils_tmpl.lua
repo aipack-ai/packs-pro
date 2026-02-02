@@ -40,6 +40,11 @@ function M.init_fixed_files(prompt_dir)
 	end
 end
 
+-- Concatenates the prompt parts with the AI response for prompt update.
+function M.sync_prompt(first_part, ai_content_for_prompt)
+	return aip.text.trim_end(first_part) .. "\n\n" .. ai_content_for_prompt
+end
+
 -- ==== Return
 
 return M

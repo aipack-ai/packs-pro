@@ -328,6 +328,7 @@ Here is today local date / time if user ask to do something with it:
 
 ```lua
 local u_output = require("utils_output")
+local u_tmpl = require("utils_tmpl")
 
 local base_dir = data.base_dir
 
@@ -360,10 +361,8 @@ local ai_content_for_prompt = "====\n" .. info_lines .. "\n\n" .. second_part ..
 aip.file.append(data.ai_responses_for_prompt_path, ai_content_for_prompt)
 
 -- === Update the prompt file
-local first_part = aip.text.trim_end(data.first_part)
-
 local ai_content_for_prompt = aip.file.load(data.ai_responses_for_prompt_path).content
-local prompt_content = first_part .. "\n\n" .. ai_content_for_prompt
+local prompt_content = u_tmpl.sync_prompt(data.first_part, ai_content_for_prompt)
 
 aip.file.save(data.prompt_path, prompt_content)
 
