@@ -2,24 +2,30 @@ local M = {}
 
 -- Executes a list of sub-agents for a specific stage.
 -- Returns the modified meta and instruction string (derived from concatenated prompts).
-function M.run_sub_agents(stage, meta, inst)
-	local sub_agents = meta.sub_agents
+function M.run_sub_agents(stage, coder_meta, inst)
+	local sub_agents = coder_meta.sub_agents
 	if not sub_agents or #sub_agents == 0 then
-		return meta, inst
+		return coder_meta, inst
 	end
 
-	local current_meta = meta
+	local current_params = coder_meta
+
 	local current_prompts = { inst }
 
 	for _, agent_name in ipairs(sub_agents) do
 		local sub_input = {
-			coder_stage = stage,
-			meta        = current_meta,
-			prompts     = current_prompts
+			_display     = "sub agent input {coder_stage,coder_params, prompts}",
+			coder_stage  = stage,
+			coder_params = current_params,
+			prompts      = current_prompts,
+
 		}
 
 		-- Run the agent with a single input in the list
-		local run_res = aip.agent.run(agent_name, { inputs = { sub_input } })
+		local run_res = aip.agent.run(agent_name, {
+			input = sub_input,
+			agent_base_dir = CTX.WORKSPACE_DIR
+		})
 
 		if not run_res then
 			return nil, nil, "Sub-agent [" .. agent_name .. "] execution failed (no response)"
@@ -45,8 +51,8 @@ function M.run_sub_agents(stage, meta, inst)
 		end
 
 		-- Merge or replace state
-		if res.meta then
-			current_meta = res.meta
+		if res.coder_params then
+			current_params = res.coder_params
 		end
 		if res.prompts then
 			current_prompts = res.prompts
@@ -54,7 +60,7 @@ function M.run_sub_agents(stage, meta, inst)
 		::next_agent::
 	end
 
-	return current_meta, table.concat(current_prompts, "\n\n")
+	return current_params, table.concat(current_prompts, "\n\n")
 end
 
 return M

@@ -1,7 +1,7 @@
 
 # Spec: Sub-agent Support for pro@coder
 
-This document defines the specification for the `sub_agents` feature in `pro@coder`. This feature allows users to chain specialized agents to pre-process metadata, instructions, and task data at various stages of the agent execution.
+This document defines the specification for the `sub_agents` feature in `pro@coder`. This feature allows users to chain specialized agents to pre-process parameters, instructions, and task data at various stages of the agent execution.
 
 ## Overview
 
@@ -30,24 +30,26 @@ sub_agents = ["context-builder", "pro@coder/agent-selector"]
 
 ### Sub-agent Input
 
-Each sub-agent receives a single input table containing the current state of the request and the execution stage.
+Each sub-agent receives a single input table containing the current state of the request, the execution stage, and the current parameters.
 
 ```ts
 type SubAgentInput = {
   coder_stage: "pre" | "pre_task" | "post_task" | "post",
-  meta: table,      // Current metadata (TOML parsed, or modified by previous sub-agents)
+  coder_params: table, // Current parameters (TOML parsed, or modified by previous sub-agents)
   prompts: string[] // List of prompt segments (initially [instruction])
+  custom?: table, // optional, from the sub_agent list when
+  options?: table, // ...
 }
 ```
 
 ### Sub-agent Output
 
-Sub-agents must return a table adhering to this format. If `after_all` is `nil` (e.g., the stage returns nothing), it is interpreted as success with no modifications to the state.
+Sub-agents must return a table adhering to this format. If `after_all` is `nil` (e.g., the stage returns nothing), it is interpreted as success with no modifications to the state. If `coder_params` or `prompts` are omitted, the previous state is preserved.
 
 ```ts
 type SubAgentOutput = {
   success: boolean,
-  meta?: table,          // Optional: Replaces the current meta if provided
+  coder_params?: table,  // Optional: Replaces the current parameters if provided
   prompts?: string[],    // Optional: Replaces the current prompts list if provided
   error_msg?: string,    // Required if success is false
   error_details?: string // Optional: More context for failure
@@ -60,17 +62,17 @@ The execution occurs in the `# Before All` stage of `pro@coder/main.aip`.
 
 1.  **Extraction**: The main agent extracts the `meta` and `inst` from the prompt file.
 2.  **Initialization**: 
-    - `current_meta` is set to the extracted metadata.
+    - `current_params` is set to the extracted metadata.
     - `current_prompts` is initialized as `{ inst }`.
 3.  **Iteration**: For each `agent_name` in `meta.sub_agents`:
-    - Invoke `local run_res = aip.agent.run(agent_name, { inputs = { { coder_stage = "pre", meta = current_meta, prompts = current_prompts } } })`.
+    - Invoke `local run_res = aip.agent.run(agent_name, { inputs = { { coder_stage = "pre", coder_params = current_params, prompts = current_prompts } } })`.
     - Let `res = run_res.after_all`.
     - If `res` is nil, continue to the next sub-agent (interpreted as success with no modifications).
     - If `res.success == false`, halt execution and report `res.error_msg` and `res.error_details`.
-    - If `res.meta` is present, `current_meta = res.meta`.
+    - If `res.coder_params` is present, `current_params = res.coder_params`.
     - If `res.prompts` is present, `current_prompts = res.prompts`.
 4.  **Finalization**:
-    - The final `meta` used by the main agent is `current_meta`.
+    - The final parameters used by the main agent is `current_params`.
     - The final instruction `inst` is created by `table.concat(current_prompts, "\n\n")`.
 
 ## Module Responsibilities
@@ -86,9 +88,9 @@ This new module will encapsulate the logic for:
 ### `utils_before_all.lua`
 
 This module will be updated to:
-- Detect the presence of `sub_agents` in the metadata.
+- Detect the presence of `sub_agents` in the parameters.
 - Call the `utils_sub_agent` logic.
-- Use the resulting `meta` and `inst` for subsequent logic (file listing, mode detection).
+- Use the resulting `coder_params` and `inst` for subsequent logic (file listing, mode detection).
 
 ## Error Handling
 

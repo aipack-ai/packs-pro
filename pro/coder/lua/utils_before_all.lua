@@ -314,7 +314,6 @@ local function run_before_all(inputs)
 
 	-- === Run Sub Agents
 	local err
-
 	meta, inst, err = u_sub_agent.run_sub_agents("pre", meta, inst)
 	meta = meta or {} -- make the type nil check happy
 
