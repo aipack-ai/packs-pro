@@ -324,8 +324,6 @@ Here is today local date / time if user ask to do something with it:
   Only add comments that provide meaningful context, design rationale, or structure (such as region markers or explanations of non-obvious logic).
 - **Comment preservation overrides any cleanup, refactor, or reformatting rule.**
 
-
-
 # Output
 
 ```lua
@@ -346,91 +344,12 @@ local ai_content_for_raw = "====\n" .. info_lines .. "\n\n" .. ai_content .. "\n
 aip.file.append(data.ai_responses_for_raw_path, ai_content_for_raw)
 
 -- === Write to the src file
-local files_changes_failed = {} -- [{path, changes_info}]
 local files_changed = {}
-if data.write_mode == true then
-		if data.file_content_mode.udiffx then
-			local changes_status, other_content = aip.udiffx.apply_file_changes(ai_content, base_dir, {extrude = "content"} )
-			second_part = other_content
-			if changes_status.items then
-				for _, item in ipairs(changes_status.items) do
-				local f_path = aip.path.join(base_dir, item.file_path)
-				if item.success then
-						table.insert(files_changed, f_path)
-					else
-						local reason = item.error_msg or "Unknown error"
-						table.insert(files_changes_failed, {
-							path = f_path,
-							changes_info = {
-								failed_changes = { { reason = reason, search = "UDIFFX Block failed: " .. reason } }
-							}
-						})
-					end
-				end
-			elseif changes_status.error then
-				print("Error applying udiffx: " .. changes_status.error)
-			end
-		else 
-	    local elems, other_content = aip.tag.extract(ai_content, {"AIP_FILE_CHANGE"}, {extrude = "content"})
-	    -- In this case, the other_content becomes the second_part
-	    second_part = other_content
-	    for _, elem in ipairs(elems) do
-	        local file_path = elem.attrs and elem.attrs.file_path
-	
-	        local file_change_content = aip.md.outer_block_content_or_raw(aip.text.trim(elem.content))
-	        if file_path then
-	            file_path = aip.path.join(base_dir, file_path)
-	            if data.file_content_mode.search_replace_auto then 
-	                local file_changed, changes_info = aip.file.save_changes(file_path, file_change_content)
-	                if changes_info and changes_info.failed_changes then
-	                   table.insert(files_changes_failed, {path = file_path, changes_info = changes_info})
-	                end
-	            else
-	                aip.file.save(file_path, file_change_content)
-	            end
-	            table.insert(files_changed, file_path)
-	        else 
-	            -- NOTE: For now, we just concatenate back this block at the send of the second_part
-	            -- TODO: Later, we will extract_blocks extrude = segments (when supported) to rebuild the proper order
-	            local md_block_raw = "````" .. (block.lang or "") .. "\n" .. block.content .. "````"
-	
-	            second_part = second_part .. "\n" .. md_block_raw
-	        end
-	
-	        ::continue::
-	    end -- for 
-		end -- else of if data.file_content_mode.udiffx
-end
+local files_changes_failed = {}
+second_part, files_changed, files_changes_failed = u_output.apply_changes(ai_content, data)
 
 -- === Process files_changes_failed
-if #files_changes_failed > 0 then 
-    local ai_res_path =  aip.path.diff(data.ai_responses_for_raw_path, CTX.WORKSPACE_DIR)
-    local fail_report_path =  aip.path.diff(data.last_file_change_fails_report_path, CTX.WORKSPACE_DIR)
-
-    local fail_report_content = "❗ Here are the file change search misses.\nSee full AI response at:\n" .. ai_res_path
-
-    fail_report_content = fail_report_content .. "\n\n" .. "Below are the search misses by file:"
-
-    local msg = "❗❗❗ Failed to apply some changes to file(s) ❗❗❗\n"
-    for _, fc in ipairs(files_changes_failed) do
-        -- NOTE: for now, just show the first reason
-        msg = msg .. "\n- " .. fc.path .. " (failed changes: " .. #fc.changes_info.failed_changes .. ", cause: " .. fc.changes_info.failed_changes[1].reason .. ")"
-
-        fail_report_content = fail_report_content .. "\n\n# " .. fc.path .. "\n\nFailed searches:"
-        for _, fail_change in ipairs(fc.changes_info.failed_changes) do
-            fail_report_content = fail_report_content .. "\n\n````\n" .. fail_change.search .. "\n````"
-        end
-    end
-    local ai_responses_for_raw_rel_path = aip.path.diff(data.ai_responses_for_raw_path, CTX.WORKSPACE_DIR)
-
-    msg = msg .. "\n\nFor fail report, see file:\n➜ " .. fail_report_path
-
-    msg = msg .. "\n\nFor full raw AI response, see file:\n➜ " .. ai_responses_for_raw_rel_path 
-
-    aip.task.pin("changes_failed", 0, {label = "WARNING", content = msg})
-
-    aip.file.append(data.last_file_change_fails_report_path, fail_report_content .. "\n\n")
-end
+u_output.handle_failed_changes(files_changes_failed, data)
 
 -- === Process the eventual content to pin/print
 u_output.process_ui_directives(second_part)
