@@ -42,7 +42,7 @@ type SubAgentInput = {
 
 ### Sub-agent Output
 
-Sub-agents must return a table adhering to this format:
+Sub-agents must return a table adhering to this format. If `after_all` is `nil` (e.g., the stage returns nothing), it is interpreted as success with no modifications to the state.
 
 ```ts
 type SubAgentOutput = {
@@ -63,11 +63,12 @@ The execution occurs in the `# Before All` stage of `pro@coder/main.aip`.
     - `current_meta` is set to the extracted metadata.
     - `current_prompts` is initialized as `{ inst }`.
 3.  **Iteration**: For each `agent_name` in `meta.sub_agents`:
-    - Invoke `aip.agent.run(agent_name, { inputs = { { coder_stage = "pre", meta = current_meta, prompts = current_prompts } } })`.
-    - Validate the response structure.
-    - If `success == false`, halt execution and report `error_msg` and `error_details`.
-    - If `meta` is present in the response, `current_meta = response.meta`.
-    - If `prompts` is present in the response, `current_prompts = response.prompts`.
+    - Invoke `local run_res = aip.agent.run(agent_name, { inputs = { { coder_stage = "pre", meta = current_meta, prompts = current_prompts } } })`.
+    - Let `res = run_res.after_all`.
+    - If `res` is nil, continue to the next sub-agent (interpreted as success with no modifications).
+    - If `res.success == false`, halt execution and report `res.error_msg` and `res.error_details`.
+    - If `res.meta` is present, `current_meta = res.meta`.
+    - If `res.prompts` is present, `current_prompts = res.prompts`.
 4.  **Finalization**:
     - The final `meta` used by the main agent is `current_meta`.
     - The final instruction `inst` is created by `table.concat(current_prompts, "\n\n")`.

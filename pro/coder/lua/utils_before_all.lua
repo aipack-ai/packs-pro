@@ -283,6 +283,7 @@ end
 local function run_before_all(inputs)
 	local u_utils = require("utils_data")
 	local u_tmpl = require("utils_tmpl")
+	local u_sub_agent = require("utils_sub_agent")
 
 	-- === Check AIPACK Version
 	local version_ok, version_err = check_version()
@@ -309,6 +310,15 @@ local function run_before_all(inputs)
 
 	-- === Extract the meta and instruction
 	local meta, inst = extract_meta_and_inst(first_part)
+
+
+	-- === Run Sub Agents
+	local err
+
+	meta, inst, err = u_sub_agent.run_sub_agents("pre", meta, inst)
+	meta = meta or {} -- make the type nil check happy
+
+	if err then return nil, nil, err end
 
 	-- === Determine if we should skip
 	if inst == "" then
