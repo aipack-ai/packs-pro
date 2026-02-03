@@ -31,6 +31,11 @@ function run_sub_agents(stage, coder_meta, inst)
 
 	local current_params = coder_meta
 
+	-- Ensure glob parameters are tables if nil
+	current_params.context_globs = value_or(current_params.context_globs, {})
+	current_params.structure_globs = value_or(current_params.structure_globs, {})
+	current_params.knowledge_globs = value_or(current_params.knowledge_globs, {})
+
 	local current_coder_prompts = { inst }
 
 	for _, agent_name in ipairs(sub_agents) do

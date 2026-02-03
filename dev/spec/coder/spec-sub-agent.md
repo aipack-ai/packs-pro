@@ -67,6 +67,7 @@ The execution occurs in the `# Before All` stage of `pro@coder/main.aip`.
 1.  **Extraction**: The main agent extracts the `meta` and `inst` from the prompt file.
 2.  **Initialization**: 
     - `current_params` is set to the extracted metadata.
+    - `current_params.context_globs`, `current_params.structure_globs`, and `current_params.knowledge_globs` are initialized as empty tables `{}` if they are `nil`.
     - `current_coder_prompts` is initialized as `{ inst }`.
 3.  **Iteration**: For each `agent_name` in `meta.sub_agents`:
     - Invoke `local run_res = aip.agent.run(agent_name, { inputs = { { coder_stage = "pre", coder_params = current_params, coder_prompts = current_coder_prompts } } })`.
