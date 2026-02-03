@@ -70,7 +70,7 @@ The execution occurs in the `# Before All` stage of `pro@coder/main.aip`.
     - `current_coder_prompts` is initialized as `{ inst }`.
 3.  **Iteration**: For each `agent_name` in `meta.sub_agents`:
     - Invoke `local run_res = aip.agent.run(agent_name, { inputs = { { coder_stage = "pre", coder_params = current_params, coder_prompts = current_coder_prompts } } })`.
-    - Let `res = run_res.after_all`.
+    - Let `res = run_res.after_all` (fallback to `run_res.outputs[1]` if `after_all` is nil).
     - If `res` is nil, continue to the next sub-agent (interpreted as success with no modifications).
     - If `res.success == false`, halt execution and report `res.error_msg` and `res.error_details`.
     - If `res.coder_params` is present, `current_params = res.coder_params`.

@@ -1,8 +1,24 @@
-local M = {}
+-- === Support Functions
+
+local function extract_sub_agent_response(run_res)
+	if run_res.after_all ~= nil then
+		return run_res.after_all
+	end
+
+	if run_res.outputs and #run_res.outputs > 0 then
+		return run_res.outputs[1]
+	end
+
+	return nil
+end
+
+-- === /Support Functions
+
+-- === Public Interfaces
 
 -- Executes a list of sub-agents for a specific stage.
 -- Returns the modified meta and instruction string (derived from concatenated prompts).
-function M.run_sub_agents(stage, coder_meta, inst)
+function run_sub_agents(stage, coder_meta, inst)
 	local sub_agents = coder_meta.sub_agents
 	if not sub_agents or #sub_agents == 0 then
 		return coder_meta, inst
@@ -31,18 +47,18 @@ function M.run_sub_agents(stage, coder_meta, inst)
 			agent_base_dir = CTX.WORKSPACE_DIR
 		})
 
-		if not run_res then
+		if run_res == nil then
 			return nil, nil, "Sub-agent [" .. agent_name .. "] execution failed (no response)"
 		end
 
-		local res = run_res.after_all
+		local res = extract_sub_agent_response(run_res)
 
 		-- If res is nil, it is considered success with no modifications to the state.
 		if res == nil then goto next_agent end
 
 		-- Validate the response structure
-		if type(res) ~= "table" or res.success == nil then
-			return nil, nil, "Sub-agent [" .. agent_name .. "] returned an invalid response format (missing success flag)"
+		if type(res) ~= "table" then
+			return nil, nil, "Sub-agent [" .. agent_name .. "] returned an invalid response format ()"
 		end
 
 		if res.success == false then
@@ -67,4 +83,8 @@ function M.run_sub_agents(stage, coder_meta, inst)
 	return current_params, table.concat(current_coder_prompts, "\n\n")
 end
 
-return M
+-- === /Public Interfaces
+
+return {
+	run_sub_agents = run_sub_agents
+}
