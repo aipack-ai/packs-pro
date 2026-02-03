@@ -30,13 +30,13 @@ sub_agents = ["context-builder", "pro@coder/agent-selector"]
 
 ### Sub-agent Input
 
-Each sub-agent receives a single input table containing the current state of the request, the execution stage, and the current parameters.
+Each sub-agent receives a single input table containing the current state of the request, the execution stage, the parameters, and the prompt segments.
 
 ```ts
 type SubAgentInput = {
   coder_stage: "pre" | "pre_task" | "post_task" | "post",
   coder_params: table, // Current parameters (TOML parsed, or modified by previous sub-agents)
-  prompts: string[] // List of prompt segments (initially [instruction])
+  coder_prompts: string[] // List of prompt segments (initially [instruction])
   custom?: table, // optional, from the sub_agent list when
   options?: table, // ...
 }
@@ -44,13 +44,13 @@ type SubAgentInput = {
 
 ### Sub-agent Output
 
-Sub-agents must return a table adhering to this format. If `after_all` is `nil` (e.g., the stage returns nothing), it is interpreted as success with no modifications to the state. If `coder_params` or `prompts` are omitted, the previous state is preserved.
+Sub-agents must return a table adhering to this format. If `after_all` is `nil` (e.g., the stage returns nothing), it is interpreted as success with no modifications to the state. If `coder_params` or `coder_prompts` are omitted, the previous state is preserved.
 
 ```ts
 type SubAgentOutput = {
   success: boolean,
   coder_params?: table,  // Optional: Replaces the current parameters if provided
-  prompts?: string[],    // Optional: Replaces the current prompts list if provided
+  coder_prompts?: string[],    // Optional: Replaces the current prompts list if provided
   error_msg?: string,    // Required if success is false
   error_details?: string // Optional: More context for failure
 }
@@ -63,17 +63,17 @@ The execution occurs in the `# Before All` stage of `pro@coder/main.aip`.
 1.  **Extraction**: The main agent extracts the `meta` and `inst` from the prompt file.
 2.  **Initialization**: 
     - `current_params` is set to the extracted metadata.
-    - `current_prompts` is initialized as `{ inst }`.
+    - `current_coder_prompts` is initialized as `{ inst }`.
 3.  **Iteration**: For each `agent_name` in `meta.sub_agents`:
-    - Invoke `local run_res = aip.agent.run(agent_name, { inputs = { { coder_stage = "pre", coder_params = current_params, prompts = current_prompts } } })`.
+    - Invoke `local run_res = aip.agent.run(agent_name, { inputs = { { coder_stage = "pre", coder_params = current_params, coder_prompts = current_coder_prompts } } })`.
     - Let `res = run_res.after_all`.
     - If `res` is nil, continue to the next sub-agent (interpreted as success with no modifications).
     - If `res.success == false`, halt execution and report `res.error_msg` and `res.error_details`.
     - If `res.coder_params` is present, `current_params = res.coder_params`.
-    - If `res.prompts` is present, `current_prompts = res.prompts`.
+    - If `res.coder_prompts` is present, `current_coder_prompts = res.coder_prompts`.
 4.  **Finalization**:
-    - The final parameters used by the main agent is `current_params`.
-    - The final instruction `inst` is created by `table.concat(current_prompts, "\n\n")`.
+    - The final parameters used by the main agent are `current_params`.
+    - The final instruction `inst` is created by `table.concat(current_coder_prompts, "\n\n")`.
 
 ## Module Responsibilities
 

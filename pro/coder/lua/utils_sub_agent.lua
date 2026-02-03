@@ -10,15 +10,14 @@ function M.run_sub_agents(stage, coder_meta, inst)
 
 	local current_params = coder_meta
 
-	local current_prompts = { inst }
+	local current_coder_prompts = { inst }
 
 	for _, agent_name in ipairs(sub_agents) do
 		local sub_input = {
-			_display     = "sub agent input {coder_stage,coder_params, prompts}",
-			coder_stage  = stage,
-			coder_params = current_params,
-			prompts      = current_prompts,
-
+			_display      = "sub agent input {coder_stage, coder_params, coder_prompts}",
+			coder_stage   = stage,
+			coder_params  = current_params,
+			coder_prompts = current_coder_prompts,
 		}
 
 		-- Run the agent with a single input in the list
@@ -54,13 +53,13 @@ function M.run_sub_agents(stage, coder_meta, inst)
 		if res.coder_params then
 			current_params = res.coder_params
 		end
-		if res.prompts then
-			current_prompts = res.prompts
+		if res.coder_prompts then
+			current_coder_prompts = res.coder_prompts
 		end
 		::next_agent::
 	end
 
-	return current_params, table.concat(current_prompts, "\n\n")
+	return current_params, table.concat(current_coder_prompts, "\n\n")
 end
 
 return M
