@@ -3,6 +3,10 @@
 
 This document defines the specification for the `sub_agents` feature in `pro@coder`. This feature allows users to chain specialized agents to pre-process parameters, instructions, and task data at various stages of the agent execution.
 
+## Requirements
+
+- **AIPack Version**: 0.8.15 or above.
+
 ## Overview
 
 The `sub_agents` feature enables a pipeline where multiple agents can modify the state of the current request. This is particularly useful for context building, automated file selection, instruction refinement, or post-processing AI responses.

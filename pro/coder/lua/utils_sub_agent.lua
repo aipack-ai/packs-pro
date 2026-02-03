@@ -8,6 +8,11 @@ function M.run_sub_agents(stage, coder_meta, inst)
 		return coder_meta, inst
 	end
 
+	-- Check AIPack version for sub-agent support
+	if not aip.semver.compare(CTX.AIPACK_VERSION, ">", "0.8.14") then
+		return nil, nil, "Sub-agents require AIPack 0.8.15 or above (current: " .. CTX.AIPACK_VERSION .. ")"
+	end
+
 	local current_params = coder_meta
 
 	local current_coder_prompts = { inst }
