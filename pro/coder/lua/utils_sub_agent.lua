@@ -1,5 +1,25 @@
 -- === Support Functions
 
+local function extract_sub_agent_configs(sub_agents)
+	local configs = {}
+	if type(sub_agents) ~= "table" then return configs end
+	for _, item in ipairs(sub_agents) do
+		if type(item) == "string" then
+			table.insert(configs, { name = item })
+		elseif type(item) == "table" and item.name then
+			table.insert(configs, item)
+		end
+	end
+	return configs
+end
+
+local function extract_coder_params(coder_meta)
+	local params = {}
+	aip.lua.merge_deep(params, coder_meta)
+	params.sub_agents = nil
+	return params
+end
+
 local function extract_sub_agent_response(run_res)
 	if run_res.after_all ~= nil then
 		return run_res.after_all
@@ -18,18 +38,21 @@ end
 
 -- Executes a list of sub-agents for a specific stage.
 -- Returns the modified meta and instruction string (derived from concatenated prompts).
-function run_sub_agents(stage, coder_meta, inst)
-	local sub_agents = coder_meta.sub_agents
-	if not sub_agents or #sub_agents == 0 then
-		return coder_meta, inst
-	end
-
+function run_sub_agents(stage, coder_meta, inst, coder_options)
 	-- Check AIPack version for sub-agent support
 	if not aip.semver.compare(CTX.AIPACK_VERSION, ">", "0.8.14") then
 		return nil, nil, "Sub-agents require AIPack 0.8.15 or above (current: " .. CTX.AIPACK_VERSION .. ")"
 	end
 
+	local sub_agents = coder_meta.sub_agents
+
+	local agent_configs = extract_sub_agent_configs(sub_agents)
+	if #agent_configs == 0 then
+		return coder_meta, inst
+	end
+
 	local current_params = coder_meta
+	current_params.sub_agents = nil -- for now remove this list (we might put the agent_configs later)
 
 	-- Ensure glob parameters are tables if nil
 	current_params.context_globs = value_or(current_params.context_globs, {})
@@ -38,22 +61,29 @@ function run_sub_agents(stage, coder_meta, inst)
 
 	local current_coder_prompts = { inst }
 
-	for _, agent_name in ipairs(sub_agents) do
+	for _, config in ipairs(agent_configs) do
+		local coder_params_for_sub = extract_coder_params(current_params)
 		local sub_input = {
-			_display      = "sub agent input {coder_stage, coder_params, coder_prompts}",
+			_display      = "sub agent input {coder_stage, coder_params, coder_prompts, agent_config}",
 			coder_stage   = stage,
-			coder_params  = current_params,
+			coder_params  = coder_params_for_sub,
 			coder_prompts = current_coder_prompts,
+			agent_config  = config,
 		}
 
+		-- would be nil if no config.options, which is fine
+		local config_options = aip.agent.extract_options(config.options)
+		local options = aip.lua.merge_deep({}, coder_options, config_options)
+
 		-- Run the agent with a single input in the list
-		local run_res = aip.agent.run(agent_name, {
+		local run_res = aip.agent.run(config.name, {
 			input = sub_input,
+			options = options,
 			agent_base_dir = CTX.WORKSPACE_DIR
 		})
 
 		if run_res == nil then
-			return nil, nil, "Sub-agent [" .. agent_name .. "] execution failed (no response)"
+			return nil, nil, "Sub-agent [" .. config.name .. "] execution failed (no response)"
 		end
 
 		local res = extract_sub_agent_response(run_res)
@@ -63,12 +93,12 @@ function run_sub_agents(stage, coder_meta, inst)
 
 		-- Validate the response structure
 		if type(res) ~= "table" then
-			return nil, nil, "Sub-agent [" .. agent_name .. "] returned an invalid response format ()"
+			return nil, nil, "Sub-agent [" .. config.name .. "] returned an invalid response format ()"
 		end
 
 		if res.success == false then
 			local err_msg = res.error_msg or "Unknown error"
-			local full_err = "Sub-agent [" .. agent_name .. "] failed: " .. err_msg
+			local full_err = "Sub-agent [" .. config.name .. "] failed: " .. err_msg
 			if res.error_details then
 				full_err = full_err .. "\nDetails: " .. res.error_details
 			end
@@ -85,7 +115,11 @@ function run_sub_agents(stage, coder_meta, inst)
 		::next_agent::
 	end
 
-	return current_params, table.concat(current_coder_prompts, "\n\n")
+	local new_coder_meta = current_params
+	-- put back the sub_agents
+	new_coder_meta.sub_agents = sub_agents
+
+	return new_coder_meta, table.concat(current_coder_prompts, "\n\n")
 end
 
 -- === /Public Interfaces

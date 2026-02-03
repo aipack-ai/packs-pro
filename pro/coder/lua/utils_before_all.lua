@@ -311,13 +311,30 @@ local function run_before_all(inputs)
 	-- === Extract the meta and instruction
 	local meta, inst = extract_meta_and_inst(first_part)
 
+	-- === Compute the agent options
+	local options = {
+		model             = meta.model,
+		temperature       = meta.temperature,
+		model_aliases     = meta.model_aliases,
+		input_concurrency = meta.input_concurrency
+	}
 
 	-- === Run Sub Agents
-	local err
-	meta, inst, err = u_sub_agent.run_sub_agents("pre", meta, inst)
-	meta = meta or {} -- make the type nil check happy
+	if not is_null(meta.sub_agents) and #meta.sub_agents > 0 then
+		local err
+		meta, inst, err = u_sub_agent.run_sub_agents("pre", meta, inst, options)
+		meta = meta or {} -- make the type nil check happy
 
-	if err then return nil, nil, err end
+		if err then return nil, nil, err end
+		-- recompute options from the meta returned
+		options = {
+			model             = meta.model,
+			temperature       = meta.temperature,
+			model_aliases     = meta.model_aliases,
+			input_concurrency = meta.input_concurrency
+		}
+	end
+
 
 	-- === Determine if we should skip
 	if inst == "" then
@@ -400,14 +417,6 @@ local function run_before_all(inputs)
 
 	-- === Print Run Info
 	print_run_info(input_base, working_refs_list, write_mode, meta.input_concurrency)
-
-	-- === Compute the agent options
-	local options = {
-		model             = meta.model,
-		temperature       = meta.temperature,
-		model_aliases     = meta.model_aliases,
-		input_concurrency = meta.input_concurrency
-	}
 
 	return final_inputs, options
 end

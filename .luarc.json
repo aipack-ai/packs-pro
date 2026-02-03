@@ -1,4 +1,4 @@
 {
 	"$schema": "https://raw.githubusercontent.com/LuaLS/vscode-lua/master/setting/schema.json",
-	"diagnostics.globals": ["aip", "CTX", "value_or", "null"]
+	"diagnostics.globals": ["aip", "CTX", "is_null", "value_or", "null"]
 }

@@ -25,9 +25,13 @@ Sub-agents can be triggered at different points in the `pro@coder` lifecycle, id
 ## Configuration
 
 Sub-agents are defined in the TOML metadata block of the coder prompt file.
+They can be defined as a simple string (the agent name) or an object containing the name and additional properties.
 
 ```toml
-sub_agents = ["context-builder", "pro@coder/agent-selector"]
+sub_agents = [
+  "context-builder",
+  { name = "pro@coder/agent-selector", some_prop = "value" }
+]
 ```
 
 ## Data Structures
@@ -41,8 +45,18 @@ type SubAgentInput = {
   coder_stage: "pre" | "pre_task" | "post_task" | "post",
   coder_params: table, // Current parameters (TOML parsed, or modified by previous sub-agents)
   coder_prompts: string[] // List of prompt segments (initially [instruction])
-  custom?: table, // optional, from the sub_agent list when
-  options?: table, // ...
+  agent_config: AgentConfig, // Normalized configuration for the current sub-agent
+}
+```
+
+### AgentConfig
+
+A normalized version of the sub-agent definition.
+
+```ts
+type AgentConfig = {
+  name: string,
+  [key: string]: any // Any other properties provided in the object definition
 }
 ```
 
@@ -66,15 +80,19 @@ The execution occurs in the `# Before All` stage of `pro@coder/main.aip`.
 
 1.  **Extraction**: The main agent extracts the `meta` and `inst` from the prompt file.
 2.  **Initialization**: 
-    - `current_params` is set to the extracted metadata.
+    - `raw_params` is set to the extracted metadata.
+    - `agent_configs` is created by normalizing `raw_params.sub_agents` into a list of `AgentConfig` objects using `extract_sub_agent_configs`.
+    - `current_params` is initialized with `raw_params`.
     - `current_params.context_globs`, `current_params.structure_globs`, and `current_params.knowledge_globs` are initialized as empty tables `{}` if they are `nil`.
     - `current_coder_prompts` is initialized as `{ inst }`.
-3.  **Iteration**: For each `agent_name` in `meta.sub_agents`:
-    - Invoke `local run_res = aip.agent.run(agent_name, { inputs = { { coder_stage = "pre", coder_params = current_params, coder_prompts = current_coder_prompts } } })`.
+3.  **Iteration**: For each `config` in `agent_configs`:
+    - Prepare `coder_params_for_sub` by deep cloning `current_params` and removing the `sub_agents` key (using `extract_coder_params`).
+    - Prepare sub-input with `agent_config = config`, `coder_params = coder_params_for_sub`, and other state fields.
+    - Invoke `local run_res = aip.agent.run(config.name, { input = sub_input, ... })`.
     - Let `res = run_res.after_all` (fallback to `run_res.outputs[1]` if `after_all` is nil).
     - If `res` is nil, continue to the next sub-agent (interpreted as success with no modifications).
-    - If `res.success == false`, halt execution and report `res.error_msg` and `res.error_details`.
-    - If `res.coder_params` is present, `current_params = res.coder_params`.
+    - If `res.success == false`, halt execution and report error.
+    - If `res.coder_params` is present, `current_params = res.coder_params` (cleaned to ensure no recursive `sub_agents` insertion).
     - If `res.coder_prompts` is present, `current_coder_prompts = res.coder_prompts`.
 4.  **Finalization**:
     - The final parameters used by the main agent are `current_params`.
