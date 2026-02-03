@@ -38,7 +38,7 @@ end
 
 -- Executes a list of sub-agents for a specific stage.
 -- Returns the modified meta and instruction string (derived from concatenated prompts).
-function run_sub_agents(stage, coder_meta, inst, coder_options)
+function run_sub_agents(stage, coder_meta, inst, coder_options, coder_prompt_dir)
 	-- Check AIPack version for sub-agent support
 	if not aip.semver.compare(CTX.AIPACK_VERSION, ">", "0.8.14") then
 		return nil, nil, "Sub-agents require AIPack 0.8.15 or above (current: " .. CTX.AIPACK_VERSION .. ")"
@@ -64,11 +64,12 @@ function run_sub_agents(stage, coder_meta, inst, coder_options)
 	for _, config in ipairs(agent_configs) do
 		local coder_params_for_sub = extract_coder_params(current_params)
 		local sub_input = {
-			_display      = "sub agent input {coder_stage, coder_params, coder_prompts, agent_config}",
-			coder_stage   = stage,
-			coder_params  = coder_params_for_sub,
-			coder_prompts = current_coder_prompts,
-			agent_config  = config,
+			_display         = "sub agent input {coder_stage, coder_params, coder_prompts, agent_config, coder_prompt_dir}",
+			coder_stage      = stage,
+			coder_params     = coder_params_for_sub,
+			coder_prompts    = current_coder_prompts,
+			coder_prompt_dir = coder_prompt_dir,
+			agent_config     = config,
 		}
 
 		-- would be nil if no config.options, which is fine

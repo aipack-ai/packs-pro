@@ -43,11 +43,14 @@ Each sub-agent receives a single input table containing the current state of the
 ```ts
 type SubAgentInput = {
   coder_stage: "pre" | "pre_task" | "post_task" | "post",
+  coder_prompt_dir: string, // The absolute path to the directory containing the coder prompt file
   coder_params: table, // Current parameters (TOML parsed, or modified by previous sub-agents)
   coder_prompts: string[] // List of prompt segments (initially [instruction])
   agent_config: AgentConfig, // Normalized configuration for the current sub-agent
 }
 ```
+
+> NOTE: For now, only coder_stage `pre` is supported
 
 ### AgentConfig
 

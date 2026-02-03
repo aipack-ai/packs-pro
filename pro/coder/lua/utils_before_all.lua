@@ -35,7 +35,7 @@ local function prepare_paths(prompt_file_path)
 	}
 end
 
--- Cleans up legacy cache files and initializes (clears) the current run's cache files.
+-- Cleans cache files.
 local function clean_and_init_cache(paths)
 	-- Clean legacy file (since 0.2.27)
 	local legacy_prompt_files_path = paths.prompt_dir .. "/prompt_files_path.md"
@@ -43,6 +43,7 @@ local function clean_and_init_cache(paths)
 		aip.file.delete(legacy_prompt_files_path)
 	end
 
+	-- Init cacche files
 	aip.file.save(paths.prompt_files_path, "")
 	aip.file.save(paths.ai_responses_for_raw_path, "")
 	aip.file.save(paths.ai_responses_for_prompt_path, "")
@@ -319,10 +320,12 @@ local function run_before_all(inputs)
 		input_concurrency = meta.input_concurrency
 	}
 
+	local coder_prompt_dir = aip.path.diff(paths.prompt_dir, CTX.WORKSPACE_DIR)
+
 	-- === Run Sub Agents
 	if not is_null(meta.sub_agents) and #meta.sub_agents > 0 then
 		local err
-		meta, inst, err = u_sub_agent.run_sub_agents("pre", meta, inst, options)
+		meta, inst, err = u_sub_agent.run_sub_agents("pre", meta, inst, options, coder_prompt_dir)
 		meta = meta or {} -- make the type nil check happy
 
 		if err then return nil, nil, err end
