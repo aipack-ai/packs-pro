@@ -97,8 +97,9 @@ function run_sub_agents(stage, coder_meta, inst, coder_options, coder_prompt_dir
 			return nil, nil, "Sub-agent [" .. config.name .. "] returned an invalid response format ()"
 		end
 
-		if res.success == false then
-			local err_msg = res.error_msg or "Unknown error"
+		-- If success is false or error_msg is present, we stop execution
+		if res.success == false or res.error_msg ~= nil then
+			local err_msg = value_or(res.error_msg, "Unknown error")
 			local full_err = "Sub-agent [" .. config.name .. "] failed: " .. err_msg
 			if res.error_details then
 				full_err = full_err .. "\nDetails: " .. res.error_details

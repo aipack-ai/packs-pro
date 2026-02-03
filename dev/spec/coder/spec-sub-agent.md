@@ -38,15 +38,20 @@ sub_agents = [
 
 ### Sub-agent Input
 
-Each sub-agent receives a single input table containing the current state of the request, the execution stage, the parameters, and the prompt segments.
+Each sub-agent receives a single `input` table (accessible via the `input` variable in `# Data` and `# Output` stages) containing the current state of the request, the execution stage, the parameters, and the prompt segments.
 
 ```ts
 type SubAgentInput = {
+  // Current execution stage
   coder_stage: "pre" | "pre_task" | "post_task" | "post",
-  coder_prompt_dir: string, // The absolute path to the directory containing the coder prompt file
-  coder_params: table, // Current parameters (TOML parsed, or modified by previous sub-agents)
-  coder_prompts: string[] // List of prompt segments (initially [instruction])
-  agent_config: AgentConfig, // Normalized configuration for the current sub-agent
+  // Absolute path to the directory containing the coder prompt file
+  coder_prompt_dir: string,
+  // Current parameters (TOML parsed, or modified by previous sub-agents)
+  coder_params: table,
+  // List of prompt segments (initially [instruction])
+  coder_prompts: string[],
+  // Normalized configuration for the current sub-agent
+  agent_config: AgentConfig,
 }
 ```
 
@@ -65,17 +70,26 @@ type AgentConfig = {
 
 ### Sub-agent Output
 
-Sub-agents must return a table adhering to this format. If `after_all` is `nil` (e.g., the stage returns nothing), it is interpreted as success with no modifications to the state. If `coder_params` or `coder_prompts` are omitted, the previous state is preserved.
+Sub-agents must return a table adhering to this format. If the return value is `nil`, it is interpreted as success with no modifications to the state. If `coder_params` or `coder_prompts` are omitted from the returned table, the previous state is preserved. If `success` is omitted, it defaults to `true`. If `error_msg` is present (even if `success` is not `false`), the execution is considered failed.
+
+**Warning**: When providing `coder_params` or `coder_prompts`, the sub-agent should modify the existing ones. Any keys or segments removed from these structures will be lost for subsequent sub-agents and the parent `pro@coder` agent.
 
 ```ts
 type SubAgentOutput = {
-  success: boolean,
   coder_params?: table,  // Optional: Replaces the current parameters if provided
   coder_prompts?: string[],    // Optional: Replaces the current prompts list if provided
-  error_msg?: string,    // Required if success is false
+  success?: boolean,     // Optional (defaults to true).
+  error_msg?: string,    // Optional. If present (or success is false), the run fails.
   error_details?: string // Optional: More context for failure
 }
 ```
+
+### Returning Data
+
+A sub-agent can return its response in two ways:
+
+- **Via `# Output`**: The return value of the `# Output` stage for the processed input.
+- **Via `# After All`**: The return value of the `# After All` stage (which becomes the `after_all` field in `RunAgentResponse`).
 
 ## Execution Flow
 
@@ -94,7 +108,7 @@ The execution occurs in the `# Before All` stage of `pro@coder/main.aip`.
     - Invoke `local run_res = aip.agent.run(config.name, { input = sub_input, ... })`.
     - Let `res = run_res.after_all` (fallback to `run_res.outputs[1]` if `after_all` is nil).
     - If `res` is nil, continue to the next sub-agent (interpreted as success with no modifications).
-    - If `res.success == false`, halt execution and report error.
+    - If `res.success == false` or `res.error_msg` is present, halt execution and report error (ignore `coder_params` and `coder_prompts`).
     - If `res.coder_params` is present, `current_params = res.coder_params` (cleaned to ensure no recursive `sub_agents` insertion).
     - If `res.coder_prompts` is present, `current_coder_prompts = res.coder_prompts`.
 4.  **Finalization**:

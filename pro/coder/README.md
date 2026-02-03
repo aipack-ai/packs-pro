@@ -123,6 +123,11 @@ write_mode: false
 # Customize reasoning effort with -high, -medium, or -low suffix (e.g., "opus-high", "gpro-low")
 model: gpt-5.1 # set it to "gpt-5" for normal coding
 
+## Specialized agents to pre-process parameters and instructions (Stage: "pre")
+# sub_agents:
+#   - "my-context-builder"
+#   - { name: "pro@coder/agent-selector" }
+
 ## To see docs, type "Show Doc" and then press `r` in the aip terminal
 ```
 
@@ -280,6 +285,60 @@ Example:
 ```yaml
 model: gpt-5-mini  # or "gpt-5" for normal coding
 ```
+
+#### sub_agents
+
+Array of specialized agents to run at different stages of the `pro@coder` execution. This is useful for automated context building, instruction refinement, or project-specific initialization.
+
+Currently, sub-agents run at the `pre` stage, which occurs during initialization (Before All).
+
+### Developing Sub-agents
+
+Sub-agents are standard `.aip` files. They receive the following structure as their `input` (accessible in `# Data` or `# Output` stages):
+
+```ts
+type SubAgentInput = {
+  // Current execution stage ("pre") (will support "post" later)
+  coder_stage: string,
+  // Absolute path to the prompt file directory
+  coder_prompt_dir: string,
+  // Current parameters (from YAML block)
+  coder_params: table,
+  // Current prompt segments (instruction)
+  coder_prompts: string[],
+  // This sub-agent's configuration object
+  agent_config: table,
+}
+```
+
+To modify the request state, the sub-agent should return a table with `success: true` and optionally updated `coder_params` or `coder_prompts`:
+
+```ts
+type SubAgentOutput = {
+  coder_params?: table,     // Optional: Replaces the current parameters
+  coder_prompts?: string[],   // Optional: Replaces the current prompts list
+
+  success?: boolean,        // Optional (defaults to true). Set to false to fail.
+  error_msg?: string,       // Optional. If present, the agent will fail with this message.
+  error_details?: string,   // Optional. More context for the failure.
+}
+```
+
+**Important**: When returning `coder_params` or `coder_prompts`, ensure you are extending or modifying the ones received in the input. Anything removed from these tables will be unavailable for subsequent sub-agents and the main coder agent.
+
+A sub-agent can return this data either from:
+- The `# Output` stage (as the return value for the task).
+- The `# After All` stage (as the final return value).
+
+Example:
+
+```yaml
+sub_agents:
+  - "context-builder"
+  - { name: "pro@coder/agent-selector", options: { model: "gpt-4o" } }
+```
+
+Sub-agents require AIPack 0.8.15 or above.
 
 ## AIPack config override
 
