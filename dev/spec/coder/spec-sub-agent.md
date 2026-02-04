@@ -48,8 +48,8 @@ type SubAgentInput = {
   coder_prompt_dir: string,
   // Current parameters (TOML parsed, or modified by previous sub-agents)
   coder_params: table,
-  // List of prompt segments (initially [instruction])
-  coder_prompts: string[],
+  // Current prompt segment (initially the instruction)
+  coder_prompt: string,
   // Normalized configuration for the current sub-agent
   agent_config: AgentConfig,
 }
@@ -77,7 +77,7 @@ Sub-agents must return a table adhering to this format. If the return value is `
 ```ts
 type SubAgentOutput = {
   coder_params?: table,  // Optional: Replaces the current parameters if provided
-  coder_prompts?: string[],    // Optional: Replaces the current prompts list if provided
+  coder_prompt?: string,    // Optional: Replaces the current prompt if provided
   success?: boolean,     // Optional (defaults to true).
   error_msg?: string,    // Optional. If present (or success is false), the run fails.
   error_details?: string // Optional: More context for failure
@@ -101,19 +101,19 @@ The execution occurs in the `# Before All` stage of `pro@coder/main.aip`.
     - `agent_configs` is created by normalizing `raw_params.sub_agents` into a list of `AgentConfig` objects using `extract_sub_agent_configs`.
     - `current_params` is initialized with `raw_params`.
     - `current_params.context_globs`, `current_params.structure_globs`, and `current_params.knowledge_globs` are initialized as empty tables `{}` if they are `nil`.
-    - `current_coder_prompts` is initialized as `{ inst }`.
+    - `current_coder_prompt` is initialized as `inst`.
 3.  **Iteration**: For each `config` in `agent_configs`:
     - Prepare `coder_params_for_sub` by deep cloning `current_params` and removing the `sub_agents` key (using `extract_coder_params`).
     - Prepare sub-input with `agent_config = config`, `coder_params = coder_params_for_sub`, and other state fields.
     - Invoke `local run_res = aip.agent.run(config.name, { input = sub_input, ... })`.
     - Let `res = run_res.after_all` (fallback to `run_res.outputs[1]` if `after_all` is nil).
     - If `res` is nil, continue to the next sub-agent (interpreted as success with no modifications).
-    - If `res.success == false` or `res.error_msg` is present, halt execution and report error (ignore `coder_params` and `coder_prompts`).
+    - If `res.success == false` or `res.error_msg` is present, halt execution and report error (ignore `coder_params` and `coder_prompt`).
     - If `res.coder_params` is present, `current_params = res.coder_params` (cleaned to ensure no recursive `sub_agents` insertion).
-    - If `res.coder_prompts` is present, `current_coder_prompts = res.coder_prompts`.
+    - If `res.coder_prompt` is present, `current_coder_prompt = res.coder_prompt`.
 4.  **Finalization**:
     - The final parameters used by the main agent are `current_params`.
-    - The final instruction `inst` is created by `table.concat(current_coder_prompts, "\n\n")`.
+    - The final instruction `inst` is `current_coder_prompt`.
 
 ## Module Responsibilities
 

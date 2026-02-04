@@ -59,15 +59,15 @@ function run_sub_agents(stage, coder_meta, inst, coder_options, coder_prompt_dir
 	current_params.structure_globs = value_or(current_params.structure_globs, {})
 	current_params.knowledge_globs = value_or(current_params.knowledge_globs, {})
 
-	local current_coder_prompts = { inst }
+	local current_coder_prompt = inst
 
 	for _, config in ipairs(agent_configs) do
 		local coder_params_for_sub = extract_coder_params(current_params)
 		local sub_input = {
-			_display         = "sub agent input {coder_stage, coder_params, coder_prompts, agent_config, coder_prompt_dir}",
+			_display         = "sub agent input {coder_stage, coder_params, coder_prompt, agent_config, coder_prompt_dir}",
 			coder_stage      = stage,
 			coder_params     = coder_params_for_sub,
-			coder_prompts    = current_coder_prompts,
+			coder_prompt     = current_coder_prompt,
 			coder_prompt_dir = coder_prompt_dir,
 			agent_config     = config,
 		}
@@ -111,8 +111,8 @@ function run_sub_agents(stage, coder_meta, inst, coder_options, coder_prompt_dir
 		if res.coder_params then
 			current_params = res.coder_params
 		end
-		if res.coder_prompts then
-			current_coder_prompts = res.coder_prompts
+		if res.coder_prompt then
+			current_coder_prompt = res.coder_prompt
 		end
 		::next_agent::
 	end
@@ -121,7 +121,7 @@ function run_sub_agents(stage, coder_meta, inst, coder_options, coder_prompt_dir
 	-- put back the sub_agents
 	new_coder_meta.sub_agents = sub_agents
 
-	return new_coder_meta, table.concat(current_coder_prompts, "\n\n")
+	return new_coder_meta, current_coder_prompt
 end
 
 -- === /Public Interfaces

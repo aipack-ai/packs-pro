@@ -303,8 +303,8 @@ type SubAgentInput = {
   coder_prompt_dir: string,
   // Current parameters (from YAML block)
   coder_params: table,
-  // Current prompt segments (instruction)
-  coder_prompts: string[],
+  // Current prompt segment (instruction)
+  coder_prompt: string,
   // This sub-agent's configuration object
   agent_config: table,
 }
@@ -315,7 +315,7 @@ To modify the request state, the sub-agent should return a table with `success: 
 ```ts
 type SubAgentOutput = {
   coder_params?: table,     // Optional: Replaces the current parameters
-  coder_prompts?: string[],   // Optional: Replaces the current prompts list
+  coder_prompt?: string,   // Optional: Replaces the current prompt
 
   success?: boolean,        // Optional (defaults to true). Set to false to fail.
   error_msg?: string,       // Optional. If present, the agent will fail with this message.
