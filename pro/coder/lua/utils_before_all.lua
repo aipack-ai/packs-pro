@@ -1,9 +1,12 @@
+-- CONST
+local CONST = require("consts")
+
 -- === Support Functions
 
 -- Checks if the current AIPack version meets the minimum required version for this agent.
 -- Returns true if OK, or false and an error message if an update is needed.
 local function check_version()
-	if not aip.semver.compare(CTX.AIPACK_VERSION, ">", "0.8.4") then
+	if not aip.semver.compare(CTX.AIPACK_VERSION, ">", "0.8.10") then
 		local msg = "\nWARNING - This pack requires AIPACK_VERSION 0.8.4 or above, but " ..
 				CTX.AIPACK_VERSION .. " is currently installed"
 		msg = msg .. "\n\nACTION  - Update your aipack `cargo install aipack` (to check your aipack version run 'aip -V')"
@@ -217,13 +220,12 @@ end
 
 -- Aggregates all global run parameters and configuration into a single base table.
 local function build_input_base(params)
-	local consts = require("consts")
 	local meta = params.meta
 
 	return {
 		instructions                       = params.instructions,
 		attachments                        = params.attachments,
-		max_files_size_kb                  = meta.max_files_size_kb or consts.DEFAULT_MAX_FILES_SIZE_KB,
+		max_files_size_kb                  = meta.max_files_size_kb or CONST.DEFAULT_MAX_FILES_SIZE_KB,
 		write_mode                         = params.write_mode,
 		file_content_mode                  = params.file_content_mode,
 		prompt_file_rel_path               = params.prompt_file_rel_path,
@@ -364,7 +366,11 @@ local function run_before_all(inputs)
 	end
 
 	-- === More logic
-	print("Prompt file ➜ " .. paths.prompt_file_rel_path)
+	aip.run.pin("pfile", 0, {
+		label = CONST.LABEL_PROMPT_FILE,
+		content = paths.prompt_file_rel_path
+	}
+	)
 
 	-- === Defined the explicit cache strategy (for Anthropic)
 	-- Default false

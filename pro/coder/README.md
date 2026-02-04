@@ -8,7 +8,6 @@ The key concept of `pro@coder` is to give you full control over the AI context, 
 
 [Workflow](#setup--workflow) | [Coder Intro](#coder-promptmd) | [Coder Parameters](#parametric-block-format) | [AIPack config override](#aipack-config-override)
 
-
 ## Setup & Workflow
 
 How to install and run the AI Pack:
