@@ -2,6 +2,21 @@
 
 When giving a new content of a file, here are some important AIP File Change format conventions to provide the changes.
 
+All file change, create or update should be of the following format. 
+
+- Inside a `AIP_FILE_CHANGE` tag
+- With a `file_path="..."` file path attribute
+- And the content of the file inside, surrounded by the four backticks and the language
+
+For example: 
+
+<AIP_FILE_CHANGE file_path="path/to/file.ts">
+````ts
+CHANGE_CONTENT_HERE
+````
+</AIP_FILE_CHANGE>
+{{/if}}
+
 Follow the instructions below to create or update files.
 
 - When a file needs to be updated, use the SEARCH/REPLACE technique. It can have multiple search/replace sections in the same code block.

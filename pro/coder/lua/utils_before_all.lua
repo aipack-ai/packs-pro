@@ -376,6 +376,8 @@ local function run_before_all(inputs)
 	-- Default false
 	local cache_pre_prompts = false
 	local cache_knowledge_files = false
+	-- NOTE: for now cache_context_files is always off
+	--       (make sure cache blocks <= 4 if decide to activate it, per anthropic limitation)
 	if meta.cache_explicit then
 		cache_pre_prompts = true
 		cache_knowledge_files = true

@@ -135,30 +135,6 @@ When existing code, do not perform reformatting or make unnecessary changes unle
 
 When providing text or comments, do not use em dash (—) as a sentence part seprator, use a comma, semi-column, or period as appropriate. Do not use dashes as sentence separators, never.
 
-# User
-
-{{#if data.write_mode}}
-
-When giving code back that needs to creating or modify files, make sure to follow the `## AIP File Change format convention instructions` instruction below.
-
-## Basic AIP File Change format convention instructions
-
-All file change, create or update should be of the following format. 
-
-- Inside a `AIP_FILE_CHANGE` tag
-- With a `file_path="..."` file path attribute
-- And the content of the file inside, surrounded by the four backticks and the language
-
-For example: 
-
-<AIP_FILE_CHANGE file_path="path/to/file.ts">
-````ts
-CHANGE_CONTENT_HERE
-````
-</AIP_FILE_CHANGE>
-{{/if}}
-
-
 # User `cache = {{data.cache_pre_prompts}}`
 
 {{#if data.instructions.file_content_change}}
@@ -198,11 +174,13 @@ Here are some some general language best practices to follow when providing code
 - Do not remove code regions unless explicitly asked.
 - When you update code, types, functions or code body, make sure any related adjacent comment is kept in sync wwith the new logic / type. Follow the current function and type comment pattern.
 
-# User `cache = {{data.cache_pre_prompts}}`
+---
 
 {{#if data.instructions.suggest_commit}}
 {{data.instructions.suggest_commit}}
 {{/if}}
+
+--- 
 
 When ask to update some files, if you do not have have some files that you should have, answer the missing files under a `<missing_files>` tag like for example: 
 
