@@ -82,6 +82,9 @@ Each step must be defined in a way that does not break the code or existing func
 ## plan-1-todo-steps.md rules
 
 - Creating or updating the plan is planning-only. Do not begin implementing any step while composing or editing the plan files.
+
+- Each step should be worthy of a commit, and it should not break anything, should be incremental toward the goal, and should be comprehensive (it can be small, but it should be a holistic unit of work)
+
 - Each step uses a heading `## Step - short title for the work`.
 
 - Include `      status: not_started`.
@@ -89,6 +92,7 @@ Each step must be defined in a way that does not break the code or existing func
 - If available, add `time-created: ...` using the given local time (second precision), and display it like this: `2025-10-26 09:52:21` (no need to show the timezone, and include a space between the date and time).
 
 - After an empty line, provide a concise, complete description of the step.
+
 - When a step will build on a definition or specification from a previous step, include an explicit reference in the body, for example "References: see the definition in plan-2-current-step.md or plan-3-done-steps.md, step 'Step - ...'". This ensures the next step picks up the defined content from current or done.
 
 - When a step is activated, move the entire step to `plan-2-current-step.md`, change `      status` to `current`, and remove it from todo. Preserve all original content.
