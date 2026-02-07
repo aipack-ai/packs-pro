@@ -1,86 +1,117 @@
-## AI File Change Format Convention Instructions
+## AI File Change Format
 
-When updating files, update the codebase **only** by emitting a structured change bundle using the format described below.
+When modifying a codebase, emit all changes inside a single `<FILE_CHANGES>` container using the directives below. Do not place any other content inside `<FILE_CHANGES>`.
 
-### Rules
+You may include explanation before or after the `<FILE_CHANGES>` block. If no changes are required, output nothing.
 
-- The container tag `FILE_CHANGES` must contain only file change directives.
-- Every modification must be represented explicitly as one of the following operations:
-  - `FILE_NEW` – create a new file (must not overwrite unless explicitly instructed).
-  - `FILE_PATCH` – modify an existing file using a hunk-style unified diff (without hunk numbers, just `@@` as the hunk delimiter). See more FILE_PATCH rules below.
-  - `FILE_RENAME` – rename or move a file
-  - `FILE_DELETE` – delete a file
-- The code fence language (for example, `rust`, `ts`, `python`) is for syntax highlighting only and should match the target file’s language.
-- Preserve exact formatting and whitespace.
+### Directives
+
+| Directive     | Purpose                                  |
+| ------------- | ---------------------------------------- |
+| `FILE_NEW`    | Create a new file                        |
+| `FILE_PATCH`  | Modify an existing file via unified diff |
+| `FILE_RENAME` | Rename or move a file                    |
+| `FILE_DELETE` | Delete a file                            |
+
+### General Rules
+
+- The `file_path` attribute is the sole source of truth for the target file.
+- Preserve exact formatting, indentation, and whitespace.
 - Do not invent files or paths.
-- If no changes are required, output nothing.
-- Very important: For `FILE_PATCH`, make sure the surrounding text is an exact match, and per uniffied diff spec, start with and empty char for each line. otherwise the patch will not work.
-- Very important as well: For `FILE_PATCH`, the `-` patch lines need to match exactly the lines they are supposed to remove, otherwise the patch will not work.
+- The code fence language (e.g., `rust`, `ts`, `python`) is for syntax highlighting only.
 
+---
 
-You may include additional explanation before or after the `<FILE_CHANGES>` block; it will be shown to the user. Do not place anything inside `<FILE_CHANGES>` other than directives.
+### FILE_NEW
 
+Creates a new file. The content inside the code fence is the full file content.
 
-
-#### FILE_PATCH rules
-
-- `FILE_PATCH` must contain simplified, hunk-style, number-less uniffied diff content like:
-- The hunk body should be standard uniffied diff lines with the ` ` for surrounding, and `-` and `+` for the remove and addition.
-- Make sure the surrounding lines (starting with ` `) and the remove lines (starting with `-`) have their content match exactly the source line. 
-- Minimize the number surrounding lines to mimize change of mismatch
-- The Hunk header for FILE_PATH are simplified as such
-  - Use single `@@` for the header, but no numbers
-  - For example, Never use `@@ -35,26 +83,32 @@`, use just one `@@` without numbers, even when there are multiple hunks per file.
-  - AlsoDo **not** include `---` / `+++` file headers, because `file_path` is the only source of truth for the target file.
-- So the hunk header is simplified, but the content line should follow the standard. 
-
-IMPORTANT: Make sure to respect leading spaces for the hunk surrounding content.
-
-
-### Format
-
-<FILE_CHANGES>
-
-<FILE_NEW file_path="path/to/file.ext" mode="create_only">
+````
+<FILE_NEW file_path="path/to/file.ext">
 ```language
-(file contents)
+(full file contents)
 ```
 </FILE_NEW>
+````
 
+---
+
+### FILE_PATCH
+
+Modifies an existing file using a simplified, numberless unified diff format.
+
+#### Hunk header
+
+- Use a single `@@` on its own line, with no line numbers.
+- Never use `@@ -35,26 +83,32 @@`; always just `@@`.
+- Do **not** include `---` / `+++` file header lines.
+- A single `FILE_PATCH` may contain multiple hunks, each starting with `@@`.
+
+#### Hunk body line format
+
+Every line in a hunk body **must** start with one of exactly three prefix characters:
+
+| Prefix | Meaning                   | Description                                          |
+| ------ | ------------------------- | ---------------------------------------------------- |
+| ` `    | Context (space character) | Unchanged line; must match the original file exactly |
+| `-`    | Removal                   | Line to remove; must match the original file exactly |
+| `+`    | Addition                  | Line to add                                          |
+
+**Critical rules for hunk body lines:**
+
+- Every line must begin with one of these three prefix characters. There are no exceptions.
+- Context lines (` ` prefix) and removal lines (`-` prefix) must be **exact character-for-character copies** of the corresponding lines in the original file, including all leading/trailing whitespace and indentation.
+- If the original line has 4 spaces of indentation, the context line must be ` ` (space prefix) followed by those exact 4 spaces, resulting in 5 characters before the content.
+- Minimize the number of context lines to reduce the chance of mismatch. Include only enough context to uniquely identify the location.
+- Addition lines (`+` prefix) contain the new content to insert.
+
+#### FILE_PATCH format
+
+````
 <FILE_PATCH file_path="path/to/existing_file.ext">
 ```language
 @@
-(contextual hunk-style diff)
+ (context line - exact copy of original, prefixed with a space)
+-(removal line - exact copy of original, prefixed with -)
++(addition line - new content, prefixed with +)
+ (context line)
 ```
 </FILE_PATCH>
+````
 
+---
+
+### FILE_RENAME
+
+````
 <FILE_RENAME from_path="old/path.ext" to_path="new/path.ext" />
+````
 
+---
+
+### FILE_DELETE
+
+```
 <FILE_DELETE file_path="path/to/file.ext" />
+````
 
-</FILE_CHANGES>
+---
 
-### Example
+### Complete Example
 
 <FILE_CHANGES>
 
-<FILE_NEW file_path="src/main.rs" mode="create_only">
-```rust
-fn main() {
-    println!("Old Message");
-}
-```
-</FILE_NEW>
-
-<FILE_NEW file_path="src/hello.rs" mode="create_only">
+<FILE_NEW file_path="src/hello.rs">
 ```rust
 pub fn hello() {
     println!("Hello from hello.rs");
 }
-```
+````
+
 </FILE_NEW>
 
 <FILE_PATCH file_path="src/main.rs">
+
 ```rust
 @@
 +mod hello;
@@ -90,6 +121,7 @@ pub fn hello() {
 +    hello::hello();
  }
 ```
+
 </FILE_PATCH>
 
 <FILE_RENAME from_path="docs/OLD_README.md" to_path="README.md" />
