@@ -110,8 +110,11 @@ Each step must be defined in a way that does not break the code or existing func
 
 - Use the body to track sub-steps, design notes, decisions, and outstanding questions in chronological order.
 
+- If the user asks to fix a bug in the current step, add a `### Bug fix - SUB_STEP_BUG_SHORT_DESC`, and below it, describe what the issue was and what was fixed.
+
 - When a sub-step is needed because the user asks to fix or add something to the current step, use the following section format:
 
+```md
 ### sub-step - SUB_STEP_SHORT_DESCRIPTION
 time-current: ....
 
@@ -126,6 +129,7 @@ SUMMARY_OF_WHAT_WAS_DONE_AND_WHY_THERE_WAS_AN_ISSUE_IF_ISSUE.
 #### Implementation Considerations
 
 IF_NEEDED_OTHER_SUB_STEP_SECTION_FOR_ADDITIONAL_INFORMATION
+```
 
 - Add the `#### Implementation Considerations` only when needed as well (same as for the top step)
 
