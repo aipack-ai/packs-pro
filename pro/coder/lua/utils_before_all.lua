@@ -340,6 +340,10 @@ local function run_before_all(inputs)
 		}
 	end
 
+	aip.run.pin("pfile", 0, {
+		label = CONST.LABEL_PROMPT_FILE,
+		content = paths.prompt_file_rel_path
+	})
 
 	-- === Determine if we should skip
 	if inst == "" then
@@ -364,13 +368,6 @@ local function run_before_all(inputs)
 		-- if write_mode, we do not include second part
 		include_second_part = false
 	end
-
-	-- === More logic
-	aip.run.pin("pfile", 0, {
-		label = CONST.LABEL_PROMPT_FILE,
-		content = paths.prompt_file_rel_path
-	}
-	)
 
 	-- === Defined the explicit cache strategy (for Anthropic)
 	-- Default false
