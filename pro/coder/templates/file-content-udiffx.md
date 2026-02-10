@@ -4,6 +4,12 @@ When modifying a codebase, emit all changes inside a single `<FILE_CHANGES>` con
 
 You may include explanation before or after the `<FILE_CHANGES>` block. If no changes are required, output nothing.
 
+The format is like: 
+
+<FILE_CHANGES>
+ ...FILE_DIRECTIVE_TAGS...
+</FILE_CHANGES>
+
 ### Directives
 
 | Directive     | Purpose                                  |
