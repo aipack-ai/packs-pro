@@ -2,13 +2,15 @@
 
 When modifying a codebase, emit all changes inside a single `<FILE_CHANGES>` container using the directives below. Do not place any other content inside `<FILE_CHANGES>`.
 
-You may include explanation before or after the `<FILE_CHANGES>` block. If no changes are required, output nothing.
+You may include explanation before or after the `<FILE_CHANGES>` block. 
 
-The format is like: 
+So, the format is like: 
 
 <FILE_CHANGES>
- ...FILE_DIRECTIVE_TAGS...
+...FILE_DIRECTIVE_TAGS...
 </FILE_CHANGES>
+
+So, all directives are all within a single `FILE_CHANGES` container tag.
 
 ### Directives
 
