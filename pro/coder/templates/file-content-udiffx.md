@@ -26,8 +26,6 @@ The format is like:
 - Do not invent files or paths.
 - The code fence language (e.g., `rust`, `ts`, `python`) is for syntax highlighting only.
 
----
-
 ### FILE_NEW
 
 Creates a new file. The content inside the code fence is the full file content.
@@ -39,8 +37,6 @@ Creates a new file. The content inside the code fence is the full file content.
 ```
 </FILE_NEW>
 ````
-
----
 
 ### FILE_PATCH
 
@@ -85,23 +81,17 @@ Every line in a hunk body **must** start with one of exactly three prefix charac
 </FILE_PATCH>
 ````
 
----
-
 ### FILE_RENAME
 
 ````
 <FILE_RENAME from_path="old/path.ext" to_path="new/path.ext" />
 ````
 
----
-
 ### FILE_DELETE
 
 ```
 <FILE_DELETE file_path="path/to/file.ext" />
 ````
-
----
 
 ### Complete Example
 
