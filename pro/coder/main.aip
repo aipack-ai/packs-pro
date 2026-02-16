@@ -306,6 +306,8 @@ Here is today local date / time if user ask to do something with it:
 # Output
 
 ```lua
+local CONST = require("consts")
+
 local u_output = require("utils_output")
 local u_tmpl = require("utils_tmpl")
 
@@ -348,7 +350,13 @@ aip.file.save(data.prompt_path, prompt_content)
 -- print("Executed from your @coder prompt file:" .. data.prompt_file_rel_path)
 
 -- === Build the Response
-local response = "✅ pro@coder task done.\n"
+local response = nil
+
+if #files_changes_failed == 0 then
+	response = "✅ "
+else
+	repsponse = "⚠ "
+end
 
 if data.write_mode then
     if #files_changed == 0 then
@@ -360,14 +368,25 @@ if data.write_mode then
         if #files_changed > 1 then
             file_txt = "files"
         end
-        response = response .. "\n" .. #files_changed .. " " .. file_txt .. " changed:\n"
+        response = response .. "" .. #files_changed .. " " .. file_txt .. " changed:\n"
         response = response .. "→ " .. table.concat(files_changed, "\n→ ")
-        response = response .. "\n\nCheck prompt file for more AI answer. Prompt file:"
-        response = response .. "\n→ " .. data.prompt_file_rel_path        
     end
 else 
     response = response .. "\nPrompt File has been updated with AI Response. Prompt file:"
     response = response .. "\n→ " .. data.prompt_file_rel_path
+end
+
+aip.task.pin("completed", 0, {
+	label   = CONST.LABEL_COMPLETED,
+	content = response
+})
+
+if data.write_mode then 
+ 	response = response .. "\n\nCheck prompt file for more AI answer. Prompt file:"
+  response = response .. "\n→ " .. data.prompt_file_rel_path
+else
+  response = response .. "\nPrompt File has been updated with AI Response. Prompt file:"
+  response = response .. "\n→ " .. data.prompt_file_rel_path
 end
 
 return response

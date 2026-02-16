@@ -1,3 +1,6 @@
+-- CONST
+local CONST = require("consts")
+
 function build_info_lines(ai_response, data)
 	local first_line = ">   Info: " .. ai_response.info
 	local second_line = ""
@@ -40,15 +43,15 @@ function process_ui_directives(content)
 	for _, elem in ipairs(elems) do
 		if elem.tag == "suggested_git_command" then
 			-- process git commit suggestion
-			aip.task.pin("gitc", 0, {
-				label   = "Git Commit",
+			aip.task.pin("gitc", 1, {
+				label   = CONST.LABEL_GIT_COMMIT,
 				content = aip.text.trim(elem.content)
 			})
 		elseif elem.tag == "aip_to_pin" and elem.attrs then
 			local name = elem.attrs.name
 			local body = aip.text.trim(elem.content or "")
 			if name and body ~= "" then
-				aip.task.pin(name, 0, {
+				aip.task.pin(name, 1, {
 					label   = name,
 					content = body
 				})
@@ -74,7 +77,7 @@ end
 -- ==== RETURN
 
 -- Applies file changes based on the mode defined in data (udiffx or AIP_FILE_CHANGE tags).
--- Returns the processed content (without the change directives), a list of changed files, 
+-- Returns the processed content (without the change directives), a list of changed files,
 -- and a list of failed change info.
 function apply_changes(ai_content, data)
 	local base_dir = data.base_dir
