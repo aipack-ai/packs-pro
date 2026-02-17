@@ -208,7 +208,12 @@ local function prepare_instructions(file_content_mode, suggest_git_commit)
 	elseif file_content_mode.search_replace_auto then
 		instructions.file_content_change = u_tmpl.load_template("file-content-search-replace-auto.md").content
 	elseif file_content_mode.udiffx then
-		instructions.file_content_change = u_tmpl.load_template("file-content-udiffx.md").content
+		-- Now by default take from aip.udiffx instruction
+		if aip.udiffx.file_changes_instruction then
+			instructions.file_content_change = aip.udiffx.file_changes_instruction()
+		else
+			instructions.file_content_change = u_tmpl.load_template("file-content-udiffx.md").content
+		end
 	end
 
 	if suggest_git_commit then
