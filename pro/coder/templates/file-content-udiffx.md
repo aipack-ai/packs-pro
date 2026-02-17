@@ -1,14 +1,13 @@
 ## AI File Change Format
 
-When modifying a codebase, emit all changes inside a single `<FILE_CHANGES>` container using the directives below. Do not place any other content inside `<FILE_CHANGES>`.
+When modifying a codebase, emit all change directives inside a single `<FILE_CHANGES>` container using the directives format below. Do not place any other content inside `<FILE_CHANGES>`. Like
+
+<FILE_CHANGES>
+_FILE_DIRECTIVES_
+</FILE_CHANGES>
 
 You may include explanation before or after the `<FILE_CHANGES>` block. If no changes are required, output nothing.
 
-The format is like: 
-
-<FILE_CHANGES>
- ...FILE_DIRECTIVE_TAGS...
-</FILE_CHANGES>
 
 ### Directives
 
@@ -32,15 +31,19 @@ Creates a new file. The content inside the code fence is the full file content.
 
 ````
 <FILE_NEW file_path="path/to/file.ext">
-```language
 (full file contents)
-```
 </FILE_NEW>
 ````
 
 ### FILE_PATCH
 
 Modifies an existing file using a simplified, numberless unified diff format.
+
+````
+<FILE_PATCH file_path="path/to/file.ext">
+(patch_format)
+</FILE_PATCH>
+````
 
 #### Hunk header
 
@@ -71,13 +74,11 @@ Every line in a hunk body **must** start with one of exactly three prefix charac
 
 ````
 <FILE_PATCH file_path="path/to/existing_file.ext">
-```language
 @@
  (context line - exact copy of original, prefixed with a space)
 -(removal line - exact copy of original, prefixed with -)
 +(addition line - new content, prefixed with +)
  (context line)
-```
 </FILE_PATCH>
 ````
 
@@ -95,20 +96,20 @@ Every line in a hunk body **must** start with one of exactly three prefix charac
 
 ### Complete Example
 
+Always with `FILE_CHANGES` tag surrounding the file directives 
+
+#### Example
+
 <FILE_CHANGES>
 
 <FILE_NEW file_path="src/hello.rs">
-```rust
 pub fn hello() {
     println!("Hello from hello.rs");
 }
-````
 
 </FILE_NEW>
 
 <FILE_PATCH file_path="src/main.rs">
-
-```rust
 @@
 +mod hello;
 +
@@ -116,8 +117,6 @@ pub fn hello() {
 -    println!("Old Message");
 +    hello::hello();
  }
-```
-
 </FILE_PATCH>
 
 <FILE_RENAME from_path="docs/OLD_README.md" to_path="README.md" />

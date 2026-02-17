@@ -355,12 +355,12 @@ local response = nil
 if #files_changes_failed == 0 then
 	response = "✅ "
 else
-	repsponse = "⚠ "
+	response = "⚠ "
 end
 
 if data.write_mode then
     if #files_changed == 0 then
-        response = response .. "\nNo File changed."
+        response = response .. "No File changed."
         response = response .. "\nCheck prompt file for more AI answer."
         response = response .. "\nPrompt file:\n→ " .. data.prompt_file_rel_path        
     else 
