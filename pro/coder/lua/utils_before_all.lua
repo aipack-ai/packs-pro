@@ -199,7 +199,7 @@ local function get_file_content_mode(meta, write_mode)
 end
 
 -- Loads the appropriate Markdown templates for file changes and git commit suggestions.
-local function prepare_instructions(file_content_mode, suggest_git_commit)
+local function prepare_instructions(file_content_mode, suggest_git_commit, udiffx_inst_debug)
 	local u_tmpl = require("utils_tmpl")
 	local instructions = {}
 
@@ -208,11 +208,13 @@ local function prepare_instructions(file_content_mode, suggest_git_commit)
 	elseif file_content_mode.search_replace_auto then
 		instructions.file_content_change = u_tmpl.load_template("file-content-search-replace-auto.md").content
 	elseif file_content_mode.udiffx then
-		-- Now by default take from aip.udiffx instruction
-		if aip.udiffx.file_changes_instruction then
-			instructions.file_content_change = aip.udiffx.file_changes_instruction()
-		else
+		if udiffx_inst_debug or not aip.udiffx.file_changes_instruction then
+			if udiffx_inst_debug then
+				print("udiffx_inst_debug ", udiffx_inst_debug)
+			end
 			instructions.file_content_change = u_tmpl.load_template("file-content-udiffx.md").content
+		else
+			instructions.file_content_change = aip.udiffx.file_changes_instruction()
 		end
 	end
 
@@ -402,7 +404,8 @@ function run_before_all(inputs)
 		suggest_git_commit = write_mode
 	end
 
-	local instructions = prepare_instructions(file_content_mode, suggest_git_commit)
+	local udiffx_inst_debug = meta.udiffx_inst_debug
+	local instructions = prepare_instructions(file_content_mode, suggest_git_commit, udiffx_inst_debug)
 
 	-- === Build the input base
 	local input_base = build_input_base({

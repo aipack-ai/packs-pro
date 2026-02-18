@@ -8,6 +8,8 @@ _FILE_DIRECTIVES_
 
 You may include explanation before or after the `<FILE_CHANGES>` block. If no changes are required, output nothing.
 
+IMPORTANT. There can be only one FILE_CHANGES tag per response. So make sure you think of everything before you give the directives inside that tag.
+
 
 ### Directives
 
@@ -29,21 +31,17 @@ You may include explanation before or after the `<FILE_CHANGES>` block. If no ch
 
 Creates a new file. The content inside the code fence is the full file content.
 
-````
 <FILE_NEW file_path="path/to/file.ext">
-(full file contents)
+_full_file_contents_
 </FILE_NEW>
-````
 
 ### FILE_PATCH
 
 Modifies an existing file using a simplified, numberless unified diff format.
 
-````
 <FILE_PATCH file_path="path/to/file.ext">
-(patch_format)
+_patch_format_
 </FILE_PATCH>
-````
 
 #### Hunk header
 
@@ -56,43 +54,37 @@ Modifies an existing file using a simplified, numberless unified diff format.
 
 Every line in a hunk body **must** start with one of exactly three prefix characters:
 
-| Prefix | Meaning                   | Description                                          |
-| ------ | ------------------------- | ---------------------------------------------------- |
-| ` `    | Context (space character) | Unchanged line; must match the original file exactly |
-| `-`    | Removal                   | Line to remove; must match the original file exactly |
-| `+`    | Addition                  | Line to add                                          |
+| Prefix | Meaning                   | Description                                                            |
+| ------ | ------------------------- | ---------------------------------------------------------------------- |
+| ` `    | Context (space character) | Unchanged surrounding line; must match the original file exactly       |
+| `-`    | Removal                   | Line to remove; must match the original file exactly                   |
+| `+`    | Addition                  | Line to add                                                            |
 
 **Critical rules for hunk body lines:**
 
 - Every line must begin with one of these three prefix characters. There are no exceptions.
-- Context lines (` ` prefix) and removal lines (`-` prefix) must be **exact character-for-character copies** of the corresponding lines in the original file, including all leading/trailing whitespace and indentation.
-- If the original line has 4 spaces of indentation, the context line must be ` ` (space prefix) followed by those exact 4 spaces, resulting in 5 characters before the content.
+- Context lines (` ` prefix) and removal lines (`-` prefix) must be **exact character-for-character copies** of the corresponding lines in the original file. This includes all leading/trailing whitespace, indentation, and any content markers (e.g., Markdown bullet points like `-`, `*`, or `+`, and numbered list markers like `1.`). Any deviation, even a single space or tab, will cause the patch to fail.
+- **Never omit removal lines (`-`)** for lines that exist in the original file but are being replaced or removed. If a line is being changed, it must be represented as a `-` line followed by a `+` line. Do not skip lines within the scope of a hunk.
 - Minimize the number of context lines to reduce the chance of mismatch. Include only enough context to uniquely identify the location.
 - Addition lines (`+` prefix) contain the new content to insert.
 
 #### FILE_PATCH format
 
-````
 <FILE_PATCH file_path="path/to/existing_file.ext">
 @@
  (context line - exact copy of original, prefixed with a space)
 -(removal line - exact copy of original, prefixed with -)
 +(addition line - new content, prefixed with +)
- (context line)
+ (context line - if needed)
 </FILE_PATCH>
-````
 
 ### FILE_RENAME
 
-````
 <FILE_RENAME from_path="old/path.ext" to_path="new/path.ext" />
-````
 
 ### FILE_DELETE
 
-```
 <FILE_DELETE file_path="path/to/file.ext" />
-````
 
 ### Complete Example
 
