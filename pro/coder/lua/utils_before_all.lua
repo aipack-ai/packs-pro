@@ -16,13 +16,13 @@ local function check_version()
 end
 
 -- Resolves various paths used by the agent based on the prompt file location.
--- Returns a table containing relative paths and absolute paths for cache files.
 local function prepare_paths(prompt_file_path)
 	local prompt_file_rel_path = nil
 	if prompt_file_path:sub(1, 2) == "./" then
 		prompt_file_rel_path = prompt_file_path:sub(3)
 	else
-		prompt_file_rel_path = aip.path.diff(prompt_file_path, CTX.WORKSPACE_DIR)
+		-- now, the profile_file_path is workspace relative
+		prompt_file_rel_path = prompt_file_path
 	end
 
 	local prompt_dir = aip.path.parent(prompt_file_path)
@@ -288,7 +288,7 @@ end
 -- Orchestrates the global initialization of the agent.
 -- Handles version checks, prompt parsing, metadata extraction, and file resolution.
 -- Returns the prepared list of inputs and the global agent options.
-local function run_before_all(inputs)
+function run_before_all(inputs)
 	local u_utils = require("utils_data")
 	local u_tmpl = require("utils_tmpl")
 	local u_sub_agent = require("utils_sub_agent")
@@ -300,7 +300,12 @@ local function run_before_all(inputs)
 	-- === Init the prompt file if needed
 	local pack_id = CTX.PACK_IDENTITY or "local"
 	local default_prompt_absolute_dir = CTX.WORKSPACE_AIPACK_DIR .. "/.prompt/" .. pack_id
-	local default_prompt_file_path = default_prompt_absolute_dir .. "/coder-prompt.md"
+	local default_prompt_absolute_file_path = default_prompt_absolute_dir .. "/coder-prompt.md"
+	local default_prompt_file_path = aip.path.diff(default_prompt_absolute_file_path, CTX.WORKSPACE_DIR)
+
+	if not default_prompt_file_path:find("%S") then
+		error("prompt file path not valid: " .. default_prompt_absolute_file_path)
+	end
 
 	local input = inputs and inputs[1] or nil
 
@@ -327,7 +332,7 @@ local function run_before_all(inputs)
 		input_concurrency = meta.input_concurrency
 	}
 
-	local coder_prompt_dir = aip.path.diff(paths.prompt_dir, CTX.WORKSPACE_DIR)
+	local coder_prompt_dir = paths.prompt_dir
 
 	-- === Run Sub Agents
 	if not is_null(meta.sub_agents) and #meta.sub_agents > 0 then

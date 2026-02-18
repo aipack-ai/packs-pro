@@ -6,7 +6,6 @@ function prep_prompt_file(input, options)
 	options                   = options or {}
 	local default_prompt_path = options.default_prompt_path
 	local add_separator       = options.add_separator ~= nil and options.add_separator or false
-
 	-- Enter prompt_path
 	local prompt_path         = nil
 	if input == nil then

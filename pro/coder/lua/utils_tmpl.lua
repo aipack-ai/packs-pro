@@ -26,7 +26,8 @@ function M.init_fixed_files(prompt_dir)
 
 	local readme_orig_ctime = readme_orig and readme_orig.ctime or 0
 	local readme_dest_ctime = readme_dest and readme_dest.ctime or 0
-	local rel_dest_path = aip.path.diff(readme_dest_path, CTX.WORKSPACE_DIR)
+
+	local rel_dest_path = readme_dest_path
 
 	local addl_msg = ""
 	if readme_orig and readme_orig_ctime > readme_dest_ctime then
