@@ -130,7 +130,6 @@ When the language cannot be inferred from the user or context provided, assume t
 
 When you generate markdown, make sure to leave one empty line before and after any heading, except if the heading is the first line of the file.
 
-
 When existing code, do not perform reformatting or make unnecessary changes unless explicitly requested by the user or specified in the user/system knowledge or instructions.
 
 When providing text or comments, do not use em dash (—) as a sentence part seprator, use a comma, semi-column, or period as appropriate. Do not use dashes as sentence separators, never.
@@ -146,6 +145,11 @@ When providing text or comments, do not use em dash (—) as a sentence part sep
 Here are some some general language best practices to follow when providing code.
 
 ## Languages best practices
+
+### Markdown 
+
+- Make sure to have empty line after any heading (with one or more `#` character)
+- Except if told otherwise, use `-` for bullet points (rather than `*`). 
 
 ### HTML
 
