@@ -18,9 +18,22 @@ Make sure to use them when appropriate.
 
 IMPORTANT: Make sure to use this if-let-chain when using edition 2024 and above.
 
-The Rust compiler now supports let-chain.
+The Rust compiler now supports if let-chain now, so, always use it. 
 
-So, use this style when possible:
+### DO NOT DO THIS
+
+```rust
+// OLD WAY DO NOT DO THIS
+if let Some(person) = maybe_person {
+    if let Some(name) = person.name() {
+        if name.contains("John") && name.len() > 4 {
+            // do stuff with person and name
+        }
+    }
+}
+```
+
+### DO THIS
 
 ```rust
 // NEW WAY with if-let-chain
@@ -32,18 +45,6 @@ if let Some(person) = maybe_person
 }
 ```
 
-Rather than the old way of writing nested if statements.
-
-```rust
-// OLD WAY
-if let Some(person) = maybe_person {
-    if let Some(name) = person.name() {
-        if name.contains("John") && name.len() > 4 {
-            // do stuff with person and name
-        }
-    }
-}
-```
 
 ## Inline macro values
 
