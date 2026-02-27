@@ -93,27 +93,29 @@ function run_sub_agents(stage, coder_meta, inst, coder_options, coder_prompt_dir
 		if res == nil then goto next_agent end
 
 		-- Validate the response structure
-		if type(res) ~= "table" then
-			return nil, nil, "Sub-agent [" .. config.name .. "] returned an invalid response format ()"
-		end
-
-		-- If success is false or error_msg is present, we stop execution
-		if res.success == false or res.error_msg ~= nil then
-			local err_msg = value_or(res.error_msg, "Unknown error")
-			local full_err = "Sub-agent [" .. config.name .. "] failed: " .. err_msg
-			if res.error_details then
-				full_err = full_err .. "\nDetails: " .. res.error_details
+		if type(res) == "table" then
+			-- If success is false or error_msg is present, we stop execution
+			if res.success == false or res.error_msg ~= nil then
+				local err_msg = value_or(res.error_msg, "Unknown error")
+				local full_err = "Sub-agent [" .. config.name .. "] failed: " .. err_msg
+				if res.error_details then
+					full_err = full_err .. "\nDetails: " .. res.error_details
+				end
+				return nil, nil, full_err
 			end
-			return nil, nil, full_err
+
+			-- Merge or replace state
+			if res.coder_params then
+				current_params = res.coder_params
+			end
+			if res.coder_prompt then
+				current_coder_prompt = res.coder_prompt
+			end
+		else
+			-- Note: for now, do not return error
+			-- return nil, nil, "Sub-agent [" .. config.name .. "] returned an invalid response format ( not a table)"
 		end
 
-		-- Merge or replace state
-		if res.coder_params then
-			current_params = res.coder_params
-		end
-		if res.coder_prompt then
-			current_coder_prompt = res.coder_prompt
-		end
 		::next_agent::
 	end
 

@@ -1,0 +1,149 @@
+# Before All
+
+```lua
+local _u = require("utils")
+
+-- Extract config and code_map data
+local sub_agent_input = inputs[1]
+local code_map_config = _u.extract_code_map_config(sub_agent_input)
+local code_map        = _u.load_code_map_file(code_map_config.code_map_file_path)
+
+-- Build before all data
+local files_to_process = {}
+
+local orig_context_files = aip.file.list(code_map_config.context_globs)
+local file_map = code_map.file_map
+local to_process_count = 0
+for i, orig_file in ipairs(orig_context_files) do
+	local file_map_file = file_map[orig_file.path]
+	
+	-- file is already processed and up to date i > 2 or 
+	if ( file_map_file and file_map_file.mtime >= orig_file.mtime ) then
+	-- file needs to be processed
+	else
+		to_process_count = to_process_count + 1
+		table.insert(files_to_process, orig_file)
+	end
+end
+
+print("to_process_count " .. to_process_count .. " (on " .. #orig_context_files .. " files)")
+
+return aip.flow.before_all_response({
+	options    = {
+		model             = code_map_config.code_map_model,
+		input_concurrency = code_map_config.code_map_input_concurrency
+	},
+	inputs     = files_to_process,
+	before_all = {
+		sub_agent_input    = sub_agent_input,
+		to_process_count   = #files_to_process,
+		code_map_config    = code_map_config,
+		orig_context_files = orig_context_files
+	}
+})
+```
+
+# Data
+
+```lua
+local file = nil
+if input then
+	file = aip.file.load(input.path)
+end
+
+return {
+	file = file
+}
+```
+
+# Instruction
+
+{{#if data.file}}
+Below is the file content (under the `FILE_CONTENT` tag) that you need to extract some information
+
+Respond with a `FILE_INFO` tag like 
+<FILE_INFO>
+_file_json_format_
+</FILE_INFO>
+
+Here is the `_file_json_format_` schema 
+
+```typescript
+{
+	file_path: string,
+	summary: string,             // short summary of the file, it's responsibility/purpose
+	when_to_use: string,         // concise information of when this file should be included in the context
+	public_types?: string[],     // list of public types this file exposes (if any)
+	public_functions?: string[], // list of public functions this file exposes (if any)
+}
+```
+
+Here is the file content
+
+<FILE_CONTENT file_path="{{data.file.path}}">
+{{data.file.content}}
+</FILE_CONTENT>
+
+{{/if}}
+
+# After All
+
+```lua
+local _u = require("utils")
+
+local code_map_config    = before_all.code_map_config
+local code_map_file_path = code_map_config.code_map_file_path
+
+-- Extract config and code_map data
+local code_map = _u.load_code_map_file(code_map_file_path)
+local file_map = code_map.file_map
+
+-- Update code map file
+if before_all.to_process_count > 0 then 
+	for i, output in ipairs(outputs) do
+		local input_file = inputs[i]
+		local file_path = input_file.path
+		
+		local raw_content = aip.tag.extract_as_map(output, "FILE_INFO").FILE_INFO.content
+		local json_content = aip.json.parse(raw_content)
+		json_content.mtime = input_file.mtime
+		
+		
+		file_map[file_path] = json_content
+		
+		print("... " .. i .. " " .. inputs[i].path)
+	end
+	
+	local content = aip.json.stringify_pretty(code_map)
+	aip.file.save(code_map_file_path, content)
+end
+
+
+-- Run the context-optimizer
+local res = aip.agent.run("context-optimizer", {
+	input = {
+		code_map_config = before_all.code_map_config
+	}
+})
+
+local res_data = res.outputs[1]
+
+local needed_files = res_data.needed_files
+local orig_count   = #before_all.orig_context_files
+local new_count    = #needed_files
+print("original glob count: " .. orig_count .. "  -> new count: " .. new_count)
+
+print("Context optimization reasoning:\n" .. res_data.selection_reasoning)
+
+local coder_params = before_all.sub_agent_input.coder_params
+coder_params.context_globs = needed_files
+
+print(coder_params)
+
+return {
+	coder_params = coder_params
+}
+
+```
+
+
