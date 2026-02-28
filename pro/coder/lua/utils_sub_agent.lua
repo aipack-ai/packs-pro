@@ -106,7 +106,8 @@ function run_sub_agents(stage, coder_meta, inst, coder_options, coder_prompt_dir
 
 			-- Merge or replace state
 			if res.coder_params then
-				current_params = res.coder_params
+				-- we merge here so, that the return value does not have to return unchanged things
+				current_params = aip.lua.merge(current_params, res.coder_params)
 			end
 			if res.coder_prompt then
 				current_coder_prompt = res.coder_prompt

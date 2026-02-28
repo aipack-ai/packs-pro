@@ -1,0 +1,176 @@
+
+# Data
+
+```lua
+local _cm = require("code_map")
+local _rc = require("re_context")
+
+aip.run.set_label("re-context")
+
+local sub_agent_input = input
+
+-- === extract the re_context_config
+local re_context_config   = _rc.extract_re_context_config(sub_agent_input)
+
+-- === run code-map agent
+-- Note: for now, just passthrough input (later will resolve code_map_model, and code_map_input_concurrency)
+local code_map_agent_config = {
+	globs = re_context_config.code_map_globs,
+	model = re_context_config.code_map_model,
+	input_concurrency = re_context_config.code_map_input_concurrency,
+}
+print("code_map_agent_config",code_map_agent_config)
+local code_map_input = aip.lua.merge({}, sub_agent_input, {agent_config = code_map_agent_config})
+-- print(code_map_input)
+local code_map_res = aip.agent.run("code-map", {input = code_map_input})
+local code_map_file_path = code_map_res.after_all.code_map_file_path
+
+-- === Extract code map 
+local code_map        = _cm.load_code_map_file(code_map_file_path)
+
+-- === Determine if we have a prompt
+local user_prompt = sub_agent_input.coder_prompt
+if not user_prompt or not user_prompt:find("%S") then
+	local msg = "No prompt - skipping re-context step (only code-map done)"
+	aip.run.pin("status", 2, msg)
+	return aip.flow.skip("No prompt - skipping re-context step (only code-map done)")
+end
+
+-- === Extract base_files (the upper bound file set)
+local available_files = aip.file.list(re_context_config.code_map_globs)
+
+-- === Extract c_files (the code map files info)
+local c_files = {}
+local file_map = code_map.file_map
+for _, bfile in ipairs(available_files) do
+	local cfile = file_map[bfile.path]
+	if cfile then
+		table.insert(c_files, cfile)
+	end
+end
+
+-- === Build/Format the c_files_txt (md format)
+local c_files_txt = ""
+for _, cfile in ipairs(c_files) do
+	local txt = "- " .. cfile.file_path .. "\n"
+	txt = txt .. "    - Summary: " .. cfile.summary .. "\n"
+	txt = txt .. "    - When To Use: " .. cfile.when_to_use .. "\n"
+	if cfile.public_types and #cfile.public_types > 0 then
+		txt = txt .. "    - Types: " .. table.concat(cfile.public_types, ", ")  .. "\n"
+	end
+	if cfile.public_functions and #cfile.public_functions > 0 then
+		txt = txt .. "    - Functions: " .. table.concat(cfile.public_functions, ", ")  .. "\n"
+	end
+	c_files_txt = c_files_txt .. txt .. "\n"
+end
+
+local context_globs = sub_agent_input.coder_params.context_globs
+local context_files = aip.file.list(context_globs)
+local status_msg = _rc.pin_status(re_context_config, {
+	context_files_count = #context_files
+})
+
+return aip.flow.data_response({
+	data = {
+		re_context_config   = re_context_config,
+		user_prompt         = user_prompt,
+		c_files_txt         = c_files_txt,
+		c_files_count       = #c_files,
+		context_globs       = context_globs,
+		context_files_count = #context_files,
+		mode                = mode
+	},
+	options = {
+		model = re_context_config.code_map_model
+	}
+})
+
+```
+
+# System
+
+Your goals it to look at the user prompt, and the files and their description and determine the one that are needed for that prompt. 
+
+# Instruction
+
+Here is the user prompt
+
+<user_prompt>
+{{data.user_prompt}}
+</user_prompt>
+
+Here are the available files and their descriptions
+
+<available_files>
+{{data.c_files_txt}}
+</available_files>
+
+Give the result under a `needed_files` tag, like
+
+<needed_files>
+_needed_files_as_json_array_
+</needed_files>
+
+Also, after this tag, but another tag `selection_reasoning` explaining in a concise maner why those files were selected. 
+
+<selection_reasoning>
+_concise_reasoning_as_text_
+</selection_reasoning>
+
+If/when appropriate, have few bullet points (minimum formating, and `-` as bullet) for the `_concise_reasoning_as_text_`. Maximum 3 bullet points, just high level reasoning explanation (do not have bullets per file, just overall reasoning summary). 
+
+# Output
+
+```lua
+local _rc = require("re_context")
+
+local mode = data.re_context_config.mode
+
+local res_map = aip.tag.extract_as_map(ai_response.content, {"needed_files", "selection_reasoning"})
+
+local needed_files = aip.json.parse(res_map.needed_files.content)
+local selection_reasoning = res_map.selection_reasoning.content
+
+local new_context_globs = {}
+	-- TODO: need to add the negative globs
+if mode == "reduce" then
+	new_context_globs = needed_files
+else -- augment
+	-- Init the new_context_globs, 
+	table.move(data.context_globs, 1, #data.context_globs, 
+		         1, new_context_globs)
+	
+	-- build the orig_context_file_map to see what is already in teh glob
+	orig_context_files = aip.file.list(data.context_globs)
+	local orig_context_file_map = {}
+	for _, file in ipairs(orig_context_files) do
+		orig_context_file_map[file.path] = true
+	end
+	
+	-- buid the addl_files list
+	local addl_files = {}
+	for _, file_path in ipairs(needed_files) do
+		if not orig_context_file_map[file_path] then
+			table.insert(addl_files, file_path)
+		end
+	end
+	
+	-- extends the new_context_globs
+	table.move(
+		addl_files, 1, #addl_files,
+    #new_context_globs + 1, new_context_globs
+	)
+end
+
+local status_msg = _rc.pin_status(data.re_context_config, {
+	context_files_count = data.context_files_count,
+	new_context_globs   = new_context_globs
+})
+
+
+print(aip.text.trim(selection_reasoning))
+
+return {
+	coder_params = { context_globs = new_context_globs },
+}
+```

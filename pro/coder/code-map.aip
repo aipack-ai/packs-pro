@@ -1,17 +1,17 @@
 # Before All
 
 ```lua
-local _u = require("utils")
+local _cm = require("code_map")
 
 -- Extract config and code_map data
 local sub_agent_input = inputs[1]
-local code_map_config = _u.extract_code_map_config(sub_agent_input)
-local code_map        = _u.load_code_map_file(code_map_config.code_map_file_path)
+local code_map_config = _cm.extract_code_map_config(sub_agent_input)
+local code_map        = _cm.load_code_map_file(code_map_config.code_map_file_path)
 
 -- Build before all data
 local files_to_process = {}
 
-local orig_context_files = aip.file.list(code_map_config.context_globs)
+local orig_context_files = aip.file.list(code_map_config.globs)
 local file_map = code_map.file_map
 local to_process_count = 0
 for i, orig_file in ipairs(orig_context_files) do
@@ -26,12 +26,16 @@ for i, orig_file in ipairs(orig_context_files) do
 	end
 end
 
-print("to_process_count " .. to_process_count .. " (on " .. #orig_context_files .. " files)")
+if to_process_count == 0 then
+	aip.run.pin("status", 1, "Code map up to date, nothing to do")
+else 
+	aip.run.pin("status", 1, "to_process_count " .. to_process_count .. " (on " .. #orig_context_files .. " files)")
+end
 
 return aip.flow.before_all_response({
 	options    = {
-		model             = code_map_config.code_map_model,
-		input_concurrency = code_map_config.code_map_input_concurrency
+		model             = code_map_config.model,
+		input_concurrency = code_map_config.input_concurrency
 	},
 	inputs     = files_to_process,
 	before_all = {
@@ -89,59 +93,48 @@ Here is the file content
 # After All
 
 ```lua
-local _u = require("utils")
+local _cm = require("code_map")
 
 local code_map_config    = before_all.code_map_config
 local code_map_file_path = code_map_config.code_map_file_path
 
 -- Extract config and code_map data
-local code_map = _u.load_code_map_file(code_map_file_path)
+local code_map = _cm.load_code_map_file(code_map_file_path)
 local file_map = code_map.file_map
 
 -- Update code map file
+
 if before_all.to_process_count > 0 then 
 	for i, output in ipairs(outputs) do
 		local input_file = inputs[i]
 		local file_path = input_file.path
 		
-		local raw_content = aip.tag.extract_as_map(output, "FILE_INFO").FILE_INFO.content
-		local json_content = aip.json.parse(raw_content)
-		json_content.mtime = input_file.mtime
+		local tag_map = aip.tag.extract_as_map(output, "FILE_INFO")
 		
+		if tag_map.FILE_INFO then
+			local raw_content = tag_map.FILE_INFO.content
+			raw_content = aip.md.outer_block_content_or_raw(raw_content)
+			local ok, json_content_res = pcall(aip.json.parse, raw_content)
+			if ok then
+				json_content_res.mtime = input_file.mtime
+				file_map[file_path] = json_content_res
+			else
+				print("Error while parsing FILE_INFO json for file\n" .. file_path)
+				print(output)
+			end
+			
+		else
+			print("No FILE_INFO tag for " .. file_path)
+		end
 		
-		file_map[file_path] = json_content
-		
-		print("... " .. i .. " " .. inputs[i].path)
 	end
 	
 	local content = aip.json.stringify_pretty(code_map)
 	aip.file.save(code_map_file_path, content)
 end
 
-
--- Run the context-optimizer
-local res = aip.agent.run("context-optimizer", {
-	input = {
-		code_map_config = before_all.code_map_config
-	}
-})
-
-local res_data = res.outputs[1]
-
-local needed_files = res_data.needed_files
-local orig_count   = #before_all.orig_context_files
-local new_count    = #needed_files
-print("original glob count: " .. orig_count .. "  -> new count: " .. new_count)
-
-print("Context optimization reasoning:\n" .. res_data.selection_reasoning)
-
-local coder_params = before_all.sub_agent_input.coder_params
-coder_params.context_globs = needed_files
-
-print(coder_params)
-
 return {
-	coder_params = coder_params
+	code_map_file_path = code_map_file_path
 }
 
 ```

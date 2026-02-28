@@ -315,7 +315,7 @@ To modify the request state, the sub-agent should return a table with `success: 
 ```ts
 type SubAgentOutput = {
   coder_params?: table,     // Optional: Replaces the current parameters
-  coder_prompt?: string,   // Optional: Replaces the current prompt
+  coder_prompt?: string,    // Optional: Replaces the current prompt
 
   success?: boolean,        // Optional (defaults to true). Set to false to fail.
   error_msg?: string,       // Optional. If present, the agent will fail with this message.
