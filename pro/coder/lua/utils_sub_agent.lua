@@ -3,10 +3,15 @@
 local function extract_sub_agent_configs(sub_agents)
 	local configs = {}
 	if type(sub_agents) ~= "table" then return configs end
+
+
 	for _, item in ipairs(sub_agents) do
 		if type(item) == "string" then
-			table.insert(configs, { name = item })
+			table.insert(configs, { name = item, enabled = true })
 		elseif type(item) == "table" and item.name then
+			if item.enabled == nil then
+				item.enabled = true -- default true
+			end
 			table.insert(configs, item)
 		end
 	end
@@ -62,6 +67,12 @@ function run_sub_agents(stage, coder_meta, inst, coder_options, coder_prompt_dir
 	local current_coder_prompt = inst
 
 	for _, config in ipairs(agent_configs) do
+		if config.enabled == false then
+			local name = config.name or ""
+			print("sub agent '" .. name .. "' disabled (enabled = false)")
+			goto next_agent
+		end
+
 		local coder_params_for_sub = extract_coder_params(current_params)
 		local sub_input = {
 			_display         = "sub agent input {coder_stage, coder_params, coder_prompt, agent_config, coder_prompt_dir}",
