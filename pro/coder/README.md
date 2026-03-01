@@ -1,5 +1,7 @@
 # pro@coder documentation
 
+[Coder Parameters](#coder-parameters) | [Workflow](#setup--workflow) | [Coder Intro](#coder-promptmd) | [Config Override](#aipack-config-override) | [Plan Development](#plan-based-development)
+
 This is the documentation and usage guide for the `pro@coder` AI Pack.
 
 The `pro@coder` pack provides AI-powered coding assistance through parametric prompts that allow you to configure context, working files, and AI model settings for your coding tasks.
@@ -7,6 +9,7 @@ The `pro@coder` pack provides AI-powered coding assistance through parametric pr
 The key concept of `pro@coder` is to give you full control over the AI context, enabling you to guide the AI to code the way you want, rather than adapting to the AI's default approach. This is done in part by splitting files into `knowledge`, `context`, and `working` (for concurrency) categories.
 
 [Workflow](#setup--workflow) | [Coder Intro](#coder-promptmd) | [Coder Parameters](#parametric-block-format) | [AIPack config override](#aipack-config-override)
+---
 
 ## Setup & Workflow
 
@@ -30,7 +33,6 @@ aip run pro@coder
 More: 
 
 - See [Plan-Based Development](#plan-based-development)
-
 
 ## coder-prompt.md
 
@@ -86,32 +88,33 @@ context_globs:
 structure_globs:
   - src/**/*.*
 
-## Working Globs - Create a task per file or file group.
-# working_globs:
-#   - src/**/*.js        # This will do one working group per matched .js
-#   - ["css/*.css"]      # When in a sub array, this will put all of the css in the same working group
-# input_concurrency: 2   # Number of concurrent tasks (default set in the config TOML files)
+## Working Globs - Advanced - Create a task per file or file group.
+## NOTE - Only enable when working on multiple files at same time
+working_globs:
+  - src/**/*.js        # This will do one working group per matched .js
+  - ["css/*.css"]      # When in a sub array, this will put all of the css in the same working group
+input_concurrency: 2   # Number of concurrent tasks (default set in the config TOML files)
 
-## Max size in KB of all included files (safeguard, default 1000, for 1MB)
-# max_files_size_kb: 1000
+# Max size in KB of all included files (safeguard, default 1000, for 1MB)
+max_files_size_kb: 1000
 
 ## Explicit cache (Default false)
-# cache_explicit: false  # Explicit cache for pro@coder prompt and knowledge files (Anthropic only)
+cache_explicit: false  # Explicit cache for pro@coder prompt and knowledge files (Anthropic only)
 
 ## (default true) Will tell the AI to suggest a git commit
-# suggest_git_commit: false
+suggest_git_commit: false
 
 ## Note: This will add or override the model_aliases defined in
 ##       .aipack/config.toml, ~/.aipack-base/config-user.toml, ~/.aipack-base/config-default.toml
-# model_aliases:
-#   gpro: gemini-2.5-pro # example
+model_aliases:
+  super-gpro: gemini-3.1-pro-high # example
 
 ## Typically, leave this commented for "search_replace_auto", which is the most efficient
 ## NOTE: Now new 'udiffx' avaiable in AIPack >= 0.8.12 which will eventually become the default
-# file_content_mode: udiffx # default "search_replace_auto" ("whole" for the whole file rewrite even when patch)
+file_content_mode: udiffx # default "search_replace_auto" ("whole" for the whole file rewrite even when patch)
 
 ## Set to true to write the files (otherwise, they will be shown below the `====` separator)
-write_mode: false
+write_mode: true
 
 ## MODEL: Here you can use any full model name or model aliases defined above and in the config.toml
 ## such as ~/.aipack-base/config-default.toml
@@ -120,12 +123,17 @@ write_mode: false
 # Full model names (any model name for available API Keys) 
 # or aliases "opus", "codex", "gpro" (for Gemini 3 Pro), "flash" (see ~/.aipack-base/config-default.toml)
 # Customize reasoning effort with -high, -medium, or -low suffix (e.g., "opus-high", "gpro-low")
-model: gpt-5.1 # set it to "gpt-5" for normal coding
+model: gpt-5.2 
 
 ## Specialized agents to pre-process parameters and instructions (Stage: "pre")
-# sub_agents:
-#   - "my-context-builder"
-#   - { name: "pro@coder/agent-selector" }
+sub_agents:
+  - my-agents/prompt-cleaner.aip # simple .aip file (see sub_agent section for input / output)
+  - name: pro@coder/code-map     # code-map sub agent is also use in auto-context (but here is a custom example)
+    enabled: true # default run
+    map_name: external-lib-docs # will create .aipack/.prompt/pro@coder/.cache/code-map/external-lib-docs-code-map.json
+    globs: 
+      - doc/external-libs/**/*.md
+
 
 ## To see docs, type "Show Doc" and then press `r` in the aip terminal
 ```
@@ -287,9 +295,21 @@ model: gpt-5-mini  # or "gpt-5" for normal coding
 
 #### sub_agents
 
-Array of specialized agents to run at different stages of the `pro@coder` execution. This is useful for automated context building, instruction refinement, or project-specific initialization.
+Array of specialized agents to run at different stages of the `pro@coder` execution. Sub-agents allow for a pipeline where multiple agents can modify the state of the current request, which is useful for automated context building, instruction refinement, or project-specific initialization.
 
 Currently, sub-agents run at the `pre` stage, which occurs during initialization (Before All).
+
+Sub-agents can be defined as:
+
+- **A string**: The name or path of the agent (e.g., `"my-agent"` or `"ns@pack/agent"`).
+- **A table**: An object providing more control.
+
+Available properties for the table definition:
+
+- `name` (string): The name or path of the agent.
+- `enabled` (boolean, optional, default `true`): Whether to run this sub-agent.
+- `options` (table): Agent options (like `model`,`input_concurrency`) specifically for this sub-agent run.
+- **Additional properties**: Any other keys provided in the table will be passed to the sub-agent via the `agent_config` field in its input.
 
 ### Developing Sub-agents
 
@@ -297,45 +317,37 @@ Sub-agents are standard `.aip` files. They receive the following structure as th
 
 ```ts
 type SubAgentInput = {
-  // Current execution stage ("pre") (will support "post" later)
-  coder_stage: string,
-  // Absolute path to the prompt file directory
-  coder_prompt_dir: string,
-  // Current parameters (from YAML block)
-  coder_params: table,
-  // Current prompt segment (instruction)
-  coder_prompt: string,
-  // This sub-agent's configuration object
-  agent_config: table,
+  coder_stage: "pre",      // Current execution stage
+  coder_prompt_dir: string,// Absolute path to the prompt file directory
+  coder_params: table,     // Current parameters (from YAML block or previous sub-agents)
+  coder_prompt: string,    // Current instruction text
+  agent_config: table,     // The configuration object defined in the sub_agents list
 }
 ```
 
-To modify the request state, the sub-agent should return a table with `success: true` and optionally updated `coder_params` or `coder_prompts`:
+To modify the request state, the sub-agent should return a table. If the return value is `nil`, it is interpreted as success with no modifications.
 
 ```ts
 type SubAgentOutput = {
-  coder_params?: table,     // Optional: Replaces the current parameters
-  coder_prompt?: string,    // Optional: Replaces the current prompt
+  coder_params?: table,    // Optional: Merged into the current parameters
+  coder_prompt?: string,   // Optional: Replaces the current instruction
 
-  success?: boolean,        // Optional (defaults to true). Set to false to fail.
-  error_msg?: string,       // Optional. If present, the agent will fail with this message.
-  error_details?: string,   // Optional. More context for the failure.
+  success?: boolean,       // Optional (defaults to true). Set to false to fail.
+  error_msg?: string,      // Optional. If present, the run fails with this message.
+  error_details?: string,  // Optional. More context for the failure.
 }
 ```
 
-**Important**: When returning `coder_params` or `coder_prompts`, ensure you are extending or modifying the ones received in the input. Anything removed from these tables will be unavailable for subsequent sub-agents and the main coder agent.
+**Important notes on return values**:
+
+- `coder_params`: If provided, this table is shallow-merged into the current parameters. This means you only need to return the keys you wish to add or change.
+- `coder_prompt`: If provided, this string replaces the current instruction for the remainder of the pipeline.
+- Errors: If `success` is `false` or `error_msg` is present, the entire `pro@coder` run will halt with the provided error.
 
 A sub-agent can return this data either from:
+
 - The `# Output` stage (as the return value for the task).
 - The `# After All` stage (as the final return value).
-
-Example:
-
-```yaml
-sub_agents:
-  - "context-builder"
-  - { name: "pro@coder/agent-selector", options: { model: "gpt-4o" } }
-```
 
 Sub-agents require AIPack 0.8.15 or above.
 

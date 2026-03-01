@@ -41,7 +41,7 @@ end
 -- Cleans cache files.
 local function clean_and_init_cache(paths)
 	-- Clean legacy file (since 0.2.27)
-	local legacy_prompt_files_path = paths.prompt_dir .. "/prompt_files_path.md"
+	local legacy_prompt_files_path = paths.prompt_dir .. "/.cache/last_prompt_files_path.md"
 	if aip.path.exists(legacy_prompt_files_path) then
 		aip.file.delete(legacy_prompt_files_path)
 	end
