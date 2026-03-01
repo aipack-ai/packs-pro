@@ -68,7 +68,7 @@ if base.attachments and #base.attachments > 0 then
   attachments = base.attachments
 end
 
--- Save the prompt_files_path
+-- Save the prompt_file_paths
 local prompt_files_content = "====\n\n"
 if attachments then
     prompt_files_content = prompt_files_content .. "# Attachments" .. "\n"
@@ -81,7 +81,7 @@ prompt_files_content = prompt_files_content .. "# Knowledge Files" .. "\n\n" .. 
 prompt_files_content = prompt_files_content .. "# Context Files"   .. "\n\n" .. p_utils.file_refs_to_md(new_context_refs) .. "\n\n"
 prompt_files_content = prompt_files_content .. "# Working Files"   .. "\n\n" .. p_utils.file_refs_to_md(working_refs) .. "\n\n"
 prompt_files_content = prompt_files_content .. "# Struture Files"  .. "\n\n" .. p_utils.file_refs_to_md(base.structure_refs, "(Only file paths, not their content)") .. "\n\n"
-aip.file.append(base.prompt_files_path, prompt_files_content)
+aip.file.append(base.prompt_file_paths, prompt_files_content)
 
 
 -- Augment the base

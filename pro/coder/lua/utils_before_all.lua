@@ -31,7 +31,7 @@ local function prepare_paths(prompt_file_path)
 	return {
 		prompt_file_rel_path               = prompt_file_rel_path,
 		prompt_dir                         = prompt_dir,
-		prompt_files_path                  = cache_dir .. "/last_prompt_files_path.md",
+		prompt_file_paths                  = cache_dir .. "/last_prompt_file_paths.md",
 		ai_responses_for_raw_path          = cache_dir .. "/last_ai_responses_for_raw.md",
 		ai_responses_for_prompt_path       = cache_dir .. "/last_ai_responses_for_prompt.md",
 		last_file_change_fails_report_path = cache_dir .. "/last_file_change_fails_report.md"
@@ -47,7 +47,7 @@ local function clean_and_init_cache(paths)
 	end
 
 	-- Init cacche files
-	aip.file.save(paths.prompt_files_path, "")
+	aip.file.save(paths.prompt_file_paths, "")
 	aip.file.save(paths.ai_responses_for_raw_path, "")
 	aip.file.save(paths.ai_responses_for_prompt_path, "")
 	if aip.path.exists(paths.last_file_change_fails_report_path) then
@@ -246,7 +246,7 @@ local function build_input_base(params)
 		base_dir                           = params.base_dir,
 		structure_refs                     = params.structure_refs,
 		context_refs                       = params.context_refs,
-		prompt_files_path                  = params.prompt_files_path,
+		prompt_file_paths                  = params.prompt_file_paths,
 		-- prompt explicit caching
 		cache_pre_prompts                  = params.cache_pre_prompts,
 		cache_knowledge_files              = params.cache_knowledge_files,
@@ -424,7 +424,7 @@ function run_before_all(inputs)
 		base_dir                           = base_dir,
 		structure_refs                     = structure_refs,
 		context_refs                       = context_refs,
-		prompt_files_path                  = paths.prompt_files_path,
+		prompt_file_paths                  = paths.prompt_file_paths,
 		cache_pre_prompts                  = cache_pre_prompts,
 		cache_knowledge_files              = cache_knowledge_files,
 		cache_context_files                = false,
