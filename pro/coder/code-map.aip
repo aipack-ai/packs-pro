@@ -22,7 +22,10 @@ for i, orig_file in ipairs(orig_context_files) do
 	-- file needs to be processed
 	else
 		to_process_count = to_process_count + 1
-		table.insert(files_to_process, orig_file)
+		table.insert(files_to_process, {
+			file          = orig_file,
+			file_map_file = file_map_file,
+		})
 	end
 end
 
@@ -50,27 +53,35 @@ return aip.flow.before_all_response({
 # Data
 
 ```lua
-local file = nil
 if input then
-	file = aip.file.load(input.path)
+	local file = aip.file.load(input.file.path)
+	local file_map_file_txt = nil
+	if input.file_map_file then
+			file_map_file_txt = aip.json.stringify_pretty(input.file_map_file)
+	end
+	
+	return {
+		file = file,
+		file_map_file_txt = file_map_file_txt
+	}
+else
+	return nil
 end
 
-return {
-	file = file
-}
 ```
 
 # Instruction
 
 {{#if data.file}}
+
 Below is the file content (under the `FILE_CONTENT` tag) that you need to extract some information
 
 Respond with a `FILE_INFO` tag like 
 <FILE_INFO>
-_file_json_format_
+_file_raw_json_format_
 </FILE_INFO>
 
-Here is the `_file_json_format_` schema 
+Here is the `_file_raw_json_format_` schema 
 
 ```typescript
 {
@@ -82,22 +93,40 @@ Here is the `_file_json_format_` schema
 }
 ```
 
+`_file_raw_json_format_` should jsut be the json, no need to put it in markdown codel bock. 
+
 Here is the file content
 
 <FILE_CONTENT file_path="{{data.file.path}}">
 {{data.file.content}}
 </FILE_CONTENT>
 
+
+{{#if data.file_map_file_txt}}
+
+Also, only give back the `FILE_INFO` tag if it is different from the previous one, see below (this way we do not update it if not needed). 
+
+Here is the preview previous file info
+
+<PREVIOUS_FILE_INFO>
+{{data.file_map_file_txt}}
+<PREVIOUS_FILE_INFO>
+
+{{/if}}
+
 {{/if}}
 
 # Output
 
 ```lua
-
-return {
-	content  = ai_response.content,
-	_display = "code map file updated - " .. data.file.path
-}
+if ai_response then
+	return {
+		content  = ai_response.content,
+		_display = "code map file updated - " .. data.file.path
+	}
+else
+	return nil
+end
 
 ```
 
@@ -118,7 +147,7 @@ local file_map = code_map.file_map
 if before_all.to_process_count > 0 then 
 	for i, output in ipairs(outputs) do
 		local output_content = output.content
-		local input_file = inputs[i]
+		local input_file = inputs[i].file
 		local file_path = input_file.path
 		
 		local tag_map = aip.tag.extract_as_map(output_content, "FILE_INFO")
@@ -136,7 +165,7 @@ if before_all.to_process_count > 0 then
 			end
 			
 		else
-			print("No FILE_INFO tag for " .. file_path)
+			print("No FILE_INFO tag for " .. file_path .. "\n(might match current info)")
 		end
 		
 	end
