@@ -90,6 +90,17 @@ Here is the file content
 
 {{/if}}
 
+# Output
+
+```lua
+
+return {
+	content  = ai_response.content,
+	_display = "code map file updated - " .. data.file.path
+}
+
+```
+
 # After All
 
 ```lua
@@ -106,10 +117,11 @@ local file_map = code_map.file_map
 
 if before_all.to_process_count > 0 then 
 	for i, output in ipairs(outputs) do
+		local output_content = output.content
 		local input_file = inputs[i]
 		local file_path = input_file.path
 		
-		local tag_map = aip.tag.extract_as_map(output, "FILE_INFO")
+		local tag_map = aip.tag.extract_as_map(output_content, "FILE_INFO")
 		
 		if tag_map.FILE_INFO then
 			local raw_content = tag_map.FILE_INFO.content
@@ -120,7 +132,7 @@ if before_all.to_process_count > 0 then
 				file_map[file_path] = json_content_res
 			else
 				print("Error while parsing FILE_INFO json for file\n" .. file_path)
-				print(output)
+				print(output_content)
 			end
 			
 		else

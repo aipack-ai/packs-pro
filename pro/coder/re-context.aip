@@ -12,6 +12,18 @@ local sub_agent_input = input
 -- === extract the re_context_config
 local re_context_config   = _rc.extract_re_context_config(sub_agent_input)
 
+-- === Show status
+local context_globs = sub_agent_input.coder_params.context_globs
+local context_files = aip.file.list(context_globs)
+local context_files_size = 0
+for _, cfile in ipairs(context_files) do
+	context_files_size = context_files_size + cfile.size
+end
+local status_msg = _rc.pin_status(re_context_config, {
+	context_files_count = #context_files,
+	context_files_size  = context_files_size
+})
+
 -- === run code-map agent
 -- Note: for now, just passthrough input (later will resolve code_map_model, and code_map_input_concurrency)
 local code_map_agent_config = {
@@ -19,7 +31,6 @@ local code_map_agent_config = {
 	model = re_context_config.code_map_model,
 	input_concurrency = re_context_config.code_map_input_concurrency,
 }
-print("code_map_agent_config",code_map_agent_config)
 local code_map_input = aip.lua.merge({}, sub_agent_input, {agent_config = code_map_agent_config})
 -- print(code_map_input)
 local code_map_res = aip.agent.run("code-map", {input = code_map_input})
@@ -64,11 +75,6 @@ for _, cfile in ipairs(c_files) do
 	c_files_txt = c_files_txt .. txt .. "\n"
 end
 
-local context_globs = sub_agent_input.coder_params.context_globs
-local context_files = aip.file.list(context_globs)
-local status_msg = _rc.pin_status(re_context_config, {
-	context_files_count = #context_files
-})
 
 return aip.flow.data_response({
 	data = {
@@ -78,6 +84,7 @@ return aip.flow.data_response({
 		c_files_count       = #c_files,
 		context_globs       = context_globs,
 		context_files_count = #context_files,
+		context_files_size  = context_files_size,
 		mode                = mode
 	},
 	options = {
@@ -164,6 +171,7 @@ end
 
 local status_msg = _rc.pin_status(data.re_context_config, {
 	context_files_count = data.context_files_count,
+	context_files_size  = data.context_files_size,
 	new_context_globs   = new_context_globs
 })
 

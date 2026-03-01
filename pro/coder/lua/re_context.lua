@@ -64,6 +64,7 @@ end
 
 -- ctx: {
 --    context_files_count: number,
+--    context_files_size: number,
 --    new_context_globs: string[],
 -- }
 local function pin_status(re_context_config, ctx)
@@ -74,28 +75,39 @@ local function pin_status(re_context_config, ctx)
 	end
 
 	local new_context_files = nil
-
+	local new_context_files_size = nil
 	if ctx.new_context_globs then
+		new_context_files_size = 0
 		new_context_files = aip.file.list(ctx.new_context_globs)
+		for _, file in ipairs(new_context_files) do
+			new_context_files_size = new_context_files_size + file.size
+		end
 	end
 
+
 	-- === Status pin
+	local context_files_size_fmt = aip.text.format_size(ctx.context_files_size)
 	local msg = nil
 	if done then
 		msg = "✅"
 	else
 		msg = ".."
 	end
+	local label = nil
 	if mode == "expand" then
-		msg = msg .. " Expanding"
+		label = " Expanding"
 	else
-		msg = msg .. " Reducing"
+		label = " Reducing"
 	end
 
-	msg = msg .. " " .. ctx.context_files_count .. " context files"
+	msg = msg .. string.format("%-30s", label .. " " .. ctx.context_files_count .. " context files")
+	msg = msg .. " (" .. context_files_size_fmt .. ")"
 
 	if ctx.new_context_globs then
-		msg = msg .. '\n' .. " ➜ Now " .. #new_context_files .. " context files"
+		msg = msg .. '\n' .. " ➜"
+		msg = msg .. string.format("%-30s", " Now " .. #new_context_files .. " context files")
+		local new_context_files_size_fmt = aip.text.format_size(new_context_files_size)
+		msg = msg .. " (" .. new_context_files_size_fmt .. ")"
 	end
 
 	-- Pins for statu
