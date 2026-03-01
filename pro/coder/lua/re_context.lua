@@ -7,6 +7,8 @@ local LABEL_CFILES = "Context Files:"
 local LABEL_REASON = "       Reason:"
 local LABEL_HFILES = " Helper Files:"
 
+local DEFAULT_INPUT_CONCURRENCY = 8
+
 
 -- return: {
 --  user_prompt: string,
@@ -59,9 +61,7 @@ local function extract_re_context_config(sub_input)
 	if not code_map_input_concurrency then
 		code_map_input_concurrency = input_agent_config.input_concurrency
 	end
-	if not code_map_input_concurrency then
-		code_map_input_concurrency = sub_input.coder_params.input_concurrency
-	end
+	-- if still nil, will default to the default of code-map
 
 	return {
 		user_prompt                = user_prompt,

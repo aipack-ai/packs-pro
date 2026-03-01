@@ -1,3 +1,6 @@
+-- === Consts
+local DEFAULT_INPUT_CONCURRENCY = 8
+
 -- === Public Functions
 
 -- type CodeMapInput = {
@@ -37,7 +40,7 @@ local function extract_code_map_config(sub_input)
 	end
 
 
-	local code_map_input_concurrency = sub_input.coder_params.input_concurrency
+	local code_map_input_concurrency = DEFAULT_INPUT_CONCURRENCY
 	if sub_input.agent_config.input_concurrency then
 		code_map_input_concurrency = sub_input.agent_config.input_concurrency
 	end
