@@ -3,20 +3,20 @@
 
 ```lua
 local _cm = require("code_map")
-local _rc = require("re_context")
+local _ac = require("auto_context")
 
-aip.run.set_label("re-context")
+aip.run.set_label("auto-context")
 
 local sub_agent_input = input
 
--- === extract the re_context_config
-local re_context_config   = _rc.extract_re_context_config(sub_agent_input)
+-- === extract the auto_context_config
+local auto_context_config   = _ac.extract_auto_context_config(sub_agent_input)
 
 -- === Build helper_files if present
 local helper_files = nil
 
-if not is_null(re_context_config.helper_globs) and #re_context_config.helper_globs > 0 then
-	helper_files = aip.file.list_load(re_context_config.helper_globs)
+if not is_null(auto_context_config.helper_globs) and #auto_context_config.helper_globs > 0 then
+	helper_files = aip.file.list_load(auto_context_config.helper_globs)
 end
 
 
@@ -27,7 +27,7 @@ local context_files_size = 0
 for _, cfile in ipairs(context_files) do
 	context_files_size = context_files_size + cfile.size
 end
-local status_msg = _rc.pin_status(re_context_config, {
+local status_msg = _ac.pin_status(auto_context_config, {
 	context_files_count = #context_files,
 	context_files_size  = context_files_size,
 	helper_files        = helper_files
@@ -36,9 +36,9 @@ local status_msg = _rc.pin_status(re_context_config, {
 -- === run code-map agent
 -- Note: for now, just passthrough input (later will resolve code_map_model, and code_map_input_concurrency)
 local code_map_agent_config = {
-	globs = re_context_config.code_map_globs,
-	model = re_context_config.code_map_model,
-	input_concurrency = re_context_config.code_map_input_concurrency,
+	globs = auto_context_config.code_map_globs,
+	model = auto_context_config.code_map_model,
+	input_concurrency = auto_context_config.code_map_input_concurrency,
 }
 local code_map_input = aip.lua.merge({}, sub_agent_input, {agent_config = code_map_agent_config})
 -- print(code_map_input)
@@ -57,7 +57,7 @@ if not user_prompt or not user_prompt:find("%S") then
 end
 
 -- === Extract base_files (the upper bound file set)
-local available_files = aip.file.list(re_context_config.code_map_globs)
+local available_files = aip.file.list(auto_context_config.code_map_globs)
 
 -- === Extract c_files (the code map files info)
 local c_files = {}
@@ -96,7 +96,7 @@ end
 
 return aip.flow.data_response({
 	data = {
-		re_context_config   = re_context_config,
+		auto_context_config   = auto_context_config,
 		user_prompt         = user_prompt,
 		c_files_txt         = c_files_txt,
 		c_files_count       = #c_files,
@@ -107,7 +107,7 @@ return aip.flow.data_response({
 		mode                = mode
 	},
 	options = {
-		model = re_context_config.code_map_model
+		model = auto_context_config.code_map_model
 	}
 })
 
@@ -168,9 +168,9 @@ Also, here are some other files that help termine which file might be needed fro
 # Output
 
 ```lua
-local _rc = require("re_context")
+local _ac = require("auto_context")
 
-local mode = data.re_context_config.mode
+local mode = data.auto_context_config.mode
 
 local res_map = aip.tag.extract_as_map(ai_response.content, {"needed_files", "selection_reasoning"})
 
@@ -208,7 +208,7 @@ else -- augment
 	)
 end
 
-local status_msg = _rc.pin_status(data.re_context_config, {
+local status_msg = _ac.pin_status(data.auto_context_config, {
 	context_files_count = data.context_files_count,
 	context_files_size  = data.context_files_size,
 	new_context_globs   = new_context_globs,

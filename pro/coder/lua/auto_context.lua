@@ -19,7 +19,7 @@ local DEFAULT_INPUT_CONCURRENCY = 8
 --  code_map_model: string,
 --  code_map_input_concurrency: number,
 -- }
-local function extract_re_context_config(sub_input)
+local function extract_auto_context_config(sub_input)
 	-- input_agent_config
 	local input_agent_config = sub_input.agent_config
 
@@ -81,8 +81,8 @@ end
 --    reason?: string,
 --    helper_files?: string[]
 -- }
-local function pin_status(re_context_config, ctx)
-	local mode = re_context_config.mode
+local function pin_status(auto_context_config, ctx)
+	local mode = auto_context_config.mode
 	local done = false
 	if ctx.new_context_globs then
 		done = true
@@ -178,6 +178,6 @@ end
 
 
 return {
-	extract_re_context_config = extract_re_context_config,
-	pin_status                = pin_status,
+	extract_auto_context_config = extract_auto_context_config,
+	pin_status                  = pin_status,
 }
