@@ -75,6 +75,12 @@ for _, cfile in ipairs(c_files) do
 	c_files_txt = c_files_txt .. txt .. "\n"
 end
 
+-- === Build helper_files if present
+local helper_files = nil
+if re_context_config.helper_globs then
+	helper_files = aip.file.list_load(re_context_config.helper_globs)
+	print("Inluding " .. #helper_files .. " helper files")
+end
 
 return aip.flow.data_response({
 	data = {
@@ -82,6 +88,7 @@ return aip.flow.data_response({
 		user_prompt         = user_prompt,
 		c_files_txt         = c_files_txt,
 		c_files_count       = #c_files,
+		helper_files        = helper_files,
 		context_globs       = context_globs,
 		context_files_count = #context_files,
 		context_files_size  = context_files_size,
@@ -106,11 +113,15 @@ Here is the user prompt
 {{data.user_prompt}}
 </user_prompt>
 
+---
+
 Here are the available files and their descriptions
 
 <available_files>
 {{data.c_files_txt}}
 </available_files>
+
+--- 
 
 Give the result under a `needed_files` tag, like
 
@@ -125,6 +136,22 @@ _concise_reasoning_as_text_
 </selection_reasoning>
 
 If/when appropriate, have few bullet points (minimum formating, and `-` as bullet) for the `_concise_reasoning_as_text_`. Maximum 3 bullet points, just high level reasoning explanation (do not have bullets per file, just overall reasoning summary). 
+
+
+{{#if data.helper_files}}
+
+---
+
+Also, here are some other files that help termine which file might be needed from the available_files. 
+
+{{#each data.helper_files}}
+<HELPER_FILE name="{{this.path}}">
+{{this.content}}
+</HELPER_FILE>
+{{/each}}
+
+
+{{/if}}
 
 # Output
 
@@ -179,6 +206,7 @@ local status_msg = _rc.pin_status(data.re_context_config, {
 print(aip.text.trim(selection_reasoning))
 
 return {
+	_display = "" .. context_files_count .. " context files",
 	coder_params = { context_globs = new_context_globs },
 }
 ```

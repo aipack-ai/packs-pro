@@ -5,6 +5,7 @@ local _cm = require("code_map")
 --  user_prompt: string,
 --  mode: "reduce" | "expand",
 --  model: string,
+--  helper_globs?: string[],
 --  code_map_globs: string[],
 --  code_map_model: string,
 --  code_map_input_concurrency: number,
@@ -15,6 +16,9 @@ local function extract_re_context_config(sub_input)
 
 	-- user_prompt
 	local user_prompt = sub_input.coder_prompt
+
+	-- helper_globs
+	local helper_globs = input_agent_config.helper_globs
 
 	-- mode
 	local mode = sub_input.agent_config.mode
@@ -56,6 +60,7 @@ local function extract_re_context_config(sub_input)
 		user_prompt                = user_prompt,
 		mode                       = mode,
 		model                      = model,
+		helper_globs               = helper_globs,
 		code_map_globs             = code_map_globs,
 		code_map_model             = code_map_model,
 		code_map_input_concurrency = code_map_input_concurrency

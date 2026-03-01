@@ -61,6 +61,7 @@ if input then
 	end
 	
 	return {
+		_display = file.path,
 		file = file,
 		file_map_file_txt = file_map_file_txt
 	}
