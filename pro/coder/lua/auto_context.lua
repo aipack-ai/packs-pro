@@ -70,7 +70,8 @@ local function extract_auto_context_config(sub_input)
 		helper_globs               = helper_globs,
 		code_map_globs             = code_map_globs,
 		code_map_model             = code_map_model,
-		code_map_input_concurrency = code_map_input_concurrency
+		code_map_input_concurrency = code_map_input_concurrency,
+		map_name                   = input_agent_config.map_name or "context"
 	}
 end
 

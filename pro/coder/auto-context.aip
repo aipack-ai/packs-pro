@@ -39,6 +39,7 @@ local code_map_agent_config = {
 	globs = auto_context_config.code_map_globs,
 	model = auto_context_config.code_map_model,
 	input_concurrency = auto_context_config.code_map_input_concurrency,
+	map_name = auto_context_config.map_name,
 }
 local code_map_input = aip.lua.merge({}, sub_agent_input, {agent_config = code_map_agent_config})
 -- print(code_map_input)
@@ -104,7 +105,7 @@ return aip.flow.data_response({
 		context_globs       = context_globs,
 		context_files_count = #context_files,
 		context_files_size  = context_files_size,
-		mode                = mode
+		mode                = auto_context_config.mode
 	},
 	options = {
 		model = auto_context_config.model

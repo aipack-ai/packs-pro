@@ -25,19 +25,24 @@ context_globs:
 ## (relative to base_dir)
 structure_globs:
   - src/**/*.*
+  
+## "udiffx" is the new way to update files (can be 'search_replace_auto' or 'full_content')
+file_content_mode: udiffx 
 
 ## Set to true to write the files
 write_mode: false
 
-## "udiffx" is the new way to update files (can be 'search_replace_auto' or 'full_content')
-file_content_mode: udiffx 
-
-# Full model names (any model name for available API Keys) 
-# or aliases "opus" (Opus 4.5), "flash" (Gemini flash 3) (see aliases ~/.aipack-base/config-default.toml)
-# Customize reasoning effort with -high, -medium, or -low suffix (e.g., "opus-high", "gpro-low")
+## Full model names (any model name for available API Keys) 
+## or aliases "opus" (Opus 4.5), "flash" (Gemini flash 3) (see aliases ~/.aipack-base/config-default.toml)
+## Customize reasoning effort with -high, -medium, or -low suffix (e.g., "opus-high", "gpro-low")
 model: flash
 
-## See README.md for more info
+## Optimize context files selection
+auto_context: 
+  model: flash   # (use small / cheap model)
+  enabled: false # (default true) set to true or uncomment to enable
+
+## (see PATH_TO_PRO_CODER_README for full pro@coder documentation)
 ```
 
 ====
