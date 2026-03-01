@@ -140,7 +140,7 @@ local function resolve_refs(meta)
 		knowledge_refs = aip.file.list(meta.knowledge_globs, { base_dir = CTX.WORKSPACE_DIR })
 	end
 
-	local base_dir = meta.base_dir
+	local base_dir = meta.base_dir or ""
 	local context_refs = nil
 	local structure_refs = nil
 	local working_refs_list = nil
