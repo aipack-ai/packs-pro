@@ -1,7 +1,7 @@
 ```yaml
 #!meta (parametric prompt)
 
-# See README.md for more documentation
+# See PATH_TO_PRO_CODER_README for more documentation
 
 ## (relative to workspace dir, i.e. .aipack/ parent dir)
 knowledge_globs:

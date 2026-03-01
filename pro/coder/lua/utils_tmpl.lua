@@ -14,6 +14,12 @@ function M.save_prompt_file(prompt_path)
 	local tmpl_path = TEMPLATES_DIR .. "/prompt-template.md"
 	if not aip.path.exists(prompt_path) then
 		local content = aip.file.load(tmpl_path).content
+
+		-- Replace the placeholder with the actual README path
+		local prompt_dir = aip.path.parent(prompt_path) or "."
+		local readme_path = aip.path.join(prompt_dir, "README.md")
+		content = content:gsub("PATH_TO_PRO_CODER_README", readme_path)
+
 		aip.file.save(prompt_path, content)
 	end
 end
