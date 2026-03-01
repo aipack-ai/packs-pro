@@ -2,16 +2,16 @@
 #!meta (parametric prompt)
 
 # See PATH_TO_PRO_CODER_README for more documentation
+# (for base_dir, working_globs, max_files_size_kb, cache_explicit, model_aliases, file_content_mode)
 
-## (relative to workspace dir, i.e. .aipack/ parent dir)
+# By default, all path relative to base_dir, which is by default workspace dir (.aipack/ parent dir)
+
+## Static knowledge
 knowledge_globs:
   # - /rel/or/abs/path/to/**/*.md      # Any relatively or absolute path/globs to markdown
   # - pro@coder/README.md              # To ask question about this pro@coder AIPack
   # - core@doc/**/*.md                 # To help build .aip AIPack agents
   # - pro@rust10x/guide/base/**/*.md   # Example of best practices about Rust coding
-
-## (relative to workspace dir)
-base_dir: "" 
 
 ## File path & content included in prompt
 ## (relative to base_dir)
@@ -26,24 +26,11 @@ context_globs:
 structure_globs:
   - src/**/*.*
 
-## Working Globs - Create a task per file or file group.
-## (relative to base_dir)
-# working_globs:
-#   - src/**/*.js
-#   - ["css/*.css"]
-# input_concurrency: 2
-
-# max_files_size_kb: 1000
-# cache_explicit: false  # (default false) Explicit cache for pro@coder prompt and knowledge files (Anthropic only)
-
-# model_aliases:
-#   my-model: gemini-pro-latest # example of any alias (see ~/.aipack-base/config-default.toml)
-
 ## Set to true to write the files
 write_mode: false
 
-## "udiffx" Experimental for now, will probably become the default.
-# file_content_mode: udiffx 
+## "udiffx" is the new way to update files (can be 'search_replace_auto' or 'full_content')
+file_content_mode: udiffx 
 
 # Full model names (any model name for available API Keys) 
 # or aliases "opus" (Opus 4.5), "flash" (Gemini flash 3) (see aliases ~/.aipack-base/config-default.toml)
