@@ -336,6 +336,31 @@ function run_before_all(inputs)
 
 	local coder_prompt_dir = paths.prompt_dir
 
+	-- === Run Auto Context if present (shortcut)
+	if not is_null(meta.auto_context) then
+		local ac_val = meta.auto_context
+		local ac_config = nil
+		if type(ac_val) == "string" then
+			ac_config = { name = "pro@coder/auto-context", model = ac_val, enabled = true }
+		elseif type(ac_val) == "table" then
+			ac_config = aip.lua.merge({ name = "pro@coder/auto-context", enabled = true }, ac_val)
+		end
+
+		if ac_config then
+			local err
+			meta, inst, err = u_sub_agent.run_sub_agent(ac_config, "pre", meta, inst, options, coder_prompt_dir)
+			if err then return nil, nil, err end
+			meta = meta or {}
+			-- recompute options from the meta returned
+			options = {
+				model             = meta.model,
+				temperature       = meta.temperature,
+				model_aliases     = meta.model_aliases,
+				input_concurrency = meta.input_concurrency
+			}
+		end
+	end
+
 	-- === Run Sub Agents
 	if not is_null(meta.sub_agents) and #meta.sub_agents > 0 then
 		local err

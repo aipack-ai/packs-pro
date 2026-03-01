@@ -125,6 +125,9 @@ write_mode: true
 # Customize reasoning effort with -high, -medium, or -low suffix (e.g., "opus-high", "gpro-low")
 model: gpt-5.2 
 
+## Automatic context file selector (shortcut for pro@coder/auto-context sub-agent)
+# auto_context: flash # or { model: flash, enabled: true }
+
 ## Specialized agents to pre-process parameters and instructions (Stage: "pre")
 sub_agents:
   - my-agents/prompt-cleaner.aip # simple .aip file (see sub_agent section for input / output)
@@ -293,6 +296,27 @@ Example:
 model: gpt-5-mini  # or "gpt-5" for normal coding
 ```
 
+#### auto_context
+
+Shortcut to configure and run the `pro@coder/auto-context` sub-agent. It is a concise alternative to defining it in the `sub_agents` list and supports the same properties.
+
+Can be:
+- **A string**: The model name to use (e.g., `auto_context: flash`).
+- **A table**: Configuration for the auto-context agent.
+
+Example:
+
+```yaml
+auto_context:
+  model: flash                # The model used to analyze the instruction and code map
+  enabled: true               # Whether to run the auto-context agent (default true)
+  mode: reduce                # "reduce" (replaces) or "expand" (adds to existing) (default "reduce")
+  # input_concurrency: 8      # code map building concurrency (default 8)
+  # code_map_model: flash-low # code map model (optional, default auto-context model above)
+  helper_globs:               # Files to help select relevant context files
+    - .aipack/.prompt/pro@coder/dev/plan/*.md
+```
+
 #### sub_agents
 
 Array of specialized agents to run at different stages of the `pro@coder` execution. Sub-agents allow for a pipeline where multiple agents can modify the state of the current request, which is useful for automated context building, instruction refinement, or project-specific initialization.
@@ -354,6 +378,20 @@ Sub-agents require AIPack 0.8.15 or above.
 ## Builtin Sub Agents
 
 ### Sub Agent - pro@coder/auto-context
+
+The auto-context agent can be configured via the `sub_agents` list or more concisely using the `auto_context` parameter at the root of the configuration block.
+
+**Using the `auto_context` shortcut:**
+
+```yaml
+auto_context: flash
+# or
+auto_context:
+  model: flash
+  enabled: true
+```
+
+**Using the `sub_agents` list:**
 
 ```yaml
 sub_agents: 
