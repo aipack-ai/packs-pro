@@ -1,18 +1,28 @@
 -- === Support Functions
 
+-- Create a new sub_agent_config
+-- NOTE: when item is a table, not realy validation for now, just make sure .enabled is default to true
+-- TODO: when table should validate at lest that name is define
+local function new_sub_agent_config(sub_agent_item)
+	local item = sub_agent_item
+	if type(item) == "string" then
+		return { name = item, enabled = true }
+	elseif type(item) == "table" and item.name then
+		if item.enabled == nil then
+			item.enabled = true -- default true
+		end
+		return item
+	end
+end
+
 local function extract_sub_agent_configs(sub_agents)
 	local configs = {}
 	if type(sub_agents) ~= "table" then return configs end
 
-
 	for _, item in ipairs(sub_agents) do
-		if type(item) == "string" then
-			table.insert(configs, { name = item, enabled = true })
-		elseif type(item) == "table" and item.name then
-			if item.enabled == nil then
-				item.enabled = true -- default true
-			end
-			table.insert(configs, item)
+		local sub_agent_config = new_sub_agent_config(item)
+		if sub_agent_config then
+			table.insert(configs, sub_agent_config)
 		end
 	end
 	return configs
@@ -41,6 +51,70 @@ end
 
 -- === Public Interfaces
 
+-- Runs a single sub-agent.
+-- Returns modified params, modified prompt, and error message if any.
+function run_sub_agent(config, stage, current_params, current_coder_prompt, coder_options, coder_prompt_dir)
+	if config.enabled == false then
+		local name = config.name or ""
+		print("sub agent '" .. name .. "' disabled (enabled = false)")
+		return current_params, current_coder_prompt
+	end
+
+	local coder_params_for_sub = extract_coder_params(current_params)
+	local sub_input = {
+		_display         = "sub agent input {coder_stage, coder_params, coder_prompt, agent_config, coder_prompt_dir}",
+		coder_stage      = stage,
+		coder_params     = coder_params_for_sub,
+		coder_prompt     = current_coder_prompt,
+		coder_prompt_dir = coder_prompt_dir,
+		agent_config     = config,
+	}
+
+	-- would be nil if no config.options, which is fine
+	local config_options = aip.agent.extract_options(config.options)
+	local options = aip.lua.merge_deep({}, coder_options, config_options)
+
+	-- Run the agent with a single input in the list
+	local run_res = aip.agent.run(config.name, {
+		input = sub_input,
+		options = options,
+		agent_base_dir = CTX.WORKSPACE_DIR
+	})
+
+	if run_res == nil then
+		return nil, nil, "Sub-agent [" .. config.name .. "] execution failed (no response)"
+	end
+
+	local res = extract_sub_agent_response(run_res)
+
+	-- If res is nil, it is considered success with no modifications to the state.
+	if res == nil then return current_params, current_coder_prompt end
+
+	-- Validate the response structure
+	if type(res) == "table" then
+		-- If success is false or error_msg is present, we stop execution
+		if res.success == false or res.error_msg ~= nil then
+			local err_msg = value_or(res.error_msg, "Unknown error")
+			local full_err = "Sub-agent [" .. config.name .. "] failed: " .. err_msg
+			if res.error_details then
+				full_err = full_err .. "\nDetails: " .. res.error_details
+			end
+			return nil, nil, full_err
+		end
+
+		-- Merge or replace state
+		if res.coder_params then
+			-- we merge here so, that the return value does not have to return unchanged things
+			current_params = aip.lua.merge(current_params, res.coder_params)
+		end
+		if res.coder_prompt then
+			current_coder_prompt = res.coder_prompt
+		end
+	end
+
+	return current_params, current_coder_prompt
+end
+
 -- Executes a list of sub-agents for a specific stage.
 -- Returns the modified meta and instruction string (derived from concatenated prompts).
 function run_sub_agents(stage, coder_meta, inst, coder_options, coder_prompt_dir)
@@ -67,68 +141,9 @@ function run_sub_agents(stage, coder_meta, inst, coder_options, coder_prompt_dir
 	local current_coder_prompt = inst
 
 	for _, config in ipairs(agent_configs) do
-		if config.enabled == false then
-			local name = config.name or ""
-			print("sub agent '" .. name .. "' disabled (enabled = false)")
-			goto next_agent
-		end
-
-		local coder_params_for_sub = extract_coder_params(current_params)
-		local sub_input = {
-			_display         = "sub agent input {coder_stage, coder_params, coder_prompt, agent_config, coder_prompt_dir}",
-			coder_stage      = stage,
-			coder_params     = coder_params_for_sub,
-			coder_prompt     = current_coder_prompt,
-			coder_prompt_dir = coder_prompt_dir,
-			agent_config     = config,
-		}
-
-		-- would be nil if no config.options, which is fine
-		local config_options = aip.agent.extract_options(config.options)
-		local options = aip.lua.merge_deep({}, coder_options, config_options)
-
-		-- Run the agent with a single input in the list
-		local run_res = aip.agent.run(config.name, {
-			input = sub_input,
-			options = options,
-			agent_base_dir = CTX.WORKSPACE_DIR
-		})
-
-		if run_res == nil then
-			return nil, nil, "Sub-agent [" .. config.name .. "] execution failed (no response)"
-		end
-
-		local res = extract_sub_agent_response(run_res)
-
-		-- If res is nil, it is considered success with no modifications to the state.
-		if res == nil then goto next_agent end
-
-		-- Validate the response structure
-		if type(res) == "table" then
-			-- If success is false or error_msg is present, we stop execution
-			if res.success == false or res.error_msg ~= nil then
-				local err_msg = value_or(res.error_msg, "Unknown error")
-				local full_err = "Sub-agent [" .. config.name .. "] failed: " .. err_msg
-				if res.error_details then
-					full_err = full_err .. "\nDetails: " .. res.error_details
-				end
-				return nil, nil, full_err
-			end
-
-			-- Merge or replace state
-			if res.coder_params then
-				-- we merge here so, that the return value does not have to return unchanged things
-				current_params = aip.lua.merge(current_params, res.coder_params)
-			end
-			if res.coder_prompt then
-				current_coder_prompt = res.coder_prompt
-			end
-		else
-			-- Note: for now, do not return error
-			-- return nil, nil, "Sub-agent [" .. config.name .. "] returned an invalid response format ( not a table)"
-		end
-
-		::next_agent::
+		local err
+		current_params, current_coder_prompt, err = run_sub_agent(config, stage, current_params, current_coder_prompt, coder_options, coder_prompt_dir)
+		if err then return nil, nil, err end
 	end
 
 	local new_coder_meta = current_params
@@ -141,5 +156,6 @@ end
 -- === /Public Interfaces
 
 return {
+	run_sub_agent  = run_sub_agent,
 	run_sub_agents = run_sub_agents
 }
