@@ -412,6 +412,30 @@ sub_agents:
 - `code_map_model`: (Optional) The model used to generate file summaries. Defaults to the `model` specified above if not provided.
 - `helper_globs`: (Optional) Pattern for files (like development plans or chat logs) that provide additional guidance to help the sub-agent select the correct context files.
 
+### Sub Agent - pro@coder/code-map
+
+The code-map agent generates and maintains a JSON file containing summaries, public types, and functions for a set of files. This map is used by the `auto-context` agent to identify relevant files for your prompt, but it can also be used independently to create maps for external libraries or documentation.
+
+**Using the `sub_agents` list:**
+
+```yaml
+sub_agents: 
+  - name: pro@coder/code-map
+    enabled: true
+    globs: 
+      - src/**/*.ts
+    # map_name: my-project      # Optional: custom name for the JSON file
+    # model: flash-low          # Optional: model used for summarization
+    # input_concurrency: 8      # Optional: concurrency for map building
+```
+
+- `name`: Set to `pro@coder/code-map`.
+- `enabled`: Toggles the sub-agent execution.
+- `globs`: Array of glob patterns (relative to the workspace) for files to be summarized in the map.
+- `map_name`: (Optional) Custom name for the generated JSON file. By default, it uses `code-map.json` in the `.cache/code-map/` directory.
+- `model`: (Optional) The AI model used to generate the summaries and metadata for each file.
+- `input_concurrency`: (Optional) The number of concurrent tasks used when generating or updating file summaries.
+
 ## AIPack config override
 
 As mentioned above, the `pro@coder` parametric prompt `coder-prompt.md` allows you to override the AI Pack workspace and base configurations. 

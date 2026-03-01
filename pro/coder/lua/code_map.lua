@@ -35,21 +35,28 @@ local function extract_code_map_config(sub_input)
 
 	-- by default the coder model
 	local code_map_model = sub_input.coder_params.model
-	if sub_input.agent_config.model then
-		code_map_model = sub_input.agent_config.model
+	if agent_config.model then
+		code_map_model = agent_config.model
 	end
 
 
 	local code_map_input_concurrency = DEFAULT_INPUT_CONCURRENCY
-	if sub_input.agent_config.input_concurrency then
-		code_map_input_concurrency = sub_input.agent_config.input_concurrency
+	if agent_config.input_concurrency then
+		code_map_input_concurrency = agent_config.input_concurrency
 	end
 
 	local user_prompt = sub_input.coder_prompt:find("%S") and sub_input.coder_prompt or nil
+
+	local map_name = agent_config.map_name
+	local code_map_file_path = code_map_dir .. "/code-map.json"
+	if map_name then
+		code_map_file_path = code_map_dir .. "/" .. map_name .. "-code-map.json"
+	end
+
 	return {
 		code_map_dir       = code_map_dir,
-		code_map_file_path = code_map_dir .. "/code-map.json",
-		globs              = sub_input.coder_params.context_globs,
+		code_map_file_path = code_map_file_path,
+		globs              = agent_config.globs,
 		user_prompt        = user_prompt,
 		model              = code_map_model,
 		input_concurrency  = code_map_input_concurrency,
