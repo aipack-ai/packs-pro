@@ -154,13 +154,13 @@ local function pin_status(re_context_config, ctx)
 	if ctx.reason then
 		local reason_pin = {
 			label = LABEL_REASON,
-			conent = ctx.reason
+			content = aip.text.trim(ctx.reason)
 		}
 		aip.run.pin("reason", 3, reason_pin)
 		aip.task.pin("reason", 3, reason_pin)
 	end
 
-	-- === Helper  Reason
+	-- === Helper  helper_files
 	if ctx.helper_files then
 		local content = ""
 		for _, file in ipairs(ctx.helper_files) do

@@ -70,6 +70,15 @@ for _, bfile in ipairs(available_files) do
 end
 
 -- === Build/Format the c_files_txt (md format)
+-- Sort the c_files by mtime to help with caching
+table.sort(c_files, function(a, b)
+    if a.mtime == b.mtime then
+        return a.file_path < b.file_path
+    end
+    return a.mtime < b.mtime
+end)
+
+-- now build the c_files_txt
 local c_files_txt = ""
 for _, cfile in ipairs(c_files) do
 	local txt = "- " .. cfile.file_path .. "\n"
@@ -203,11 +212,9 @@ local status_msg = _rc.pin_status(data.re_context_config, {
 	context_files_count = data.context_files_count,
 	context_files_size  = data.context_files_size,
 	new_context_globs   = new_context_globs,
-	selection_reasoning = selection_reasoning,
+	reason              = selection_reasoning,
 	helper_files        = data.helper_files
 })
-
-print(aip.text.trim(selection_reasoning))
 
 return {
 	_display = "" .. data.context_files_count .. " context files",
