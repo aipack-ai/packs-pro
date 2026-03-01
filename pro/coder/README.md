@@ -351,6 +351,29 @@ A sub-agent can return this data either from:
 
 Sub-agents require AIPack 0.8.15 or above.
 
+## Builtin Sub Agents
+
+### Sub Agent - pro@coder/auto-context
+
+```yaml
+sub_agents: 
+  # Automatic context file selector (based on context-globs, using code-map)
+  - name: pro@coder/auto-context
+    enabled: false              # comment or set to true (default true)
+    model: flash                # small/cheap model to optimize which file 
+    # input_concurrency: 32     # code map concurrency (for building the code-map.json) (default 8)
+    # code_map_model: flash-low # code map model (optional, default auto-context model above)
+    helper_globs:               # Other files sent to give more information to select the property context file
+      # - .aipack/.prompt/pro@coder/dev/chat/dev-chat.md
+```
+
+- `name`: Set to `pro@coder/auto-context`. This agent automatically identifies relevant files for your prompt by comparing your instruction against a "code map" (summaries of your files).
+- `enabled`: Toggles the sub-agent execution.
+- `model`: The model used to analyze your instruction and the code map summaries to perform the file selection.
+- `input_concurrency`: (Optional) The number of concurrent tasks used when generating or updating file summaries for the code map.
+- `code_map_model`: (Optional) The model used to generate file summaries. Defaults to the `model` specified above if not provided.
+- `helper_globs`: (Optional) Pattern for files (like development plans or chat logs) that provide additional guidance to help the sub-agent select the correct context files.
+
 ## AIPack config override
 
 As mentioned above, the `pro@coder` parametric prompt `coder-prompt.md` allows you to override the AI Pack workspace and base configurations. 
