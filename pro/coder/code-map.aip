@@ -19,10 +19,11 @@ for i, orig_file in ipairs(orig_context_files) do
 	
 	-- file is already processed and up to date i > 2 or 
 	if ( file_map_file and file_map_file.mtime >= orig_file.mtime ) then
-	-- file needs to be processed
-	else
+	
+	else -- file needs to be processed
 		to_process_count = to_process_count + 1
 		table.insert(files_to_process, {
+			_display      = orig_file.path,
 			file          = orig_file,
 			file_map_file = file_map_file,
 		})

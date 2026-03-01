@@ -1,6 +1,13 @@
 --
 local _cm = require("code_map")
 
+-- CONSTS
+local LABEL_STATUS = "       Status:"
+local LABEL_CFILES = "Context Files:"
+local LABEL_REASON = "       Reason:"
+local LABEL_HFILES = " Helper Files:"
+
+
 -- return: {
 --  user_prompt: string,
 --  mode: "reduce" | "expand",
@@ -70,7 +77,9 @@ end
 -- ctx: {
 --    context_files_count: number,
 --    context_files_size: number,
---    new_context_globs: string[],
+--    new_context_globs?: string[],
+--    reason?: string,
+--    helper_files?: string[]
 -- }
 local function pin_status(re_context_config, ctx)
 	local mode = re_context_config.mode
@@ -115,9 +124,9 @@ local function pin_status(re_context_config, ctx)
 		msg = msg .. " (" .. new_context_files_size_fmt .. ")"
 	end
 
-	-- Pins for statu
+	-- Pins for status
 	local status_pin = {
-		label = "       Status:",
+		label = LABEL_STATUS,
 		content = msg
 	}
 	aip.run.pin("status", 1, status_pin)
@@ -130,19 +139,45 @@ local function pin_status(re_context_config, ctx)
 			for _, file in ipairs(new_context_files) do
 				msg = msg .. "  - " .. file.path .. "\n"
 			end
+			msg = aip.text.trim_end(msg) -- poor man
 		end
 		-- files it in both
 		local files_pin = {
-			label = "Context Files:",
+			label = LABEL_CFILES,
 			content = msg
 		}
 		aip.run.pin("files", 2, files_pin)
 		aip.task.pin("files", 2, files_pin)
+	end
+
+	-- === Pin Reason
+	if ctx.reason then
+		local reason_pin = {
+			label = LABEL_REASON,
+			conent = ctx.reason
+		}
+		aip.run.pin("reason", 3, reason_pin)
+		aip.task.pin("reason", 3, reason_pin)
+	end
+
+	-- === Helper  Reason
+	if ctx.helper_files then
+		local content = ""
+		for _, file in ipairs(ctx.helper_files) do
+			content = content .. "- " .. file.path .. "\n"
+		end
+		content = aip.text.trim_end(content) -- poor man
+		local helpers_pin = {
+			label = LABEL_HFILES,
+			content = content
+		}
+		aip.run.pin("helpers", 4, helpers_pin)
+		aip.task.pin("helpers", 4, helpers_pin)
 	end
 end
 
 
 return {
 	extract_re_context_config = extract_re_context_config,
-	pin_status                = pin_status
+	pin_status                = pin_status,
 }

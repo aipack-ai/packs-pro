@@ -12,6 +12,14 @@ local sub_agent_input = input
 -- === extract the re_context_config
 local re_context_config   = _rc.extract_re_context_config(sub_agent_input)
 
+-- === Build helper_files if present
+local helper_files = nil
+
+if re_context_config.helper_globs and #re_context_config.helper_globs > 0 then
+	helper_files = aip.file.list_load(re_context_config.helper_globs)
+end
+
+
 -- === Show status
 local context_globs = sub_agent_input.coder_params.context_globs
 local context_files = aip.file.list(context_globs)
@@ -21,7 +29,8 @@ for _, cfile in ipairs(context_files) do
 end
 local status_msg = _rc.pin_status(re_context_config, {
 	context_files_count = #context_files,
-	context_files_size  = context_files_size
+	context_files_size  = context_files_size,
+	helper_files        = helper_files
 })
 
 -- === run code-map agent
@@ -75,12 +84,6 @@ for _, cfile in ipairs(c_files) do
 	c_files_txt = c_files_txt .. txt .. "\n"
 end
 
--- === Build helper_files if present
-local helper_files = nil
-if re_context_config.helper_globs then
-	helper_files = aip.file.list_load(re_context_config.helper_globs)
-	print("Inluding " .. #helper_files .. " helper files")
-end
 
 return aip.flow.data_response({
 	data = {
@@ -199,14 +202,15 @@ end
 local status_msg = _rc.pin_status(data.re_context_config, {
 	context_files_count = data.context_files_count,
 	context_files_size  = data.context_files_size,
-	new_context_globs   = new_context_globs
+	new_context_globs   = new_context_globs,
+	selection_reasoning = selection_reasoning,
+	helper_files        = data.helper_files
 })
-
 
 print(aip.text.trim(selection_reasoning))
 
 return {
-	_display = "" .. context_files_count .. " context files",
+	_display = "" .. data.context_files_count .. " context files",
 	coder_params = { context_globs = new_context_globs },
 }
 ```
