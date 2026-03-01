@@ -15,7 +15,7 @@ local re_context_config   = _rc.extract_re_context_config(sub_agent_input)
 -- === Build helper_files if present
 local helper_files = nil
 
-if re_context_config.helper_globs and #re_context_config.helper_globs > 0 then
+if not is_null(re_context_config.helper_globs) and #re_context_config.helper_globs > 0 then
 	helper_files = aip.file.list_load(re_context_config.helper_globs)
 end
 
