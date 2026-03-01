@@ -27,7 +27,7 @@ local DEFAULT_INPUT_CONCURRENCY = 8
 -- - return: CodeMapConfig
 local function extract_code_map_config(sub_input)
 	local agent_config = sub_input.agent_config
-	local code_map_dir = sub_input.coder_prompt_dir .. "/.code-map"
+	local code_map_dir = sub_input.coder_prompt_dir .. "/.cache/code-map"
 
 	if not agent_config.globs then
 		error("code map agent config require a `globs: string[]` property")

@@ -124,7 +124,7 @@ Here is the preview previous file info
 if ai_response then
 	return {
 		content  = ai_response.content,
-		_display = "code map file updated - " .. data.file.path
+		_display = "code map file updated for file:\n- " .. data.file.path
 	}
 else
 	return nil

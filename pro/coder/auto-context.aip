@@ -107,7 +107,7 @@ return aip.flow.data_response({
 		mode                = mode
 	},
 	options = {
-		model = auto_context_config.code_map_model
+		model = auto_context_config.model
 	}
 })
 
