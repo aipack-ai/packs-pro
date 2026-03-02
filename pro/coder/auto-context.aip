@@ -124,25 +124,16 @@ return aip.flow.data_response({
 
 Your goals it to look at the user prompt, and the files and their description and determine the one that are needed for that prompt. 
 
+The user will give you: 
+
+- The answer format that you need to follow
+- The available files with their information
+- The possible file helpers
+- and the user prompt
+
 # Instruction
 
-Here is the user prompt
-
-<user_prompt>
-{{data.user_prompt}}
-</user_prompt>
-
----
-
-Here are the available files and their descriptions
-
-<available_files>
-{{data.c_files_txt}}
-</available_files>
-
---- 
-
-Give the result under a `needed_files` tag, like
+First, when responding, put the result under a `needed_files` tag, like
 
 <needed_files>
 _needed_files_as_json_array_
@@ -154,12 +145,19 @@ Also, after this tag, but another tag `selection_reasoning` explaining in a conc
 _concise_reasoning_as_text_
 </selection_reasoning>
 
-If/when appropriate, have few bullet points (minimum formating, and `-` as bullet) for the `_concise_reasoning_as_text_`. Maximum 3 bullet points, just high level reasoning explanation (do not have bullets per file, just overall reasoning summary). 
+If/when appropriate, for the `_concise_reasoning_as_text_` have few bullet points (minimum formating, no bold/italic, and `-` as bullet). Maximum 3 bullet points, just high level reasoning explanation (do not have bullets per file, just overall reasoning summary). 
 
+--- 
 
-{{#if data.helper_files}}
+Here are the available files and their descriptions
+
+<available_files>
+{{data.c_files_txt}}
+</available_files>
 
 ---
+
+{{#if data.helper_files}}
 
 Also, here are some other files that help termine which file might be needed from the available_files. 
 
@@ -169,8 +167,14 @@ Also, here are some other files that help termine which file might be needed fro
 </HELPER_FILE>
 {{/each}}
 
-
+--- 
 {{/if}}
+
+Here is the user prompt:
+
+<user_prompt>
+{{data.user_prompt}}
+</user_prompt>
 
 # Output
 
