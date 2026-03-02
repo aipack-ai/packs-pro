@@ -132,9 +132,10 @@ sub_agents:
   - my-agents/prompt-cleaner.aip # simple .aip file (see sub_agent section for input / output)
   - name: pro@coder/code-map     # code-map sub agent is also used in auto-context (but here is a custom example)
     enabled: true # default run
-    map_name: external-lib-docs # will create .aipack/.prompt/pro@coder/.cache/code-map/external-lib-docs-code-map.json
-    globs: 
-      - doc/external-libs/**/*.md
+    named_maps: 
+      - name: external-lib-docs  # will create .aipack/.prompt/pro@coder/.cache/code-map/external-lib-docs-code-map.json
+        globs: 
+          - doc/external-libs/**/*.md
 
 
 ## To see docs, type "Show Doc" and then press `r` in the aip terminal
@@ -425,15 +426,17 @@ sub_agents:
     enabled: true
     globs: 
       - src/**/*.ts
-    # map_name: my-project      # Optional: custom name for the JSON file
+    # named_maps:               # Optional: multiple maps with custom names
+    #   - name: my-project
+    #     globs: ["src/**/*.ts"]
     # model: flash-low          # Optional: model used for summarization
     # input_concurrency: 8      # Optional: concurrency for map building
 ```
 
 - `name`: Set to `pro@coder/code-map`.
 - `enabled`: Toggles the sub-agent execution.
-- `globs`: Array of glob patterns (relative to the workspace) for files to be summarized in the map.
-- `map_name`: (Optional) Custom name for the generated JSON file. By default, it uses `code-map.json` in the `.cache/code-map/` directory.
+- `globs`: Array of glob patterns (relative to the workspace) for files to be summarized in the default `code-map.json`.
+- `named_maps`: Array of named map definitions (`name` and `globs`). Each named map will generate its own `[name]-code-map.json`.
 - `model`: (Optional) The AI model used to generate the summaries and metadata for each file.
 - `input_concurrency`: (Optional) The number of concurrent tasks used when generating or updating file summaries.
 

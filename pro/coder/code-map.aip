@@ -6,26 +6,63 @@ local _cm = require("code_map")
 -- Extract config and code_map data
 local sub_agent_input = inputs[1]
 local code_map_config = _cm.extract_code_map_config(sub_agent_input)
-local code_map        = _cm.load_code_map_file(code_map_config.code_map_file_path)
+
+-- Load all code maps
+local loaded_maps = {}
+for _, mdef in ipairs(code_map_config.map_defs) do
+	loaded_maps[mdef.file_path] = _cm.load_code_map_file(mdef.file_path)
+end
 
 -- Build before all data
 local files_to_process = {}
 
-local orig_context_files = aip.file.list(code_map_config.globs)
-local file_map = code_map.file_map
 local to_process_count = 0
-for i, orig_file in ipairs(orig_context_files) do
-	local file_map_file = file_map[orig_file.path]
+
+local file_status_by_path = {}
+
+for _, mdef in ipairs(code_map_config.map_defs) do
+	local map_data = loaded_maps[mdef.file_path]
+	local file_map = map_data.file_map
+	local map_files = aip.file.list(mdef.globs)
 	
-	-- file is already processed and up to date i > 2 or 
-	if ( file_map_file and file_map_file.mtime >= orig_file.mtime ) then
-	
-	else -- file needs to be processed
+	for _, orig_file in ipairs(map_files) do
+		local fpath = orig_file.path
+		if not file_status_by_path[fpath] then
+			file_status_by_path[fpath] = {
+				file = orig_file,
+				maps_to_process_for = {},
+				maps_up_to_date_for = {},
+				map_names = {},
+				cached_data = nil
+			}
+		end
+		local fstatus = file_status_by_path[fpath]
+		if mdef.name then
+			table.insert(fstatus.map_names, mdef.name)
+		end
+
+		local file_map_file = file_map[fpath]
+		if file_map_file and file_map_file.mtime >= orig_file.mtime then
+			fstatus.maps_up_to_date_for[mdef.file_path] = true
+			fstatus.cached_data = file_map_file
+		else
+			fstatus.maps_to_process_for[mdef.file_path] = true
+			fstatus.cached_data = file_map_file or fstatus.cached_data
+		end
+	end
+end
+
+for fpath, fstatus in pairs(file_status_by_path) do
+	local needs_processing = next(fstatus.maps_to_process_for) ~= nil
+	if needs_processing then
 		to_process_count = to_process_count + 1
 		table.insert(files_to_process, {
-			_display      = orig_file.path,
-			file          = orig_file,
-			file_map_file = file_map_file,
+			_display      = fpath,
+			file          = fstatus.file,
+			file_map_file = fstatus.cached_data,
+			map_names     = fstatus.map_names,
+			maps_to_process_for = fstatus.maps_to_process_for,
+			maps_up_to_date_for = fstatus.maps_up_to_date_for
 		})
 	end
 end
@@ -33,7 +70,7 @@ end
 if to_process_count == 0 then
 	aip.run.pin("status", 1, "Code map up to date, nothing to do")
 else 
-	aip.run.pin("status", 1, "to_process_count " .. to_process_count .. " (on " .. #orig_context_files .. " files)")
+	aip.run.pin("status", 1, "to_process_count " .. to_process_count .. " files")
 end
 
 return aip.flow.before_all_response({
@@ -46,7 +83,7 @@ return aip.flow.before_all_response({
 		sub_agent_input    = sub_agent_input,
 		to_process_count   = #files_to_process,
 		code_map_config    = code_map_config,
-		orig_context_files = orig_context_files
+		loaded_maps        = loaded_maps
 	}
 })
 ```
@@ -138,13 +175,7 @@ end
 local _cm = require("code_map")
 
 local code_map_config    = before_all.code_map_config
-local code_map_file_path = code_map_config.code_map_file_path
-
--- Extract config and code_map data
-local code_map = _cm.load_code_map_file(code_map_file_path)
-local file_map = code_map.file_map
-
--- Update code map file
+local loaded_maps        = before_all.loaded_maps
 
 if before_all.to_process_count > 0 then 
 	for i, output in ipairs(outputs) do
@@ -160,7 +191,13 @@ if before_all.to_process_count > 0 then
 			local ok, json_content_res = pcall(aip.json.parse, raw_content)
 			if ok then
 				json_content_res.mtime = input_file.mtime
-				file_map[file_path] = json_content_res
+				
+				for map_path, _ in pairs(inputs[i].maps_to_process_for) do
+					loaded_maps[map_path].file_map[file_path] = json_content_res
+				end
+				for map_path, _ in pairs(inputs[i].maps_up_to_date_for) do
+					loaded_maps[map_path].file_map[file_path] = json_content_res
+				end
 			else
 				print("Error while parsing FILE_INFO json for file\n" .. file_path)
 				print(output_content)
@@ -172,12 +209,19 @@ if before_all.to_process_count > 0 then
 		
 	end
 	
-	local content = aip.json.stringify_pretty(code_map)
-	aip.file.save(code_map_file_path, content)
+	for map_path, map_data in pairs(loaded_maps) do
+		local content = aip.json.stringify_pretty(map_data)
+		aip.file.save(map_path, content)
+	end
+end
+
+local code_map_file_paths = {}
+for map_path, _ in pairs(loaded_maps) do
+	table.insert(code_map_file_paths, map_path)
 end
 
 return {
-	code_map_file_path = code_map_file_path
+	code_map_file_paths = code_map_file_paths
 }
 
 ```

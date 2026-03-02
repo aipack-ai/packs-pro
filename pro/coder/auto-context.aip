@@ -36,15 +36,21 @@ local status_msg = _ac.pin_status(auto_context_config, {
 -- === run code-map agent
 -- Note: for now, just passthrough input (later will resolve code_map_model, and code_map_input_concurrency)
 local code_map_agent_config = {
-	globs = auto_context_config.code_map_globs,
+	named_maps = {
+		{ 
+			name = auto_context_config.map_name, 
+			globs = auto_context_config.code_map_globs 
+		}
+	},
 	model = auto_context_config.code_map_model,
 	input_concurrency = auto_context_config.code_map_input_concurrency,
-	map_name = auto_context_config.map_name,
 }
 local code_map_input = aip.lua.merge({}, sub_agent_input, {agent_config = code_map_agent_config})
 -- print(code_map_input)
 local code_map_res = aip.agent.run("code-map", {input = code_map_input})
-local code_map_file_path = code_map_res.after_all.code_map_file_path
+
+local code_map_dir = sub_agent_input.coder_prompt_dir .. "/.cache/code-map"
+local code_map_file_path = code_map_dir .. "/" .. auto_context_config.map_name .. "-code-map.json"
 
 -- === Extract code map 
 local code_map        = _cm.load_code_map_file(code_map_file_path)
