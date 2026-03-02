@@ -27,21 +27,45 @@ local context_files_size = 0
 for _, cfile in ipairs(context_files) do
 	context_files_size = context_files_size + cfile.size
 end
-local status_msg = _ac.pin_status(auto_context_config, {
+
+-- === Compute knowledge file stats (if knowledge enabled)
+local knowledge_globs = auto_context_config.knowledge_globs
+local knowledge_files = {}
+local knowledge_files_size = 0
+if auto_context_config.knowledge and knowledge_globs then
+	knowledge_files = aip.file.list(knowledge_globs)
+	for _, kfile in ipairs(knowledge_files) do
+		knowledge_files_size = knowledge_files_size + kfile.size
+	end
+end
+
+_ac.pin_status(auto_context_config, {
 	context_files_count = #context_files,
 	context_files_size  = context_files_size,
-	helper_files        = helper_files
+	helper_files        = helper_files,
+	knowledge_files_count = #knowledge_files,
+	knowledge_files_size  = knowledge_files_size,
 })
 
 -- === run code-map agent
 -- Note: for now, just passthrough input (later will resolve code_map_model, and code_map_input_concurrency)
+local named_maps = {
+	{ 
+		name = auto_context_config.map_name, 
+		globs = auto_context_config.code_map_globs 
+	}
+}
+
+-- Add knowledge named map if knowledge is enabled
+if auto_context_config.knowledge and knowledge_globs then
+	table.insert(named_maps, {
+		name = "knowledge",
+		globs = knowledge_globs
+	})
+end
+
 local code_map_agent_config = {
-	named_maps = {
-		{ 
-			name = auto_context_config.map_name, 
-			globs = auto_context_config.code_map_globs 
-		}
-	},
+	named_maps = named_maps,
 	model = auto_context_config.code_map_model,
 	input_concurrency = auto_context_config.code_map_input_concurrency,
 }
@@ -54,6 +78,13 @@ local code_map_file_path = code_map_dir .. "/" .. auto_context_config.map_name .
 
 -- === Extract code map 
 local code_map        = _cm.load_code_map_file(code_map_file_path)
+
+-- === Extract knowledge code map (if enabled)
+local knowledge_code_map = nil
+if auto_context_config.knowledge and knowledge_globs then
+	local knowledge_code_map_file_path = code_map_dir .. "/knowledge-code-map.json"
+	knowledge_code_map = _cm.load_code_map_file(knowledge_code_map_file_path)
+end
 
 -- === Determine if we have a prompt
 local user_prompt = sub_agent_input.coder_prompt
@@ -100,6 +131,42 @@ for _, cfile in ipairs(c_files) do
 	c_files_txt = c_files_txt .. txt .. "\n"
 end
 
+-- === Build/Format the k_files_txt (md format) for knowledge files
+local k_files_txt = ""
+local k_files_count = 0
+if auto_context_config.knowledge and knowledge_code_map then
+	local available_knowledge_files = aip.file.list(knowledge_globs)
+	local k_files = {}
+	local k_file_map = knowledge_code_map.file_map
+	for _, kfile in ipairs(available_knowledge_files) do
+		local mapped = k_file_map[kfile.path]
+		if mapped then
+			table.insert(k_files, mapped)
+		end
+	end
+
+	-- Sort by mtime for caching
+	table.sort(k_files, function(a, b)
+		if a.mtime == b.mtime then
+			return a.file_path < b.file_path
+		end
+		return a.mtime < b.mtime
+	end)
+
+	k_files_count = #k_files
+	for _, kfile in ipairs(k_files) do
+		local txt = "- " .. kfile.file_path .. "\n"
+		txt = txt .. "    - Summary: " .. kfile.summary .. "\n"
+		txt = txt .. "    - When To Use: " .. kfile.when_to_use .. "\n"
+		if kfile.public_types and #kfile.public_types > 0 then
+			txt = txt .. "    - Types: " .. table.concat(kfile.public_types, ", ")  .. "\n"
+		end
+		if kfile.public_functions and #kfile.public_functions > 0 then
+			txt = txt .. "    - Functions: " .. table.concat(kfile.public_functions, ", ")  .. "\n"
+		end
+		k_files_txt = k_files_txt .. txt .. "\n"
+	end
+end
 
 return aip.flow.data_response({
 	data = {
@@ -107,11 +174,17 @@ return aip.flow.data_response({
 		user_prompt         = user_prompt,
 		c_files_txt         = c_files_txt,
 		c_files_count       = #c_files,
+		k_files_txt         = k_files_txt,
+		k_files_count       = k_files_count,
+		knowledge_enabled   = auto_context_config.knowledge,
 		helper_files        = helper_files,
 		context_globs       = context_globs,
 		context_files_count = #context_files,
 		context_files_size  = context_files_size,
-		mode                = auto_context_config.mode
+		knowledge_globs     = knowledge_globs,
+		knowledge_files_count = #knowledge_files,
+		knowledge_files_size  = knowledge_files_size,
+		mode                = auto_context_config.mode,
 	},
 	options = {
 		model = auto_context_config.model
@@ -122,7 +195,7 @@ return aip.flow.data_response({
 
 # System
 
-Your goals it to look at the user prompt, and the files and their description and determine the one that are needed for that prompt. 
+Your goal is to look at the user prompt, and the files and their descriptions and determine the ones that are needed for that prompt. 
 
 The user will give you: 
 
@@ -133,27 +206,68 @@ The user will give you:
 
 # Instruction
 
-First, when responding, put the result under a `needed_files` tag, like
+{{#if data.knowledge_enabled}}
+You will select files from two categories: **context files** and **knowledge files**.
 
-<needed_files>
-_needed_files_as_json_array_
-</needed_files>
+First, for context files, put the result under a `needed_context_files` tag:
 
-Also, after this tag, but another tag `selection_reasoning` explaining in a concise maner why those files were selected. 
+<needed_context_files>
+_needed_context_files_as_json_array_
+</needed_context_files>
 
-<selection_reasoning>
+Then, put the context reasoning under a `context_reasoning` tag:
+
+<context_reasoning>
 _concise_reasoning_as_text_
-</selection_reasoning>
+</context_reasoning>
 
-If/when appropriate, for the `_concise_reasoning_as_text_` have few bullet points (minimum formating, no bold/italic, and `-` as bullet). Maximum 3 bullet points, just high level reasoning explanation (do not have bullets per file, just overall reasoning summary). 
+Then, for knowledge files, put the result under a `needed_knowledge_files` tag:
+
+<needed_knowledge_files>
+_needed_knowledge_files_as_json_array_
+</needed_knowledge_files>
+
+Then, put the knowledge reasoning under a `knowledge_reasoning` tag:
+
+<knowledge_reasoning>
+_concise_reasoning_as_text_
+</knowledge_reasoning>
+
+{{else}}
+First, when responding, put the result under a `needed_context_files` tag, like
+
+<needed_context_files>
+_needed_context_files_as_json_array_
+</needed_context_files>
+
+Also, after this tag, put another tag `context_reasoning` explaining in a concise manner why those files were selected. 
+
+<context_reasoning>
+_concise_reasoning_as_text_
+</context_reasoning>
+
+{{/if}}
+If/when appropriate, for the `_concise_reasoning_as_text_` have few bullet points (minimum formatting, no bold/italic, and `-` as bullet). Maximum 3 bullet points, just high level reasoning explanation (do not have bullets per file, just overall reasoning summary). 
 
 --- 
 
-Here are the available files and their descriptions
+Here are the available context files and their descriptions
 
-<available_files>
+<available_context_files>
 {{data.c_files_txt}}
-</available_files>
+</available_context_files>
+
+{{#if data.knowledge_enabled}}
+
+---
+
+Here are the available knowledge files and their descriptions
+
+<available_knowledge_files>
+{{data.k_files_txt}}
+</available_knowledge_files>
+
+{{/if}}
 
 ---
 
@@ -183,15 +297,21 @@ local _ac = require("auto_context")
 
 local mode = data.auto_context_config.mode
 
-local res_map = aip.tag.extract_as_map(ai_response.content, {"needed_files", "selection_reasoning"})
+local tag_names = {"needed_context_files", "context_reasoning"}
+if data.knowledge_enabled then
+	table.insert(tag_names, "needed_knowledge_files")
+	table.insert(tag_names, "knowledge_reasoning")
+end
 
-local needed_files = aip.json.parse(res_map.needed_files.content)
-local selection_reasoning = res_map.selection_reasoning.content
+local res_map = aip.tag.extract_as_map(ai_response.content, tag_names)
+
+local needed_context_files = aip.json.parse(res_map.needed_context_files.content)
+local context_reasoning = res_map.context_reasoning.content
 
 local new_context_globs = {}
 	-- TODO: need to add the negative globs
 if mode == "reduce" then
-	new_context_globs = needed_files
+	new_context_globs = needed_context_files
 else -- augment
 	-- Init the new_context_globs, 
 	table.move(data.context_globs, 1, #data.context_globs, 
@@ -206,7 +326,7 @@ else -- augment
 	
 	-- buid the addl_files list
 	local addl_files = {}
-	for _, file_path in ipairs(needed_files) do
+	for _, file_path in ipairs(needed_context_files) do
 		if not orig_context_file_map[file_path] then
 			table.insert(addl_files, file_path)
 		end
@@ -219,16 +339,36 @@ else -- augment
 	)
 end
 
-local status_msg = _ac.pin_status(data.auto_context_config, {
+-- === Process knowledge selection
+local new_knowledge_globs = nil
+local knowledge_reasoning = nil
+if data.knowledge_enabled and res_map.needed_knowledge_files then
+	local needed_knowledge_files = aip.json.parse(res_map.needed_knowledge_files.content)
+	new_knowledge_globs = needed_knowledge_files -- always "reduce" for knowledge
+	if res_map.knowledge_reasoning then
+		knowledge_reasoning = res_map.knowledge_reasoning.content
+	end
+end
+
+_ac.pin_status(data.auto_context_config, {
 	context_files_count = data.context_files_count,
 	context_files_size  = data.context_files_size,
 	new_context_globs   = new_context_globs,
-	reason              = selection_reasoning,
-	helper_files        = data.helper_files
+	reason              = context_reasoning,
+	helper_files        = data.helper_files,
+	knowledge_files_count = data.knowledge_files_count,
+	knowledge_files_size  = data.knowledge_files_size,
+	new_knowledge_globs   = new_knowledge_globs,
+	knowledge_reason      = knowledge_reasoning,
 })
+
+local coder_params = { context_globs = new_context_globs }
+if new_knowledge_globs then
+	coder_params.knowledge_globs = new_knowledge_globs
+end
 
 return {
 	_display = "" .. data.context_files_count .. " context files",
-	coder_params = { context_globs = new_context_globs },
+	coder_params = coder_params,
 }
 ```
