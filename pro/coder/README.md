@@ -89,7 +89,7 @@ structure_globs:
   - src/**/*.*
 
 ## Working Globs - Advanced - Create a task per file or file group.
-## NOTE - Only enable when working on multiple files at same time
+## NOTE - Only enable when working on multiple files at the same time
 working_globs:
   - src/**/*.js        # This will do one working group per matched .js
   - ["css/*.css"]      # When in a sub array, this will put all of the css in the same working group
@@ -130,7 +130,7 @@ model: gpt-5.2
 ## Specialized agents to pre-process parameters and instructions (Stage: "pre")
 sub_agents:
   - my-agents/prompt-cleaner.aip # simple .aip file (see sub_agent section for input / output)
-  - name: pro@coder/code-map     # code-map sub agent is also use in auto-context (but here is a custom example)
+  - name: pro@coder/code-map     # code-map sub agent is also used in auto-context (but here is a custom example)
     enabled: true # default run
     map_name: external-lib-docs # will create .aipack/.prompt/pro@coder/.cache/code-map/external-lib-docs-code-map.json
     globs: 
@@ -156,10 +156,9 @@ Example:
 ```yaml
 knowledge_globs:
   - path/to/knowledge/**/*.md           # Can be relative to workspace or absolute
-  - pro@coder/README.md                 # This is this README.md from the pro@coder, 
-                                        # can be used to ask question about pro dcoe
+  - pro@coder/README.md                 # This is this README.md from the pro@coder, can be used to ask questions about pro@coder
   - core@doc/**/*.md                    # core@doc is a built-in pack with the AI Pack doc
-  - pro@rust10x/guide/base/**/*.md      # aip install pro@rust10x, and then this will be aiable
+  - pro@rust10x/guide/base/**/*.md      # aip install pro@rust10x, and then this will be available
 ```
 
 For advanced users, here we can also put the "rules" of the plan or spec base folder like 
@@ -399,11 +398,11 @@ sub_agents:
   # Automatic context file selector (based on context-globs, using code-map)
   - name: pro@coder/auto-context
     enabled: false              # comment or set to true (default true)
-    model: flash                # small/cheap model to optimize which file 
+    model: flash                # small/cheap model to optimize which files are selected
     # input_concurrency: 32     # code map concurrency (for building the code-map.json) (default 8)
     # code_map_model: flash-low # code map model (optional, default auto-context model above)
     # map_name: context         # custom name for the code-map cache (default "context")
-    helper_globs:               # Other files sent to give more information to select the property context file
+    helper_globs:               # Other files sent to give more information to select the proper context file
       # - .aipack/.prompt/pro@coder/dev/chat/dev-chat.md
 ```
 

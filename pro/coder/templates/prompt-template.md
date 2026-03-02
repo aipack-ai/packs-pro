@@ -4,14 +4,14 @@
 # See PATH_TO_PRO_CODER_README for more documentation
 # (for base_dir, working_globs, max_files_size_kb, cache_explicit, model_aliases, file_content_mode)
 
-# By default, all path relative to base_dir, which is by default workspace dir (.aipack/ parent dir)
+# By default, all paths are relative to base_dir, which is the workspace directory by default (parent of .aipack/).
 
 ## Static knowledge
 knowledge_globs:
-  # - /rel/or/abs/path/to/**/*.md      # Any relatively or absolute path/globs to markdown
-  # - pro@coder/README.md              # To ask question about this pro@coder AIPack
-  # - core@doc/**/*.md                 # To help build .aip AIPack agents
-  # - pro@rust10x/guide/base/**/*.md   # Example of best practices about Rust coding
+  # - /rel/or/abs/path/to/**/*.md      # Any relative or absolute path/glob for Markdown files
+  # - pro@coder/README.md              # To ask questions about this pro@coder AIPack
+  # - core@doc/**/*.md                 # For help building .aip AIPack agents
+  # - pro@rust10x/guide/base/**/*.md   # Examples of best practices for Rust coding
 
 ## File path & content included in prompt
 ## (relative to base_dir)
@@ -19,8 +19,8 @@ context_globs:
   # - package.json  # e.g., for Node.js
   # - Cargo.toml    # e.g., for Rust
   # - README.md 
-  - src/**/*.*      # narrow or enable auto_context
-  ## dev-chat (uncomment when dev chat mode)
+  - src/**/*.*      # Narrow the scope or enable auto_context
+  ## dev-chat (uncomment for dev chat mode)
   # - .aipack/.prompt/pro@coder/dev/chat/dev-chat.md
 
 ## Only matched file paths included in prompt
@@ -38,8 +38,8 @@ model: flash
 
 ## Optimize context files selection
 auto_context: 
-  model: flash   # (use small / cheap model)
-  enabled: false # (default true) set to true or uncomment to enable
+  model: flash   # (Use a small or inexpensive model)
+  enabled: false # (Default is true). Set to true or uncomment to enable.
 
 ## (see PATH_TO_PRO_CODER_README for full pro@coder documentation)
 ```
