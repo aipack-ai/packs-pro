@@ -314,7 +314,6 @@ auto_context:
   mode: reduce                # "reduce" (replaces) or "expand" (adds to existing) (default "reduce")
   # input_concurrency: 8      # code map building concurrency (default 8, or coder value)
   # code_map_model: flash-low # code map model (optional, default auto_context model above)
-  # map_name: context         # custom name for the code-map cache (default "context")
   helper_globs:               # Files to help select relevant context files
     - .aipack/.prompt/pro@coder/dev/plan/*.md
 ```
@@ -405,7 +404,6 @@ sub_agents:
     model: flash                # small/cheap model to optimize which files are selected
     # input_concurrency: 32     # code map concurrency (for building the code-map.json) (default 8)
     # code_map_model: flash-low # code map model (optional, default auto-context model above)
-    # map_name: context         # custom name for the code-map cache (default "context")
     helper_globs:               # Other files sent to give more information to select the proper context file
 ```
 
