@@ -186,7 +186,7 @@ local function get_file_content_mode(meta, write_mode)
 					user_file_content_mode .. "' is invalid.\nCan be 'whole', 'search_replace_auto' or 'udiffx'"
 		end
 	else
-		file_content_mode.search_replace_auto = true
+		file_content_mode.udiffx = true
 	end
 
 	if write_mode == false then

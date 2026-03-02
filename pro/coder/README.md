@@ -109,9 +109,8 @@ suggest_git_commit: false
 model_aliases:
   super-gpro: gemini-3.1-pro-high # example
 
-## Typically, leave this commented for "search_replace_auto", which is the most efficient
-## NOTE: Now new 'udiffx' avaiable in AIPack >= 0.8.12 which will eventually become the default
-file_content_mode: udiffx # default "search_replace_auto" ("whole" for the whole file rewrite even when patch)
+## Typically, omit or leave this commented for "udiffx", which is the most efficient
+file_content_mode: udiffx # default "udiffx" ("search_replace_auto" for legacy or "whole" for full rewrite)
 
 ## Set to true to write the files (otherwise, they will be shown below the `====` separator)
 write_mode: true
@@ -261,7 +260,8 @@ _Note: These aliases are already present in the `~/.aipack-base/config-default.t
 
 Controls how file content is returned:
 
-- `search_replace_auto` (default): Most efficient, uses SEARCH/REPLACE blocks for updates
+- `udiffx` (default): Most robust and efficient, uses unified diff format.
+- `search_replace_auto`: Uses SEARCH/REPLACE blocks for updates.
 - `whole`: Returns entire file content
 
 Typically, leave this out to use the default.

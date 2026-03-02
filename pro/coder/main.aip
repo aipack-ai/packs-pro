@@ -69,7 +69,16 @@ if base.attachments and #base.attachments > 0 then
 end
 
 -- Save the prompt_file_paths
-local prompt_files_content = "====\n\n"
+local active_mode = ""
+if base.file_content_mode.udiffx then
+	active_mode = "udiffx"
+elseif base.file_content_mode.whole then
+    active_mode = "whole"
+elseif base.file_content_mode.search_replace_auto then
+    active_mode = "search_replace_auto"
+end
+
+local prompt_files_content = "\n====\n" .. "file_content_mode: " .. active_mode .. "\n\n"
 if attachments then
     prompt_files_content = prompt_files_content .. "# Attachments" .. "\n"
     for _, att in ipairs(attachments) do

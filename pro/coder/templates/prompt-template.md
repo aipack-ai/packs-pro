@@ -28,9 +28,6 @@ context_globs:
 structure_globs:
   - src/**/*.*
   
-## "udiffx" is the new way to update files (can be 'search_replace_auto' or 'full_content')
-file_content_mode: udiffx 
-
 ## Set to true to write the files
 write_mode: false
 
