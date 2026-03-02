@@ -140,12 +140,8 @@ local function pin_status(auto_context_config, ctx)
 
 	-- === Status pin
 	local context_files_size_fmt = aip.text.format_size(ctx.context_files_size)
-	local msg = nil
-	if done and knowledge_done then
-		msg = "✅"
-	else
-		msg = ".."
-	end
+	local msg = done and "✅" or ".."
+
 	local label = nil
 	if mode == "expand" then
 		label = " Expanding"
@@ -166,7 +162,8 @@ local function pin_status(auto_context_config, ctx)
 	-- Knowledge status line
 	if auto_context_config.knowledge then
 		local knowledge_files_size_fmt = aip.text.format_size(ctx.knowledge_files_size or 0)
-		msg = msg .. '\n' .. "  "
+		local k_status = knowledge_done and "✅" or ".."
+		msg = msg .. '\n' .. k_status
 		msg = msg .. string.format("%-30s", " Reducing " .. (ctx.knowledge_files_count or 0) .. " knowledge files")
 		msg = msg .. " (" .. knowledge_files_size_fmt .. ")"
 
