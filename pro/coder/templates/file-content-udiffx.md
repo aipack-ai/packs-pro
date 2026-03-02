@@ -26,6 +26,7 @@ IMPORTANT. There can be only one FILE_CHANGES tag per response. So make sure you
 - Preserve exact formatting, indentation, and whitespace.
 - Do not invent files or paths.
 - The code fence language (e.g., `rust`, `ts`, `python`) is for syntax highlighting only.
+- Make sure and triple check that the file patch hunk body surround lines or remove lines match exactly.
 
 ### FILE_NEW
 
