@@ -215,8 +215,8 @@ local function pin_status(auto_context_config, ctx)
 			label = LABEL_KFILES,
 			content = msg
 		}
-		aip.run.pin("kfiles", 5, kfiles_pin)
-		aip.task.pin("kfiles", 5, kfiles_pin)
+		aip.run.pin("kfiles", 3, kfiles_pin)
+		aip.task.pin("kfiles", 3, kfiles_pin)
 	end
 
 	-- === Pin Reason
@@ -225,8 +225,8 @@ local function pin_status(auto_context_config, ctx)
 			label = LABEL_REASON,
 			content = aip.text.trim(ctx.reason)
 		}
-		aip.run.pin("reason", 3, reason_pin)
-		aip.task.pin("reason", 3, reason_pin)
+		aip.run.pin("reason", 5, reason_pin)
+		aip.task.pin("reason", 5, reason_pin)
 	end
 
 	-- === Pin Knowledge Reason
