@@ -19,7 +19,9 @@ context_globs:
   # - package.json  # e.g., for Node.js
   # - Cargo.toml    # e.g., for Rust
   # - README.md 
-  - src/**/*.*      # Narrow glob when more than 10 files
+  - src/**/*.*      # narrow or enable auto_context
+  ## dev-chat (uncomment when dev chat mode)
+  # - .aipack/.prompt/pro@coder/dev/chat/dev-chat.md
 
 ## Only matched file paths included in prompt
 ## (relative to base_dir)

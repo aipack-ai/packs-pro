@@ -2,7 +2,7 @@ local p_tmpl           = require("utils_tmpl")
 local PROMPT_FILE_NAME = "coder-prompt.md"
 
 -- Returns FileRecord
-function prep_prompt_file(input, options)
+local function prep_prompt_file(input, options)
 	options                   = options or {}
 	local default_prompt_path = options.default_prompt_path
 	local add_separator       = options.add_separator ~= nil and options.add_separator or false
@@ -35,7 +35,7 @@ end
 -- returns `inst, content` and each can be nil
 -- options {content_is_default = bool}
 --   - When content_is_default, it means that if no two parts, the content will be the first_part
-function prep_inst_and_content(content, separator, options)
+local function prep_inst_and_content(content, separator, options)
 	local content_is_default = options and options.content_is_default or false
 	-- for v0.7.10 compatibilty
 	local first_part, second_part = nil, nil
@@ -61,7 +61,7 @@ end
 -- This loads maps the FileMeta array as a FileRecord array by loading each file
 -- It also augments the FileRecord with `.comment_file_path` (.e.g., "// file: some/path/to/file.ext")
 -- returns nil if refs is nil
-function load_file_refs(base_dir, refs)
+local function load_file_refs(base_dir, refs)
 	local files = nil
 	if refs ~= nil then
 		files = {}
@@ -78,7 +78,7 @@ end
 -- Do a shallow clone, and optionally merge the to_merge table
 -- original: (required) The original table to copy
 -- to_merge: (optional) The optional table to merge
-function shallow_copy(original, to_merge)
+local function shallow_copy(original, to_merge)
 	local copy = {}
 
 	-- First, copy all elements from original
@@ -96,21 +96,6 @@ function shallow_copy(original, to_merge)
 	return copy
 end
 
-function file_refs_to_md(refs, preamble)
-	-- if refs nil or empty return nil
-	if refs == nil or #refs == 0 then
-		return "None"
-	end
-	preample = preamble and preamble .. "\n\n" or ""
-
-	-- otehrwise, return a text with `- ref.path`
-	local lines = {}
-	for _, ref in ipairs(refs) do
-		table.insert(lines, "- " .. ref.path)
-	end
-	return preample .. table.concat(lines, "\n")
-end
-
 -- Will resolve a list of string or array of string (each item can be anything)
 -- If the item is a string, it will will be added to the root_working_refs array
 --    (and then, we will do a aip.file.list(...) )
@@ -119,7 +104,88 @@ end
 -- - `working_globs: (string | string[])[]` - List of string or array of string
 -- Returns:
 -- - `FileInfo[][]` - List of file refs
-function compute_working_refs_list(working_globs, base_dir)
+local function format_paths_as_single_nested(refs)
+	-- if refs nil or empty return None
+	if refs == nil or #refs == 0 then
+		return "None"
+	end
+
+	-- Normalize to paths and sort
+	local paths = {}
+	for _, ref in ipairs(refs) do
+		local p = type(ref) == "string" and ref or ref.path
+		if p and p ~= "" then
+			table.insert(paths, p)
+		end
+	end
+	table.sort(paths, function(a, b)
+		local da, na = aip.path.split(a)
+		local db, nb = aip.path.split(b)
+		if da ~= db then
+			return da < db
+		end
+		return na < nb
+	end)
+
+	local lines = {}
+	local current_dir = nil
+
+	for _, path in ipairs(paths) do
+		local dir, name = aip.path.split(path)
+		if dir == "" or dir == "." then
+			-- Root files
+			table.insert(lines, "- " .. name)
+			current_dir = nil
+		else
+			-- Files in directories
+			-- ensure dir ends with /
+			if dir:sub(-1) ~= "/" then
+				dir = dir .. "/"
+			end
+
+			if dir ~= current_dir then
+				table.insert(lines, "- " .. dir)
+				current_dir = dir
+			end
+			-- Only add name if it's not empty (path was a directory)
+			if name ~= "" then
+				table.insert(lines, "  - " .. name)
+			end
+		end
+	end
+
+	return table.concat(lines, "\n")
+end
+
+-- - refs: string[]
+-- - options: {preamble?: string, single_nested?: bool}
+local function file_refs_to_md(refs, options)
+	options = options or { single_nested = false }
+
+	-- if refs nil or empty return None
+	if refs == nil or #refs == 0 then
+		return "None"
+	end
+
+	local preamble_content = options.preamble and options.preamble .. "\n\n" or ""
+
+	local content;
+
+	if options.single_nested then
+		content = format_paths_as_single_nested(refs)
+	else
+		-- otehrwise, return a text with `- ref.path`
+		local lines = {}
+		for _, ref in ipairs(refs) do
+			table.insert(lines, "- " .. ref.path)
+		end
+		content = table.concat(lines, "\n")
+	end
+
+	return preamble_content .. content
+end
+
+local function compute_working_refs_list(working_globs, base_dir)
 	local root_working_globs    = nil
 	local grouped_working_globs = nil
 
@@ -169,7 +235,7 @@ function compute_working_refs_list(working_globs, base_dir)
 end
 
 -- true true if not empty, or nil, or userdata (pointer)
-function is_not_empty(val)
+local function is_not_empty(val)
 	if type(val) == "userdata" then
 		return false
 	end
@@ -186,10 +252,11 @@ function is_not_empty(val)
 end
 
 return {
-	prep_prompt_file          = prep_prompt_file,
-	prep_inst_and_content     = prep_inst_and_content,
-	load_file_refs            = load_file_refs,
-	compute_working_refs_list = compute_working_refs_list,
-	file_refs_to_md           = file_refs_to_md,
-	is_not_empty              = is_not_empty,
+	prep_prompt_file              = prep_prompt_file,
+	prep_inst_and_content         = prep_inst_and_content,
+	load_file_refs                = load_file_refs,
+	compute_working_refs_list     = compute_working_refs_list,
+	file_refs_to_md               = file_refs_to_md,
+	format_paths_as_single_nested = format_paths_as_single_nested,
+	is_not_empty                  = is_not_empty,
 }

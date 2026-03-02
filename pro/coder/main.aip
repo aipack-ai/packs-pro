@@ -80,7 +80,11 @@ end
 prompt_files_content = prompt_files_content .. "# Knowledge Files" .. "\n\n" .. p_utils.file_refs_to_md(base.knowledge_refs) .. "\n\n"
 prompt_files_content = prompt_files_content .. "# Context Files"   .. "\n\n" .. p_utils.file_refs_to_md(new_context_refs) .. "\n\n"
 prompt_files_content = prompt_files_content .. "# Working Files"   .. "\n\n" .. p_utils.file_refs_to_md(working_refs) .. "\n\n"
-prompt_files_content = prompt_files_content .. "# Struture Files"  .. "\n\n" .. p_utils.file_refs_to_md(base.structure_refs, "(Only file paths, not their content)") .. "\n\n"
+prompt_files_content = prompt_files_content .. "# Struture Files"  .. "\n\n" .. p_utils.file_refs_to_md(base.structure_refs, {
+			preamble = "(Only file paths, not their content)", 
+			single_nested = true
+		}
+) .. "\n\n"
 aip.file.append(base.prompt_file_paths, prompt_files_content)
 
 
@@ -88,6 +92,7 @@ aip.file.append(base.prompt_file_paths, prompt_files_content)
 base.knowledge_files = p_utils.load_file_refs(CTX.WORKSPACE_DIR, base.knowledge_refs)
 base.context_files   = p_utils.load_file_refs(base.base_dir, new_context_refs)
 base.working_files   = p_utils.load_file_refs(base.base_dir, working_refs)
+base.structure_refs_md = p_utils.format_paths_as_single_nested(base.structure_refs)
 
 -- Add time if available
 if aip.time.weekday_local and aip.time.now_iso_local then
@@ -221,14 +226,12 @@ Here are some important knowledge, guidelines, and best practices I like you to 
 
 # User `cache = false`
 
-{{#if data.structure_refs}}
+{{#if data.structure_refs_md}}
 
 Here are the file structure of this project. Do not edit/change file you do not have source for. 
 Those are for your reference, in case there are referred somewhere. 
 
-{{#each data.structure_refs}}
-- {{this.path}}
-{{/each}}
+{{data.structure_refs_md}}
 
 {{/if}}
 
