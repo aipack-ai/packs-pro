@@ -1,14 +1,13 @@
 # pro@coder documentation
 
-[Coder Parameters](#coder-parameters) | [Workflow](#setup--workflow) | [Coder Intro](#coder-promptmd) | [Config Override](#aipack-config-override) | [Plan Development](#plan-based-development)
-
 This is the documentation and usage guide for the `pro@coder` AI Pack.
 
 The `pro@coder` pack provides AI-powered coding assistance through parametric prompts that allow you to configure context, working files, and AI model settings for your coding tasks.
 
 The key concept of `pro@coder` is to give you full control over the AI context, enabling you to guide the AI to code the way you want, rather than adapting to the AI's default approach. This is done in part by splitting files into `knowledge`, `context`, and `working` (for concurrency) categories.
 
-[Workflow](#setup--workflow) | [Coder Intro](#coder-promptmd) | [Coder Parameters](#parametric-block-format) | [AIPack config override](#aipack-config-override)
+[Coder Parameters](#coder-parameters) | [Auto Context](#auto_context) | [Workflow](#setup--workflow) | [Coder Intro](#coder-promptmd) | [Coder Parameters](#parametric-block-format) | [AIPack config override](#aipack-config-override) | [Plan Development](#plan-based-development)
+
 ---
 
 ## Setup & Workflow
@@ -125,12 +124,22 @@ write_mode: true
 model: gpt-5.2 
 
 ## Automatic context file selector (shortcut for pro@coder/auto-context sub-agent)
-# auto_context: flash # or { model: flash, enabled: true }
+## Since v0.4.0
+auto_context:
+  model: flash                # The model used to analyze the instruction and code map
+  enabled: true               # Whether to run the auto-context agent (default true)
+  knowledge: true             # Automatically select knowledge files (default true)
+  mode: reduce                # "reduce" (replaces) or "expand" (adds to existing) (default "reduce")
+  # input_concurrency: 8      # code map building concurrency (default 8, or coder value)
+  # code_map_model: flash-low # code map model (optional, default auto_context model above)
+  helper_globs:               # Files to help select relevant context files
+    - .aipack/.prompt/pro@coder/dev/plan/*.md
 
 ## Specialized agents to pre-process parameters and instructions (Stage: "pre")
+## Since v0.3.0
 sub_agents:
   - my-agents/prompt-cleaner.aip # simple .aip file (see sub_agent section for input / output)
-  - name: pro@coder/code-map     # code-map sub agent is also used in auto-context (but here is a custom example)
+  - name: pro@coder/code-map     # code-map sub agent is also used in auto-context (but here is a custom example) (since v0.4.0)
     enabled: true # default run
     named_maps: 
       - name: external-lib-docs  # will create .aipack/.prompt/pro@coder/.cache/code-map/external-lib-docs-code-map.json
@@ -297,6 +306,7 @@ model: gpt-5-mini  # or "gpt-5" for normal coding
 ```
 
 #### auto_context
+_since v0.4.0_
 
 Shortcut to configure and run the `pro@coder/auto-context` sub-agent. This agent automatically identifies relevant context and knowledge files for your prompt by analyzing file summaries (via `code-map`). It is a concise alternative to defining it in the `sub_agents` list and supports the same properties.
 
@@ -319,6 +329,7 @@ auto_context:
 ```
 
 #### sub_agents
+_since v0.3.0_
 
 Array of specialized agents to run at different stages of the `pro@coder` execution. Sub-agents allow for a pipeline where multiple agents can modify the state of the current request, which is useful for automated context building, instruction refinement, or project-specific initialization.
 
@@ -379,6 +390,7 @@ Sub-agents require AIPack 0.8.15 or above.
 ## Builtin Sub Agents
 
 ### Sub Agent - pro@coder/auto-context
+_since v0.4.0_
 
 The auto-context agent can be configured via the `sub_agents` list or more concisely using the `auto_context` parameter at the root of the configuration block.
 
@@ -420,6 +432,7 @@ sub_agents:
 - `helper_globs`: (Optional) Pattern for files (like development plans or chat logs) that provide additional guidance to help the sub-agent select the correct context files.
 
 ### Sub Agent - pro@coder/code-map
+_since v0.4.0_
 
 The code-map agent generates and maintains a JSON file containing summaries, public types, and functions for a set of files. This map is used by the `auto-context` agent to identify relevant files for your prompt, but it can also be used independently to create maps for external libraries or documentation.
 
