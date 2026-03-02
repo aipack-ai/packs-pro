@@ -4,14 +4,14 @@
 # See PATH_TO_PRO_CODER_README for more documentation
 # (for base_dir, working_globs, max_files_size_kb, cache_explicit, model_aliases, file_content_mode)
 
-# By default, all paths are relative to base_dir, which is the workspace directory by default (parent of .aipack/).
+# By default, all paths are relative to base_dir (by default ""), which is based on workspace directory by default (parent of .aipack/).
 
 ## Static knowledge
 knowledge_globs:
-  # - /rel/or/abs/path/to/**/*.md      # Any relative or absolute path/glob for Markdown files
-  # - pro@coder/README.md              # To ask questions about this pro@coder AIPack
+  # - /abs/or/rel/path/to/**/*.md      # Any relative or absolute path/glob for Markdown files
+  # - pro@coder/README.md              # Pack path supported (here ask question about pro@coder)
   # - core@doc/**/*.md                 # For help building .aip AIPack agents
-  # - pro@rust10x/guide/base/**/*.md   # Examples of best practices for Rust coding
+  # - pro@rust10x/guide/base/**/*.md   # Examples of best practices for Rust coding (require `aip install pro@rust10x`)
 
 ## File path & content included in prompt
 ## (relative to base_dir)
@@ -38,8 +38,9 @@ model: flash
 
 ## Optimize context files selection
 auto_context: 
-  model: flash   # (Use a small or inexpensive model)
-  enabled: false # (Default is true). Set to true or uncomment to enable.
+  model: flash           # (Use a small or inexpensive model)
+  input_concurrency: 16  # default 8
+  enabled: false         # (Default is true). Set to true or comment to enable.
 
 ## (see PATH_TO_PRO_CODER_README for full pro@coder documentation)
 ```
