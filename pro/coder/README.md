@@ -298,7 +298,7 @@ model: gpt-5-mini  # or "gpt-5" for normal coding
 
 #### auto_context
 
-Shortcut to configure and run the `pro@coder/auto-context` sub-agent. It is a concise alternative to defining it in the `sub_agents` list and supports the same properties.
+Shortcut to configure and run the `pro@coder/auto-context` sub-agent. This agent automatically identifies relevant context and knowledge files for your prompt by analyzing file summaries (via `code-map`). It is a concise alternative to defining it in the `sub_agents` list and supports the same properties.
 
 Can be:
 - **A string**: The model name to use (e.g., `auto_context: flash`).
@@ -310,10 +310,10 @@ Example:
 auto_context:
   model: flash                # The model used to analyze the instruction and code map
   enabled: true               # Whether to run the auto-context agent (default true)
-  # knowledge: true           # Whether to automatically select knowledge files (default true)
+  knowledge: true             # Automatically select knowledge files (default true)
   mode: reduce                # "reduce" (replaces) or "expand" (adds to existing) (default "reduce")
-  # input_concurrency: 8      # code map building concurrency (default 8)
-  # code_map_model: flash-low # code map model (optional, default auto-context model above)
+  # input_concurrency: 8      # code map building concurrency (default 8, or coder value)
+  # code_map_model: flash-low # code map model (optional, default auto_context model above)
   # map_name: context         # custom name for the code-map cache (default "context")
   helper_globs:               # Files to help select relevant context files
     - .aipack/.prompt/pro@coder/dev/plan/*.md
@@ -400,18 +400,23 @@ sub_agents:
   # Automatic context file selector (based on context-globs, using code-map)
   - name: pro@coder/auto-context
     enabled: false              # comment or set to true (default true)
-    # knowledge: true           # automatically select knowledge files (default true)
+    knowledge: true             # automatically select knowledge files (default true)
+    mode: reduce                # "reduce" (default) or "expand"
     model: flash                # small/cheap model to optimize which files are selected
     # input_concurrency: 32     # code map concurrency (for building the code-map.json) (default 8)
     # code_map_model: flash-low # code map model (optional, default auto-context model above)
     # map_name: context         # custom name for the code-map cache (default "context")
     helper_globs:               # Other files sent to give more information to select the proper context file
-      # - .aipack/.prompt/pro@coder/dev/chat/dev-chat.md
 ```
 
 - `name`: Set to `pro@coder/auto-context`. This agent automatically identifies relevant files for your prompt by comparing your instruction against a "code map" (summaries of your files).
 - `enabled`: Toggles the sub-agent execution.
 - `model`: The model used to analyze your instruction and the code map summaries to perform the file selection.
+- `knowledge`: (Optional, default `true`) If `true`, the agent will also analyze and select relevant files from `knowledge_globs`.
+- `mode`: (Optional, default `"reduce"`) 
+  - `"reduce"`: Replaces `context_globs` with the AI selection.
+  - `"expand"`: Adds the AI selection to existing `context_globs`.
+  - *Note: `knowledge_globs` are always reduced (replaced).*
 - `input_concurrency`: (Optional) The number of concurrent tasks used when generating or updating file summaries for the code map.
 - `code_map_model`: (Optional) The model used to generate file summaries. Defaults to the `model` specified above if not provided.
 - `helper_globs`: (Optional) Pattern for files (like development plans or chat logs) that provide additional guidance to help the sub-agent select the correct context files.
