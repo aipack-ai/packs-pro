@@ -38,12 +38,14 @@ model: flash
 
 ## Optimize context files selection
 auto_context: 
-  model: flash           # (Use a small or inexpensive model)
+  model: flash           # (Use a small or inexpensive model, can also define code_map_model)
   input_concurrency: 16  # default 8
-  enabled: false         # (Default is true). Set to true or comment to enable.
+  enabled: false         # (Default is true). Comment or set to true to enable.
 
 ## (see PATH_TO_PRO_CODER_README for full pro@coder documentation)
 ```
+
+
 
 ====
 > Write your prompt above the `====` line and below the parametric block (the YAML code block).  

@@ -73,7 +73,7 @@ local function extract_auto_context_config(sub_input)
 	if knowledge then
 		knowledge_globs = sub_input.coder_params.knowledge_globs
 		-- If knowledge is true but no knowledge_globs, silently skip
-		if not knowledge_globs or #knowledge_globs == 0 then
+		if is_null(knowledge_globs) or #knowledge_globs == 0 then
 			knowledge = false
 			knowledge_globs = nil
 		end
