@@ -68,7 +68,7 @@ local function extract_auto_context_config(sub_input)
 	-- if still nil, will default to the default of code-map
 
 	-- knowledge
-	local knowledge = input_agent_config.knowledge or false
+	local knowledge = input_agent_config.knowledge ~= false
 	local knowledge_globs = nil
 	if knowledge then
 		knowledge_globs = sub_input.coder_params.knowledge_globs

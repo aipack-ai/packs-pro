@@ -310,6 +310,7 @@ Example:
 auto_context:
   model: flash                # The model used to analyze the instruction and code map
   enabled: true               # Whether to run the auto-context agent (default true)
+  # knowledge: true           # Whether to automatically select knowledge files (default true)
   mode: reduce                # "reduce" (replaces) or "expand" (adds to existing) (default "reduce")
   # input_concurrency: 8      # code map building concurrency (default 8)
   # code_map_model: flash-low # code map model (optional, default auto-context model above)
@@ -399,6 +400,7 @@ sub_agents:
   # Automatic context file selector (based on context-globs, using code-map)
   - name: pro@coder/auto-context
     enabled: false              # comment or set to true (default true)
+    # knowledge: true           # automatically select knowledge files (default true)
     model: flash                # small/cheap model to optimize which files are selected
     # input_concurrency: 32     # code map concurrency (for building the code-map.json) (default 8)
     # code_map_model: flash-low # code map model (optional, default auto-context model above)
