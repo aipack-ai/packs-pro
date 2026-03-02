@@ -185,11 +185,13 @@ local function pin_status(auto_context_config, ctx)
 	-- === Pin Context Files
 	if done then
 		msg = ""
-		if new_context_files then
+		if new_context_files and #new_context_files > 0 then
 			for _, file in ipairs(new_context_files) do
 				msg = msg .. "  - " .. file.path .. "\n"
 			end
 			msg = aip.text.trim_end(msg) -- poor man
+		else
+			msg = "(no context files)"
 		end
 		-- files it in both
 		local files_pin = {

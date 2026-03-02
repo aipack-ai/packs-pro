@@ -168,6 +168,27 @@ if auto_context_config.knowledge and knowledge_code_map then
 	end
 end
 
+-- === Save the descriptions to cache
+local ac_cache_dir = sub_agent_input.coder_prompt_dir .. "/.cache/auto-context"
+-- Save context file descs
+local ctx_cache_file = ac_cache_dir .. "/last_context_file_descriptions.md"
+local ctx_cache_content = ""
+if not is_null(c_files_txt) and c_files_txt:find("%S") then
+	ctx_cache_content = "# Context Files Descriptions (Sent to AI for selection)\n\n" .. c_files_txt
+else
+	ctx_cache_content = "# Context Files Descriptions (Not sent to AI)\n\nNone\n"
+end
+aip.file.save(ctx_cache_file, ctx_cache_content)
+-- Save knowledge file descs
+local knl_cache_file = ac_cache_dir .. "/last_knowledge_file_descriptions.md"
+local knl_cache_content = ""
+if k_files_count > 0 then
+	knl_cache_content = knl_cache_content .. "\n# Knowledge Files Descriptions (Sent to AI for selection)\n\n" .. k_files_txt
+elseif aip.path.exists(ac_cache_file) then
+	knl_cache_content = knl_cache_content .. "\n# Knowledge Files Descriptions (Not sent to AI)\n\nNone\n"
+end
+aip.file.save(knl_cache_file, knl_cache_content)
+
 return aip.flow.data_response({
 	data = {
 		auto_context_config   = auto_context_config,
