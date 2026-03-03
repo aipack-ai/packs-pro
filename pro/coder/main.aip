@@ -377,7 +377,7 @@ end
 if data.write_mode then
     if #files_changed == 0 then
         response = response .. "No File changed."
-        response = response .. "\nCheck prompt file for more AI answer."
+        response = response .. "\n\nCheck prompt file for more AI answer."
         response = response .. "\nPrompt file:\n→ " .. data.prompt_file_rel_path        
     else 
         local file_txt = "file"
@@ -388,8 +388,10 @@ if data.write_mode then
         response = response .. "→ " .. table.concat(files_changed, "\n→ ")
     end
 else 
-    response = response .. "\nPrompt File has been updated with AI Response. Prompt file:"
-    response = response .. "\n→ " .. data.prompt_file_rel_path
+		response = response .. "No files were updated because `write_mode: false` (in the coder-prompt.md)."
+		response = response .. "\n\nSee the AI answer in the coder-prompt file:"
+		response = response .. "\n→ " .. data.prompt_file_rel_path
+		response = response .. "\n\nSet `write_mode: true` to enable file writing."
 end
 
 aip.task.pin("completed", 0, {
