@@ -140,6 +140,25 @@ local function resolve_refs(meta)
 		knowledge_refs = aip.file.list(meta.knowledge_globs, { base_dir = CTX.WORKSPACE_DIR })
 	end
 
+	-- Filter out non-text files if the API supports is_likely_text
+	local function filter_likely_text(files)
+		if not is_null(files) or #files == 0 then return files end
+		local first = files[1]
+		if first.is_likely_text == nil then return files end
+		-- API supports is_likely_text, filter out non-text files
+		local filtered = {}
+		for _, f in ipairs(files) do
+			if f.is_likely_text ~= false then
+				table.insert(filtered, f)
+			end
+		end
+		return filtered
+	end
+
+	if knowledge_refs then
+		knowledge_refs = filter_likely_text(knowledge_refs)
+	end
+
 	local base_dir = meta.base_dir or ""
 	local context_refs = nil
 	local structure_refs = nil
@@ -155,6 +174,7 @@ local function resolve_refs(meta)
 
 		if u_utils.is_not_empty(meta.context_globs) then
 			context_refs = aip.file.list(meta.context_globs, { base_dir = base_dir })
+			context_refs = filter_likely_text(context_refs)
 		end
 
 		if u_utils.is_not_empty(meta.working_globs) then
