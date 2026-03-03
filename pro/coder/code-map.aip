@@ -4,6 +4,7 @@
 local _cm = require("code_map")
 
 local LABEL_STATUS = "          Status:"
+local HASH_MTIME_UPDATED_MARKER = "__hash_mtime_updated__"
 
 -- Extract config and code_map data
 local sub_agent_input = inputs[1]
@@ -43,11 +44,31 @@ for _, mdef in ipairs(code_map_config.map_defs) do
 
 		local file_map_file = file_map[fpath]
 		if file_map_file and file_map_file.mtime >= orig_file.mtime then
-			fstatus.maps_up_to_date_for[mdef.file_path] = true
-			fstatus.cached_data = file_map_file
+			-- mtime is up to date; check if hash exists (backfill for older code map files)
+			if file_map_file.hash then
+				fstatus.maps_up_to_date_for[mdef.file_path] = true
+				fstatus.cached_data = file_map_file
+			else
+				-- No hash in cached data, compute and backfill
+				local current_hash = aip.file.hash_blake3(fpath)
+				file_map_file.hash = current_hash
+				file_map_file.mtime = orig_file.mtime
+				fstatus.maps_up_to_date_for[mdef.file_path] = HASH_MTIME_UPDATED_MARKER
+				fstatus.cached_data = file_map_file
+			end
 		else
-			fstatus.maps_to_process_for[mdef.file_path] = true
-			fstatus.cached_data = file_map_file or fstatus.cached_data
+			-- mtime changed or new file; compute hash and compare
+			local current_hash = aip.file.hash_blake3(fpath)
+			if file_map_file and file_map_file.hash and file_map_file.hash == current_hash then
+				-- Content unchanged, just update mtime in the cached entry
+				file_map_file.mtime = orig_file.mtime
+				fstatus.maps_up_to_date_for[mdef.file_path] = HASH_MTIME_UPDATED_MARKER
+				fstatus.cached_data = file_map_file
+			else
+				fstatus.maps_to_process_for[mdef.file_path] = true
+				fstatus.cached_data = file_map_file or fstatus.cached_data
+				fstatus.current_hash = current_hash
+			end
 		end
 	end
 end
@@ -55,6 +76,7 @@ end
 local new_count = 0
 local update_count = 0
 local up_to_date_count = 0
+local hash_mtime_updated = false
 
 for fpath, fstatus in pairs(file_status_by_path) do
 	local needs_processing = next(fstatus.maps_to_process_for) ~= nil
@@ -70,10 +92,18 @@ for fpath, fstatus in pairs(file_status_by_path) do
 			file_map_file = fstatus.cached_data,
 			map_names     = fstatus.map_names,
 			maps_to_process_for = fstatus.maps_to_process_for,
-			maps_up_to_date_for = fstatus.maps_up_to_date_for
+			maps_up_to_date_for = fstatus.maps_up_to_date_for,
+			current_hash  = fstatus.current_hash
 		})
 	else
 		up_to_date_count = up_to_date_count + 1
+		-- Check if any map entry had its mtime updated (hash matched but mtime changed)
+		for _, v in pairs(fstatus.maps_up_to_date_for) do
+			if v == HASH_MTIME_UPDATED_MARKER then
+				hash_mtime_updated = true
+				break
+			end
+		end
 	end
 end
 
@@ -94,6 +124,14 @@ end
 
 aip.run.pin("status", 1, { label = LABEL_STATUS, content = status_msg })
 
+-- If all files resolved via hash comparison (none need AI), save updated mtime values now
+if #files_to_process == 0 and hash_mtime_updated then
+	for map_path, map_data in pairs(loaded_maps) do
+		local content = aip.json.stringify_pretty(map_data)
+		aip.file.save(map_path, content)
+	end
+end
+
 return aip.flow.before_all_response({
 	options    = {
 		model             = code_map_config.model,
@@ -105,7 +143,8 @@ return aip.flow.before_all_response({
 		to_process_count   = #files_to_process,
 		code_map_config    = code_map_config,
 		loaded_maps        = loaded_maps,
-		up_to_date_count   = up_to_date_count
+		up_to_date_count   = up_to_date_count,
+		hash_mtime_updated = hash_mtime_updated
 	}
 })
 ```
@@ -218,6 +257,7 @@ if before_all.to_process_count > 0 then
 			local ok, json_content_res = pcall(aip.json.parse, raw_content)
 			if ok then
 				json_content_res.mtime = input_file.mtime
+				json_content_res.hash = inputs[i].current_hash or aip.file.hash_blake3(file_path)
 				
 				for map_path, _ in pairs(inputs[i].maps_to_process_for) do
 					loaded_maps[map_path].file_map[file_path] = json_content_res
@@ -242,10 +282,15 @@ if before_all.to_process_count > 0 then
 		
 	end
 	
-	for map_path, map_data in pairs(loaded_maps) do
-		local content = aip.json.stringify_pretty(map_data)
-		aip.file.save(map_path, content)
-	end
+end
+
+-- Save maps regardless of to_process_count, as hash/mtime updates may need persisting
+for map_path, map_data in pairs(loaded_maps) do
+	local content = aip.json.stringify_pretty(map_data)
+	aip.file.save(map_path, content)
+end
+
+if before_all.to_process_count > 0 then
 	
 	local total_files = before_all.to_process_count + before_all.up_to_date_count
 	local status_msg = "✅ Total code-map files: " .. total_files .. " (" .. before_all.to_process_count .. " to process, " .. before_all.up_to_date_count .. " already processed)"

@@ -102,6 +102,7 @@ end
 -- Returns {
 --   file_map: {[file_path: string]: {
 --         mtime: number
+--         hash: string,
 --         summary: string,
 --         when_to_use: string,
 --      }
