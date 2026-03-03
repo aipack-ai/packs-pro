@@ -56,7 +56,6 @@ end
 function run_sub_agent(config, stage, current_params, current_coder_prompt, coder_options, coder_prompt_dir)
 	if config.enabled == false then
 		local name = config.name or ""
-		print("sub agent '" .. name .. "' disabled (enabled = false)")
 		return current_params, current_coder_prompt
 	end
 
@@ -142,7 +141,8 @@ function run_sub_agents(stage, coder_meta, inst, coder_options, coder_prompt_dir
 
 	for _, config in ipairs(agent_configs) do
 		local err
-		current_params, current_coder_prompt, err = run_sub_agent(config, stage, current_params, current_coder_prompt, coder_options, coder_prompt_dir)
+		current_params, current_coder_prompt, err = run_sub_agent(config, stage, current_params, current_coder_prompt,
+			coder_options, coder_prompt_dir)
 		if err then return nil, nil, err end
 	end
 
