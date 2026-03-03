@@ -3,6 +3,8 @@
 ```lua
 local _cm = require("code_map")
 
+local LABEL_STATUS = "          Status:"
+
 -- Extract config and code_map data
 local sub_agent_input = inputs[1]
 local code_map_config = _cm.extract_code_map_config(sub_agent_input)
@@ -15,8 +17,6 @@ end
 
 -- Build before all data
 local files_to_process = {}
-
-local to_process_count = 0
 
 local file_status_by_path = {}
 
@@ -52,10 +52,18 @@ for _, mdef in ipairs(code_map_config.map_defs) do
 	end
 end
 
+local new_count = 0
+local update_count = 0
+local up_to_date_count = 0
+
 for fpath, fstatus in pairs(file_status_by_path) do
 	local needs_processing = next(fstatus.maps_to_process_for) ~= nil
 	if needs_processing then
-		to_process_count = to_process_count + 1
+		if fstatus.cached_data then
+			update_count = update_count + 1
+		else
+			new_count = new_count + 1
+		end
 		table.insert(files_to_process, {
 			_display      = fpath,
 			file          = fstatus.file,
@@ -64,14 +72,27 @@ for fpath, fstatus in pairs(file_status_by_path) do
 			maps_to_process_for = fstatus.maps_to_process_for,
 			maps_up_to_date_for = fstatus.maps_up_to_date_for
 		})
+	else
+		up_to_date_count = up_to_date_count + 1
 	end
 end
 
+local to_process_count = #files_to_process
+local total_files = to_process_count + up_to_date_count
+local status_msg = ""
 if to_process_count == 0 then
-	aip.run.pin("status", 1, "Code map up to date, nothing to do")
+	status_msg = "✅ Total code-map files: " .. total_files .. " (" .. up_to_date_count .. " already processed)"
 else 
-	aip.run.pin("status", 1, "to_process_count " .. to_process_count .. " files")
+	status_msg = ".. Total code-map files: " .. total_files .. " (" .. to_process_count .. " to process, " .. up_to_date_count .. " already processed)"
+	local details = {}
+	if new_count > 0 then table.insert(details, new_count .. " creation") end
+	if update_count > 0 then table.insert(details, update_count .. " updating") end
+	if #details > 0 then
+		status_msg = status_msg .. "\n   " .. table.concat(details, " | ")
+	end
 end
+
+aip.run.pin("status", 1, { label = LABEL_STATUS, content = status_msg })
 
 return aip.flow.before_all_response({
 	options    = {
@@ -83,7 +104,8 @@ return aip.flow.before_all_response({
 		sub_agent_input    = sub_agent_input,
 		to_process_count   = #files_to_process,
 		code_map_config    = code_map_config,
-		loaded_maps        = loaded_maps
+		loaded_maps        = loaded_maps,
+		up_to_date_count   = up_to_date_count
 	}
 })
 ```
@@ -177,6 +199,11 @@ local _cm = require("code_map")
 local code_map_config    = before_all.code_map_config
 local loaded_maps        = before_all.loaded_maps
 
+local LABEL_STATUS = "          Status:"
+local updated_count = 0
+local created_count = 0
+local same_count = 0
+
 if before_all.to_process_count > 0 then 
 	for i, output in ipairs(outputs) do
 		local output_content = output.content
@@ -198,12 +225,18 @@ if before_all.to_process_count > 0 then
 				for map_path, _ in pairs(inputs[i].maps_up_to_date_for) do
 					loaded_maps[map_path].file_map[file_path] = json_content_res
 				end
+				if inputs[i].file_map_file then
+					updated_count = updated_count + 1
+				else
+					created_count = created_count + 1
+				end
 			else
 				print("Error while parsing FILE_INFO json for file\n" .. file_path)
 				print(output_content)
 			end
 			
 		else
+			same_count = same_count + 1
 			print("No FILE_INFO tag for " .. file_path .. "\n(might match current info)")
 		end
 		
@@ -213,6 +246,19 @@ if before_all.to_process_count > 0 then
 		local content = aip.json.stringify_pretty(map_data)
 		aip.file.save(map_path, content)
 	end
+	
+	local total_files = before_all.to_process_count + before_all.up_to_date_count
+	local status_msg = "✅ Total code-map files: " .. total_files .. " (" .. before_all.to_process_count .. " to process, " .. before_all.up_to_date_count .. " already processed)"
+	local details = {}
+	if created_count > 0 then table.insert(details, created_count .. " created") end
+	if updated_count > 0 then
+		table.insert(details, updated_count .. " updated")
+	end
+	if same_count > 0 then table.insert(details, same_count .. " same (no change)") end
+	if #details > 0 then
+		status_msg = status_msg .. "\n   " .. table.concat(details, " | ")
+	end
+	aip.run.pin("status", 1, { label = LABEL_STATUS, content = status_msg })
 end
 
 local code_map_file_paths = {}
