@@ -332,7 +332,7 @@ local context_reasoning = res_map.context_reasoning.content
 local new_context_globs = {}
 	-- TODO: need to add the negative globs
 if mode == "reduce" then
-	new_context_globs = needed_context_files
+	new_context_globs = _ac.sort_files_by_mtime(needed_context_files)
 else -- augment
 	-- Init the new_context_globs, 
 	table.move(data.context_globs, 1, #data.context_globs, 
@@ -365,7 +365,7 @@ local new_knowledge_globs = nil
 local knowledge_reasoning = nil
 if data.knowledge_enabled and res_map.needed_knowledge_files then
 	local needed_knowledge_files = aip.json.parse(res_map.needed_knowledge_files.content)
-	new_knowledge_globs = needed_knowledge_files -- always "reduce" for knowledge
+	new_knowledge_globs = _ac.sort_files_by_mtime(needed_knowledge_files) -- always "reduce" for knowledge
 	if res_map.knowledge_reasoning then
 		knowledge_reasoning = res_map.knowledge_reasoning.content
 	end

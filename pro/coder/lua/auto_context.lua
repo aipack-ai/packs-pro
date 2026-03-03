@@ -205,10 +205,14 @@ local function pin_status(auto_context_config, ctx)
 	-- === Pin Knowledge Files
 	if knowledge_done and auto_context_config.knowledge and new_knowledge_files then
 		msg = ""
-		for _, file in ipairs(new_knowledge_files) do
-			msg = msg .. "  - " .. file.path .. "\n"
+		if new_knowledge_files and #new_knowledge_files > 0 then
+			for _, file in ipairs(new_knowledge_files) do
+				msg = msg .. "  - " .. file.path .. "\n"
+			end
+			msg = aip.text.trim_end(msg)
+		else
+			msg = "(no knowledge files)"
 		end
-		msg = aip.text.trim_end(msg)
 		local kfiles_pin = {
 			label = LABEL_KFILES,
 			content = msg
@@ -241,7 +245,7 @@ local function pin_status(auto_context_config, ctx)
 	if ctx.helper_files then
 		local content = ""
 		for _, file in ipairs(ctx.helper_files) do
-			content = content .. "- " .. file.path .. "\n"
+			content = content .. "  - " .. file.path .. "\n"
 		end
 		content = aip.text.trim_end(content) -- poor man
 		local helpers_pin = {
@@ -253,8 +257,42 @@ local function pin_status(auto_context_config, ctx)
 	end
 end
 
+-- file_paths: string[]
+-- return: string[] sorted by mtime (oldest first), then path
+local function sort_files_by_mtime(file_paths)
+	if not file_paths or #file_paths <= 1 then
+		return file_paths
+	end
+
+	local files_info = {}
+	for _, path in ipairs(file_paths) do
+		local info = aip.file.info(path)
+		if info then
+			table.insert(files_info, info)
+		else
+			table.insert(files_info, { path = path, mtime = 0 })
+		end
+	end
+
+	table.sort(files_info, function(a, b)
+		local am = a.mtime or 0
+		local bm = b.mtime or 0
+		if am == bm then
+			return a.path < b.path
+		end
+		return am < bm
+	end)
+
+	local result = {}
+	for _, info in ipairs(files_info) do
+		table.insert(result, info.path)
+	end
+	return result
+end
+
 
 return {
 	extract_auto_context_config = extract_auto_context_config,
 	pin_status                  = pin_status,
+	sort_files_by_mtime         = sort_files_by_mtime,
 }
