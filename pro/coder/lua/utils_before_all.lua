@@ -348,16 +348,20 @@ function run_before_all(inputs)
 	local meta, inst = extract_meta_and_inst(first_part)
 
 	-- === Normalize pinned globs
-	local pinned_context, pinned_err = u_pinned.normalize_pinned_globs(meta.context_globs_pinned, "context_globs_pinned")
-	pinned_context = pinned_context or {}
-	if pinned_err then return nil, nil, pinned_err end
-	local pinned_knowledge, pk_err = u_pinned.normalize_pinned_globs(meta.knowledge_globs_pinned, "knowledge_globs_pinned")
-	pinned_knowledge = pinned_knowledge or {}
-	if pk_err then return nil, nil, pk_err end
+	local context_globs_pre, err_cp = u_pinned.validate_string_list(meta.context_globs_pre, "context_globs_pre")
+	if not context_globs_pre then return nil, nil, err_cp end
+	local context_globs_post, err_cpo = u_pinned.validate_string_list(meta.context_globs_post, "context_globs_post")
+	if not context_globs_post then return nil, nil, err_cpo end
+	local knowledge_globs_pre, err_kp = u_pinned.validate_string_list(meta.knowledge_globs_pre, "knowledge_globs_pre")
+	if not knowledge_globs_pre then return nil, nil, err_kp end
+	local knowledge_globs_post, err_kpo = u_pinned.validate_string_list(meta.knowledge_globs_post, "knowledge_globs_post")
+	if not knowledge_globs_post then return nil, nil, err_kpo end
 
-	-- Store normalized pinned globs in meta so sub-agents can see/modify them
-	meta.context_globs_pinned = pinned_context
-	meta.knowledge_globs_pinned = pinned_knowledge
+	-- Store validated pinned globs back in meta so sub-agents can see/modify them
+	meta.context_globs_pre = context_globs_pre
+	meta.context_globs_post = context_globs_post
+	meta.knowledge_globs_pre = knowledge_globs_pre
+	meta.knowledge_globs_post = knowledge_globs_post
 
 	-- === Compute the agent options
 	local options = {
@@ -412,21 +416,25 @@ function run_before_all(inputs)
 
 	-- === Apply pinned globs (pre and post) as the final step before resolving refs.
 	-- Read from meta so that sub-agents could have modified them.
-	local final_pinned_context = meta.context_globs_pinned or { pre = {}, post = {} }
-	local final_pinned_knowledge = meta.knowledge_globs_pinned or { pre = {}, post = {} }
+	local final_ctx_pre = meta.context_globs_pre or {}
+	local final_ctx_post = meta.context_globs_post or {}
+	local final_knl_pre = meta.knowledge_globs_pre or {}
+	local final_knl_post = meta.knowledge_globs_post or {}
 
-	if #final_pinned_context.pre > 0 or #final_pinned_context.post > 0 then
+	if #final_ctx_pre > 0 or #final_ctx_post > 0 then
 		local current = meta.context_globs or {}
-		meta.context_globs = u_pinned.merge_pinned(final_pinned_context.pre, current, final_pinned_context.post)
+		meta.context_globs = u_pinned.merge_pinned(final_ctx_pre, current, final_ctx_post)
 	end
-	if #final_pinned_knowledge.pre > 0 or #final_pinned_knowledge.post > 0 then
+	if #final_knl_pre > 0 or #final_knl_post > 0 then
 		local current = meta.knowledge_globs or {}
-		meta.knowledge_globs = u_pinned.merge_pinned(final_pinned_knowledge.pre, current, final_pinned_knowledge.post)
+		meta.knowledge_globs = u_pinned.merge_pinned(final_knl_pre, current, final_knl_post)
 	end
 
 	-- Clean up pinned keys from meta before downstream use
-	meta.context_globs_pinned = nil
-	meta.knowledge_globs_pinned = nil
+	meta.context_globs_pre = nil
+	meta.context_globs_post = nil
+	meta.knowledge_globs_pre = nil
+	meta.knowledge_globs_post = nil
 
 	aip.run.pin("pfile", 0, {
 		label = CONST.LABEL_PROMPT_FILE,

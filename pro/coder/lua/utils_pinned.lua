@@ -1,86 +1,24 @@
--- Utilities for pinned globs normalization and merging.
+-- Utilities for pinned globs validation and merging.
 
--- Normalize a pinned_globs value from user config into { pre = string[], post = string[] }.
--- Accepts:
---   nil/null        -> { pre = {}, post = {} }
---   string[]        -> { pre = <list>, post = {} }  (shorthand)
---   { pre?, post? } -> validated and returned
--- Returns normalized table or nil, error_message
--- param_name: string used in error messages (e.g. "context_globs_pinned")
-local function normalize_pinned_globs(value, param_name)
+-- Validate that a value is nil/null or a list of strings.
+-- Returns the value as a string[] (empty table if nil/null), or nil + error message.
+-- param_name: string used in error messages (e.g. "context_globs_pre")
+local function validate_string_list(value, param_name)
 	if is_null(value) then
-		return { pre = {}, post = {} }
+		return {}
 	end
 
 	if type(value) ~= "table" then
-		return nil, param_name .. " must be a list of strings or an object with 'pre'/'post' keys, got " .. type(value)
+		return nil, param_name .. " must be a list of strings, got " .. type(value)
 	end
 
-	-- Detect if it's a sequential array (list) vs an object
-	-- A list has numeric keys starting at 1; an object has string keys like "pre"/"post"
-	local is_list = false
-	if #value > 0 then
-		-- Could be a list or an object with numeric keys
-		-- Check if first element is a string (list shorthand) or if pre/post keys exist
-		if type(value[1]) == "string" then
-			is_list = true
-		elseif value.pre ~= nil or value.post ~= nil then
-			is_list = false
-		else
-			-- Has numeric keys but first is not string
-			return nil, param_name .. " list items must be strings"
+	for i, item in ipairs(value) do
+		if type(item) ~= "string" then
+			return nil, param_name .. " item #" .. i .. " must be a string, got " .. type(item)
 		end
-	elseif value.pre ~= nil or value.post ~= nil then
-		is_list = false
-	else
-		-- Empty table, treat as empty list
-		return { pre = {}, post = {} }
 	end
 
-	if is_list then
-		-- Shorthand: list of strings -> treat as pre
-		-- Validate all items are strings
-		for i, item in ipairs(value) do
-			if type(item) ~= "string" then
-				return nil, param_name .. " list item #" .. i .. " must be a string, got " .. type(item)
-			end
-		end
-		-- Check no pre/post keys mixed in
-		if value.pre ~= nil or value.post ~= nil then
-			return nil, param_name ..
-					" cannot mix list shorthand with 'pre'/'post' keys. Use either a plain list (treated as 'pre') or an object with 'pre' and/or 'post'."
-		end
-		return { pre = value, post = {} }
-	end
-
-	-- Object form with pre/post
-	local result = { pre = {}, post = {} }
-
-	if not is_null(value.pre) then
-		if type(value.pre) ~= "table" then
-			return nil, param_name .. ".pre must be a list of strings, got " .. type(value.pre)
-		end
-		for i, item in ipairs(value.pre) do
-			if type(item) ~= "string" then
-				return nil, param_name .. ".pre item #" .. i .. " must be a string, got " .. type(item)
-			end
-		end
-		result.pre = value.pre
-	end
-
-	if not is_null(value.post) then
-		if type(value.post) ~= "table" then
-			return nil, param_name .. ".post must be a list of strings, got " .. type(value.post)
-		end
-		for i, item in ipairs(value.post) do
-			if type(item) ~= "string" then
-				return nil, param_name .. ".post item #" .. i .. " must be a string, got " .. type(item)
-			end
-		end
-		result.post = value.post
-	end
-
-	return result
+	return value
 end
 
 -- Merge pinned pre, auto-selected globs, and pinned post.
@@ -103,6 +41,6 @@ local function merge_pinned(pinned_pre, selected, pinned_post)
 end
 
 return {
-	normalize_pinned_globs = normalize_pinned_globs,
-	merge_pinned           = merge_pinned,
+	validate_string_list = validate_string_list,
+	merge_pinned         = merge_pinned,
 }

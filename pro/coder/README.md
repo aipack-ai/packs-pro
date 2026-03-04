@@ -305,53 +305,54 @@ Example:
 model: gpt-5-mini  # or "gpt-5" for normal coding
 ```
 
-#### context_globs_pinned
+#### context_globs_pre
 
-Glob patterns that are always included in context, regardless of auto-context selection. Pinned globs are never removed by auto-context, even in `mode: reduce`.
+Glob patterns that are always prepended to context globs before auto-context runs. These are never removed by auto-context, even in `mode: reduce`. Because they appear before the auto-context selection, they influence the code-map and the selector prompt, so the AI "sees" these files when deciding which other files to select.
 
-Can be provided as:
-
-- A plain list of strings (interpreted as `pre`):
+Example:
 
 ```yaml
-context_globs_pinned:
+context_globs_pre:
   - package.json
   - src/shared/**/*.ts
 ```
 
-- An object with `pre` and/or `post` keys:
+#### context_globs_post
+
+Glob patterns that are always appended to context globs after auto-context returns its selection. These are always present in the final context but do not influence file selection.
+
+Example:
 
 ```yaml
-context_globs_pinned:
-  pre:
-    - package.json
-    - src/shared/**/*.ts
-  post:
-    - .aipack/.prompt/pro@coder/dev/plan/*.md
+context_globs_post:
+  - .aipack/.prompt/pro@coder/dev/plan/*.md
 ```
 
-Semantics:
+Final context globs order: `context_globs_pre + auto_context_selected + context_globs_post` (deduped).
 
-- `pre` globs are included before auto-context runs. They influence the code-map and the auto-context selector prompt, so the AI "sees" these files when deciding which other files to select.
-- `post` globs are appended after auto-context returns its selection. They are always present in the final context but do not influence file selection.
-- Duplicates are removed while preserving first-occurrence order.
-- Final context globs: `pinned_pre + auto_context_selected + pinned_post` (deduped).
+#### knowledge_globs_pre
 
-#### knowledge_globs_pinned
+Same semantics as `context_globs_pre`, but for knowledge files. Glob patterns prepended before auto-context knowledge selection.
 
-Same format and semantics as `context_globs_pinned`, but for knowledge files.
+Example:
 
 ```yaml
-knowledge_globs_pinned:
-  pre:
-    - core@doc/**/*.md
-  post:
-    - path/to/my/best-practices/**/*.md
+knowledge_globs_pre:
+  - core@doc/**/*.md
 ```
 
-- `pre` knowledge globs are included in the code-map and selector prompt for knowledge file selection.
-- `post` knowledge globs are always appended after auto-context selection.
-- Knowledge pinned globs are always reduced (replaced) by the merge, not expanded.
+#### knowledge_globs_post
+
+Glob patterns always appended after auto-context knowledge selection.
+
+Example:
+
+```yaml
+knowledge_globs_post:
+  - path/to/my/best-practices/**/*.md
+```
+
+Final knowledge globs order: `knowledge_globs_pre + auto_context_selected + knowledge_globs_post` (deduped).
 
 #### auto_context
 _since v0.4.0_
