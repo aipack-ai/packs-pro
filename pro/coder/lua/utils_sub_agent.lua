@@ -136,6 +136,8 @@ function run_sub_agents(stage, coder_meta, inst, coder_options, coder_prompt_dir
 	current_params.context_globs = value_or(current_params.context_globs, {})
 	current_params.structure_globs = value_or(current_params.structure_globs, {})
 	current_params.knowledge_globs = value_or(current_params.knowledge_globs, {})
+	current_params.context_globs_pinned = value_or(current_params.context_globs_pinned, { pre = {}, post = {} })
+	current_params.knowledge_globs_pinned = value_or(current_params.knowledge_globs_pinned, { pre = {}, post = {} })
 
 	local current_coder_prompt = inst
 

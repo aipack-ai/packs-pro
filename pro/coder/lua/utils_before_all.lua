@@ -355,15 +355,9 @@ function run_before_all(inputs)
 	pinned_knowledge = pinned_knowledge or {}
 	if pk_err then return nil, nil, pk_err end
 
-	-- Inject pinned pre globs into context_globs and knowledge_globs before auto-context
-	if #pinned_context.pre > 0 then
-		local orig = meta.context_globs or {}
-		meta.context_globs = u_pinned.merge_pinned(pinned_context.pre, orig, {})
-	end
-	if #pinned_knowledge.pre > 0 then
-		local orig = meta.knowledge_globs or {}
-		meta.knowledge_globs = u_pinned.merge_pinned(pinned_knowledge.pre, orig, {})
-	end
+	-- Store normalized pinned globs in meta so sub-agents can see/modify them
+	meta.context_globs_pinned = pinned_context
+	meta.knowledge_globs_pinned = pinned_knowledge
 
 	-- === Compute the agent options
 	local options = {
@@ -390,15 +384,6 @@ function run_before_all(inputs)
 			meta, inst, err = u_sub_agent.run_sub_agent(ac_config, "pre", meta, inst, options, coder_prompt_dir)
 			if err then return nil, nil, err end
 			meta = meta or {}
-			-- Apply pinned post globs after auto-context
-			if #pinned_context.post > 0 or #pinned_context.pre > 0 then
-				local current = meta.context_globs or {}
-				meta.context_globs = u_pinned.merge_pinned(pinned_context.pre, current, pinned_context.post)
-			end
-			if #pinned_knowledge.post > 0 or #pinned_knowledge.pre > 0 then
-				local current = meta.knowledge_globs or {}
-				meta.knowledge_globs = u_pinned.merge_pinned(pinned_knowledge.pre, current, pinned_knowledge.post)
-			end
 			-- recompute options from the meta returned
 			options = {
 				model             = meta.model,
@@ -416,15 +401,6 @@ function run_before_all(inputs)
 		meta = meta or {} -- make the type nil check happy
 
 		if err then return nil, nil, err end
-		-- Apply pinned post globs after sub-agents (in case sub-agents modified globs)
-		if #pinned_context.post > 0 or #pinned_context.pre > 0 then
-			local current = meta.context_globs or {}
-			meta.context_globs = u_pinned.merge_pinned(pinned_context.pre, current, pinned_context.post)
-		end
-		if #pinned_knowledge.post > 0 or #pinned_knowledge.pre > 0 then
-			local current = meta.knowledge_globs or {}
-			meta.knowledge_globs = u_pinned.merge_pinned(pinned_knowledge.pre, current, pinned_knowledge.post)
-		end
 		-- recompute options from the meta returned
 		options = {
 			model             = meta.model,
@@ -433,6 +409,24 @@ function run_before_all(inputs)
 			input_concurrency = meta.input_concurrency
 		}
 	end
+
+	-- === Apply pinned globs (pre and post) as the final step before resolving refs.
+	-- Read from meta so that sub-agents could have modified them.
+	local final_pinned_context = meta.context_globs_pinned or { pre = {}, post = {} }
+	local final_pinned_knowledge = meta.knowledge_globs_pinned or { pre = {}, post = {} }
+
+	if #final_pinned_context.pre > 0 or #final_pinned_context.post > 0 then
+		local current = meta.context_globs or {}
+		meta.context_globs = u_pinned.merge_pinned(final_pinned_context.pre, current, final_pinned_context.post)
+	end
+	if #final_pinned_knowledge.pre > 0 or #final_pinned_knowledge.post > 0 then
+		local current = meta.knowledge_globs or {}
+		meta.knowledge_globs = u_pinned.merge_pinned(final_pinned_knowledge.pre, current, final_pinned_knowledge.post)
+	end
+
+	-- Clean up pinned keys from meta before downstream use
+	meta.context_globs_pinned = nil
+	meta.knowledge_globs_pinned = nil
 
 	aip.run.pin("pfile", 0, {
 		label = CONST.LABEL_PROMPT_FILE,
