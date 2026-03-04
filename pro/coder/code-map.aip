@@ -5,15 +5,60 @@ local _cm = require("code_map")
 
 local LABEL_STATUS = "          Status:"
 local HASH_MTIME_UPDATED_MARKER = "__hash_mtime_updated__"
+local TMP_IN_PROGRESS_FILENAME = ".tmp-in-progress.jsonl"
 
 -- Extract config and code_map data
 local sub_agent_input = inputs[1]
 local code_map_config = _cm.extract_code_map_config(sub_agent_input)
+local tmp_in_progress_path = code_map_config.code_map_dir .. "/" .. TMP_IN_PROGRESS_FILENAME
 
 -- Load all code maps
 local loaded_maps = {}
 for _, mdef in ipairs(code_map_config.map_defs) do
 	loaded_maps[mdef.file_path] = _cm.load_code_map_file(mdef.file_path)
+end
+
+-- Recover from previous interrupted run
+local recovered_count = 0
+if aip.path.exists(tmp_in_progress_path) then
+	local recovered_entries = aip.file.load_ndjson(tmp_in_progress_path)
+	if recovered_entries and #recovered_entries > 0 then
+		for _, entry in ipairs(recovered_entries) do
+			local fpath = entry.file_path
+			local file_info_data = entry.file_info
+			if fpath and file_info_data then
+				local record = {
+					summary = file_info_data.summary,
+					when_to_use = file_info_data.when_to_use,
+					public_types = file_info_data.public_types,
+					public_functions = file_info_data.public_functions,
+					mtime = entry.mtime,
+					hash = entry.hash,
+				}
+				if entry.maps_to_process_for then
+					for _, map_path in ipairs(entry.maps_to_process_for) do
+						if loaded_maps[map_path] then
+							loaded_maps[map_path].file_map[fpath] = record
+						end
+					end
+				end
+				if entry.maps_up_to_date_for then
+					for _, map_path in ipairs(entry.maps_up_to_date_for) do
+						if loaded_maps[map_path] then
+							loaded_maps[map_path].file_map[fpath] = record
+						end
+					end
+				end
+				recovered_count = recovered_count + 1
+			end
+		end
+	end
+	-- Truncate the file so this run starts fresh
+	aip.file.save(tmp_in_progress_path, "")
+end
+
+if recovered_count > 0 then
+	aip.run.pin("recovered", 0, { label = LABEL_STATUS, content = "♻️ Recovered " .. recovered_count .. " entries from previous interrupted run." })
 end
 
 -- Build before all data
@@ -125,10 +170,14 @@ end
 aip.run.pin("status", 1, { label = LABEL_STATUS, content = status_msg })
 
 -- If all files resolved via hash comparison (none need AI), save updated mtime values now
-if #files_to_process == 0 and hash_mtime_updated then
+if #files_to_process == 0 and (hash_mtime_updated or recovered_count > 0) then
 	for map_path, map_data in pairs(loaded_maps) do
 		local content = aip.json.stringify_pretty(map_data)
 		aip.file.save(map_path, content)
+	end
+	-- Clean up the tmp file if it exists
+	if aip.path.exists(tmp_in_progress_path) then
+		aip.file.delete(tmp_in_progress_path)
 	end
 end
 
@@ -144,7 +193,9 @@ return aip.flow.before_all_response({
 		code_map_config    = code_map_config,
 		loaded_maps        = loaded_maps,
 		up_to_date_count   = up_to_date_count,
-		hash_mtime_updated = hash_mtime_updated
+		hash_mtime_updated = hash_mtime_updated,
+		tmp_in_progress_path = tmp_in_progress_path,
+		recovered_count    = recovered_count,
 	}
 })
 ```
@@ -220,10 +271,69 @@ Here is the preview previous file info
 
 ```lua
 if ai_response then
-	return {
-		content  = ai_response.content,
-		_display = "code map file updated for file:\n- " .. data.file.path
-	}
+	local file_path = data.file.path
+	local output_content = ai_response.content
+	local tag_map = aip.tag.extract_as_map(output_content, "FILE_INFO")
+
+	if tag_map.FILE_INFO then
+		local raw_content = tag_map.FILE_INFO.content
+		raw_content = aip.md.outer_block_content_or_raw(raw_content)
+		local ok, json_content_res = pcall(aip.json.parse, raw_content)
+		if ok then
+			local mtime_val = input.file.mtime
+			local hash_val = input.current_hash or aip.file.hash_blake3(file_path)
+
+			-- Build maps_to_process_for and maps_up_to_date_for as lists for jsonl
+			local maps_to_process_list = {}
+			for map_path, _ in pairs(input.maps_to_process_for) do
+				table.insert(maps_to_process_list, map_path)
+			end
+			local maps_up_to_date_list = {}
+			for map_path, _ in pairs(input.maps_up_to_date_for) do
+				table.insert(maps_up_to_date_list, map_path)
+			end
+
+			local jsonl_entry = {
+				file_path = file_path,
+				mtime = mtime_val,
+				hash = hash_val,
+				maps_to_process_for = maps_to_process_list,
+				maps_up_to_date_for = maps_up_to_date_list,
+				file_info = {
+					summary = json_content_res.summary,
+					when_to_use = json_content_res.when_to_use,
+					public_types = json_content_res.public_types,
+					public_functions = json_content_res.public_functions,
+				}
+			}
+
+			aip.file.append_json_line(before_all.tmp_in_progress_path, jsonl_entry)
+
+			return {
+				success = true,
+				file_path = file_path,
+				had_previous = input.file_map_file ~= nil,
+				_display = "code map file updated for file:\n- " .. file_path
+			}
+		else
+			print("Error while parsing FILE_INFO json for file\n" .. file_path)
+			print(output_content)
+			return {
+				success = false,
+				file_path = file_path,
+				error = "JSON parse error",
+				_display = "code map parse error for file:\n- " .. file_path
+			}
+		end
+	else
+		print("No FILE_INFO tag for " .. file_path .. "\n(might match current info)")
+		return {
+			success = true,
+			same = true,
+			file_path = file_path,
+			_display = "code map same (no change) for file:\n- " .. file_path
+		}
+	end
 else
 	return nil
 end
@@ -237,6 +347,7 @@ local _cm = require("code_map")
 
 local code_map_config    = before_all.code_map_config
 local loaded_maps        = before_all.loaded_maps
+local tmp_in_progress_path = before_all.tmp_in_progress_path
 
 local LABEL_STATUS = "          Status:"
 local updated_count = 0
@@ -244,44 +355,54 @@ local created_count = 0
 local same_count = 0
 
 if before_all.to_process_count > 0 then 
-	for i, output in ipairs(outputs) do
-		local output_content = output.content
-		local input_file = inputs[i].file
-		local file_path = input_file.path
-		
-		local tag_map = aip.tag.extract_as_map(output_content, "FILE_INFO")
-		
-		if tag_map.FILE_INFO then
-			local raw_content = tag_map.FILE_INFO.content
-			raw_content = aip.md.outer_block_content_or_raw(raw_content)
-			local ok, json_content_res = pcall(aip.json.parse, raw_content)
-			if ok then
-				json_content_res.mtime = input_file.mtime
-				json_content_res.hash = inputs[i].current_hash or aip.file.hash_blake3(file_path)
-				
-				for map_path, _ in pairs(inputs[i].maps_to_process_for) do
-					loaded_maps[map_path].file_map[file_path] = json_content_res
-				end
-				for map_path, _ in pairs(inputs[i].maps_up_to_date_for) do
-					loaded_maps[map_path].file_map[file_path] = json_content_res
-				end
-				if inputs[i].file_map_file then
-					updated_count = updated_count + 1
-				else
-					created_count = created_count + 1
-				end
-			else
-				print("Error while parsing FILE_INFO json for file\n" .. file_path)
-				print(output_content)
-			end
-			
-		else
-			same_count = same_count + 1
-			print("No FILE_INFO tag for " .. file_path .. "\n(might match current info)")
-		end
-		
+	-- Load entries written during this run from the tmp jsonl file
+	local run_entries = {}
+	if aip.path.exists(tmp_in_progress_path) then
+		run_entries = aip.file.load_ndjson(tmp_in_progress_path) or {}
 	end
-	
+
+	-- Apply jsonl entries to loaded_maps
+	for _, entry in ipairs(run_entries) do
+		local fpath = entry.file_path
+		local file_info_data = entry.file_info
+		if fpath and file_info_data then
+			local record = {
+				summary = file_info_data.summary,
+				when_to_use = file_info_data.when_to_use,
+				public_types = file_info_data.public_types,
+				public_functions = file_info_data.public_functions,
+				mtime = entry.mtime,
+				hash = entry.hash,
+			}
+			if entry.maps_to_process_for then
+				for _, map_path in ipairs(entry.maps_to_process_for) do
+					if loaded_maps[map_path] then
+						loaded_maps[map_path].file_map[fpath] = record
+					end
+				end
+			end
+			if entry.maps_up_to_date_for then
+				for _, map_path in ipairs(entry.maps_up_to_date_for) do
+					if loaded_maps[map_path] then
+						loaded_maps[map_path].file_map[fpath] = record
+					end
+				end
+			end
+		end
+	end
+
+	-- Count results from outputs
+	for i, output in ipairs(outputs) do
+		if output and output.success and output.same then
+			same_count = same_count + 1
+		elseif output and output.success then
+			if output.had_previous then
+				updated_count = updated_count + 1
+			else
+				created_count = created_count + 1
+			end
+		end
+	end
 end
 
 -- Save maps regardless of to_process_count, as hash/mtime updates may need persisting
@@ -304,6 +425,11 @@ if before_all.to_process_count > 0 then
 		status_msg = status_msg .. "\n   " .. table.concat(details, " | ")
 	end
 	aip.run.pin("status", 1, { label = LABEL_STATUS, content = status_msg })
+end
+
+-- Delete the tmp in-progress file now that everything is committed
+if aip.path.exists(tmp_in_progress_path) then
+	aip.file.delete(tmp_in_progress_path)
 end
 
 local code_map_file_paths = {}
