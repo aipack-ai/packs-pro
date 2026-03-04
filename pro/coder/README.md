@@ -60,6 +60,10 @@ Here is the fully documented parametric code block with its possible values:
 ```yaml
 #!meta (parametric prompt)
 
+# If not set, context_globs and working_globs won't be evaluated
+## (relative to workspace dir)
+base_dir: "" # Leave empty for workspace root; make sure to refine context_globs
+
 ## Add absolute, relative, ~/, or some@pack knowledge globs.
 ## They will be included in the prompt as knowledge files.
 ## (relative to workspace dir, i.e. .aipack/ parent dir)
@@ -67,10 +71,6 @@ knowledge_globs:
 # - path/to/knowledge/**/*.md         # Your own best practices
 # - core@doc/**/*.md                  # To help code .aip aipack agents
 # - pro@rust10x/guide/base/**/*.md    # Some Rust best practices
-
-# If not set, context_globs and working_globs won't be evaluated
-## (relative to workspace dir)
-base_dir: "" # Leave empty for workspace root; make sure to refine context_globs
 
 ## Files that will be included in your prompt as context files.
 ## Relative to base_dir, try to keep them as narrow as possible for a large codebase
@@ -150,6 +150,11 @@ sub_agents:
 ## To see docs, type "Show Doc" and then press `r` in the aip terminal
 ```
 
+#### base_dir
+
+Base directory for resolving `context_globs`, `working_globs`, and `structure_globs`. Leave empty for workspace root. When not set or empty, the glob parameters won't be evaluated.
+
+
 #### knowledge_globs
 
 Array of glob patterns for knowledge files that will be included as knowledge to the AI. These can be:
@@ -185,9 +190,20 @@ context_globs:
   - .aipack/.prompt/pro@coder/dev/plan/[!_]*.md
 ```
 
-#### base_dir
+#### knowledge_globs_pre & knowledge_globs_post
 
-Base directory for resolving `context_globs`, `working_globs`, and `structure_globs`. Leave empty for workspace root. When not set or empty, the glob parameters won't be evaluated.
+`knowledge_globs_pre` are prepended and `knowledge_globs_post` are appended to the knowledge files selection. They are never removed by auto-context.
+
+Example:
+
+```yaml
+knowledge_globs_pre:
+  - core@doc/**/*.md
+knowledge_globs_post:
+  - path/to/my/best-practices/**/*.md
+```
+
+Final knowledge globs order: `knowledge_globs_pre + auto_context_selected + knowledge_globs_post` (deduped).
 
 #### context_globs
 
@@ -204,6 +220,22 @@ context_globs:
   - src/main.ts
   - src/event/*.ts
 ```
+
+#### context_globs_pre & context_globs_post
+
+`context_globs_pre` are prepended (and influence auto-context selection) and `context_globs_post` are appended to the context files selection. They are never removed by auto-context.
+
+Example:
+
+```yaml
+context_globs_pre:
+  - package.json
+  - src/shared/**/*.ts
+context_globs_post:
+  - .aipack/.prompt/pro@coder/dev/plan/*.md
+```
+
+Final context globs order: `context_globs_pre + auto_context_selected + context_globs_post` (deduped).
 
 #### structure_globs
 
@@ -304,56 +336,7 @@ Example:
 ```yaml
 model: gpt-5-mini  # or "gpt-5" for normal coding
 ```
-
-#### context_globs_pre
-
-Glob patterns that are always prepended to context globs before auto-context runs. These are never removed by auto-context, even in `mode: reduce`. Because they appear before the auto-context selection, they influence the code-map and the selector prompt, so the AI "sees" these files when deciding which other files to select.
-
-Example:
-
-```yaml
-context_globs_pre:
-  - package.json
-  - src/shared/**/*.ts
-```
-
-#### context_globs_post
-
-Glob patterns that are always appended to context globs after auto-context returns its selection. These are always present in the final context but do not influence file selection.
-
-Example:
-
-```yaml
-context_globs_post:
-  - .aipack/.prompt/pro@coder/dev/plan/*.md
-```
-
-Final context globs order: `context_globs_pre + auto_context_selected + context_globs_post` (deduped).
-
-#### knowledge_globs_pre
-
-Same semantics as `context_globs_pre`, but for knowledge files. Glob patterns prepended before auto-context knowledge selection.
-
-Example:
-
-```yaml
-knowledge_globs_pre:
-  - core@doc/**/*.md
-```
-
-#### knowledge_globs_post
-
-Glob patterns always appended after auto-context knowledge selection.
-
-Example:
-
-```yaml
-knowledge_globs_post:
-  - path/to/my/best-practices/**/*.md
-```
-
-Final knowledge globs order: `knowledge_globs_pre + auto_context_selected + knowledge_globs_post` (deduped).
-
+f
 #### auto_context
 _since v0.4.0_
 
