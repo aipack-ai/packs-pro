@@ -104,12 +104,12 @@ end
 local function build_section(title, all, pre, post)
     if not all or #all == 0 then return "" end
     local s = "# " .. title .. "\n\n"
-    s = s .. "## All Resolved (sent to AI with content, in this order)\n\n" .. p_utils.file_refs_to_md(all) .. "\n\n"
+    s = s .. "## All resolve files(sent to AI with content, in this order)\n\n" .. p_utils.file_refs_to_md(all) .. "\n\n"
     if pre and #pre > 0 then
-        s = s .. "## Pre (just for info, included in the All Resolved above)\n\n" .. p_utils.file_refs_to_md(pre) .. "\n\n"
+        s = s .. "## Pre (just for info, included in the All resolved files above)\n\n" .. p_utils.file_refs_to_md(pre) .. "\n\n"
     end
     if post and #post > 0 then
-        s = s .. "## Post (just for info, included in the All Resolved above)\n\n" .. p_utils.file_refs_to_md(post) .. "\n\n"
+        s = s .. "## Post (just for info, included in the All resolved files above)\n\n" .. p_utils.file_refs_to_md(post) .. "\n\n"
     end
     return s
 end
