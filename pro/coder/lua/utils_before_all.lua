@@ -259,6 +259,8 @@ local function build_input_base(params)
 		prompt_file_rel_path               = params.prompt_file_rel_path,
 		default_language                   = meta.default_language or "Python",
 		knowledge_refs                     = params.knowledge_refs,
+		knowledge_refs_pre                 = params.knowledge_refs_pre,
+		knowledge_refs_post                = params.knowledge_refs_post,
 		first_part                         = params.first_part,
 		include_second_part                = params.include_second_part,
 		second_part                        = params.second_part,
@@ -267,6 +269,8 @@ local function build_input_base(params)
 		base_dir                           = params.base_dir,
 		structure_refs                     = params.structure_refs,
 		context_refs                       = params.context_refs,
+		context_refs_pre                   = params.context_refs_pre,
+		context_refs_post                  = params.context_refs_post,
 		prompt_file_paths                  = params.prompt_file_paths,
 		-- prompt explicit caching
 		cache_pre_prompts                  = params.cache_pre_prompts,
@@ -430,12 +434,6 @@ function run_before_all(inputs)
 		meta.knowledge_globs = u_pinned.merge_pinned(final_knl_pre, current, final_knl_post)
 	end
 
-	-- Clean up pinned keys from meta before downstream use
-	meta.context_globs_pre = nil
-	meta.context_globs_post = nil
-	meta.knowledge_globs_pre = nil
-	meta.knowledge_globs_post = nil
-
 	aip.run.pin("pfile", 0, {
 		label = CONST.LABEL_PROMPT_FILE,
 		content = paths.prompt_file_rel_path
@@ -480,6 +478,18 @@ function run_before_all(inputs)
 	local file_content_mode, err = get_file_content_mode(meta, write_mode)
 	if err then return nil, nil, err end
 
+	-- === Resolve pre/post refs for report
+	local context_refs_pre = #final_ctx_pre > 0 and aip.file.list(final_ctx_pre, { base_dir = base_dir }) or nil
+	local context_refs_post = #final_ctx_post > 0 and aip.file.list(final_ctx_post, { base_dir = base_dir }) or nil
+	local knowledge_refs_pre = #final_knl_pre > 0 and aip.file.list(final_knl_pre, { base_dir = CTX.WORKSPACE_DIR }) or nil
+	local knowledge_refs_post = #final_knl_post > 0 and aip.file.list(final_knl_post, { base_dir = CTX.WORKSPACE_DIR }) or nil
+
+	-- Clean up pinned keys from meta before downstream use
+	meta.context_globs_pre = nil
+	meta.context_globs_post = nil
+	meta.knowledge_globs_pre = nil
+	meta.knowledge_globs_post = nil
+
 	-- === Suggest Commit
 	local suggest_git_commit = false
 	if meta.suggest_git_commit ~= nil then
@@ -500,6 +510,8 @@ function run_before_all(inputs)
 		file_content_mode                  = file_content_mode,
 		prompt_file_rel_path               = paths.prompt_file_rel_path,
 		knowledge_refs                     = knowledge_refs,
+		knowledge_refs_pre                 = knowledge_refs_pre,
+		knowledge_refs_post                = knowledge_refs_post,
 		first_part                         = first_part,
 		include_second_part                = include_second_part,
 		second_part                        = second_part,
@@ -508,6 +520,8 @@ function run_before_all(inputs)
 		base_dir                           = base_dir,
 		structure_refs                     = structure_refs,
 		context_refs                       = context_refs,
+		context_refs_pre                   = context_refs_pre,
+		context_refs_post                  = context_refs_post,
 		prompt_file_paths                  = paths.prompt_file_paths,
 		cache_pre_prompts                  = cache_pre_prompts,
 		cache_knowledge_files              = cache_knowledge_files,

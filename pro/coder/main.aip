@@ -22,20 +22,33 @@ local base, working_refs = input.base, input.working_refs
 
 -- Compute new_context_refs
 local new_context_refs = nil 
-if working_refs and #working_refs > 1 then
+local new_context_refs_pre = nil
+local new_context_refs_post = nil
+
+if working_refs and #working_refs > 0 then
     local working_set = {}
     for _, ref in ipairs(working_refs) do
         working_set[ref.path] = true
     end
 
-    new_context_refs = {}
-    for _, ref in ipairs(base.context_refs) do
-        if not working_set[ref.path] then
-            table.insert(new_context_refs, ref)
+    local function filter_refs(refs)
+        if not refs then return nil end
+        local filtered = {}
+        for _, ref in ipairs(refs) do
+            if not working_set[ref.path] then
+                table.insert(filtered, ref)
+            end
         end
+        return filtered
     end
+
+    new_context_refs = filter_refs(base.context_refs)
+    new_context_refs_pre = filter_refs(base.context_refs_pre)
+    new_context_refs_post = filter_refs(base.context_refs_post)
 else 
     new_context_refs = base.context_refs -- by default
+    new_context_refs_pre = base.context_refs_pre
+    new_context_refs_post = base.context_refs_post
 end
 
 
@@ -86,8 +99,24 @@ if attachments then
     end
     prompt_files_content = prompt_files_content .. "\n\n"
 end
-prompt_files_content = prompt_files_content .. "# Knowledge Files" .. "\n\n" .. p_utils.file_refs_to_md(base.knowledge_refs) .. "\n\n"
-prompt_files_content = prompt_files_content .. "# Context Files"   .. "\n\n" .. p_utils.file_refs_to_md(new_context_refs) .. "\n\n"
+
+-- Helper to build section for knowledge and context files report
+local function build_section(title, all, pre, post)
+    if not all or #all == 0 then return "" end
+    local s = "# " .. title .. "\n\n"
+    s = s .. "## All Resolved (sent to AI with content, in this order)\n\n" .. p_utils.file_refs_to_md(all) .. "\n\n"
+    if pre and #pre > 0 then
+        s = s .. "## Pre (just for info, included in the All Resolved above)\n\n" .. p_utils.file_refs_to_md(pre) .. "\n\n"
+    end
+    if post and #post > 0 then
+        s = s .. "## Post (just for info, included in the All Resolved above)\n\n" .. p_utils.file_refs_to_md(post) .. "\n\n"
+    end
+    return s
+end
+
+prompt_files_content = prompt_files_content .. build_section("Knowledge Files", base.knowledge_refs, base.knowledge_refs_pre, base.knowledge_refs_post)
+prompt_files_content = prompt_files_content .. build_section("Context Files", new_context_refs, new_context_refs_pre, new_context_refs_post)
+
 prompt_files_content = prompt_files_content .. "# Working Files"   .. "\n\n" .. p_utils.file_refs_to_md(working_refs) .. "\n\n"
 prompt_files_content = prompt_files_content .. "# Struture Files"  .. "\n\n" .. p_utils.file_refs_to_md(base.structure_refs, {
 			preamble = "(Only file paths, not their content)", 
