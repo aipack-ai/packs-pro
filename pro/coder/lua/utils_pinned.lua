@@ -1,20 +1,4 @@
--- Utilities for pinned globs normalization, deduplication, and merging.
-
--- Stable dedupe: preserves first occurrence order, removes duplicates.
--- items: string[]
--- returns: string[]
-local function dedupe(items)
-	if not items or #items == 0 then return {} end
-	local seen = {}
-	local result = {}
-	for _, v in ipairs(items) do
-		if not seen[v] then
-			seen[v] = true
-			table.insert(result, v)
-		end
-	end
-	return result
-end
+-- Utilities for pinned globs normalization and merging.
 
 -- Normalize a pinned_globs value from user config into { pre = string[], post = string[] }.
 -- Accepts:
@@ -64,7 +48,7 @@ local function normalize_pinned_globs(value, param_name)
 		-- Check no pre/post keys mixed in
 		if value.pre ~= nil or value.post ~= nil then
 			return nil, param_name ..
-				" cannot mix list shorthand with 'pre'/'post' keys. Use either a plain list (treated as 'pre') or an object with 'pre' and/or 'post'."
+					" cannot mix list shorthand with 'pre'/'post' keys. Use either a plain list (treated as 'pre') or an object with 'pre' and/or 'post'."
 		end
 		return { pre = value, post = {} }
 	end
@@ -99,7 +83,7 @@ local function normalize_pinned_globs(value, param_name)
 	return result
 end
 
--- Merge pinned pre, auto-selected globs, and pinned post with deduplication.
+-- Merge pinned pre, auto-selected globs, and pinned post.
 -- pinned_pre: string[]
 -- selected: string[]
 -- pinned_post: string[]
@@ -115,11 +99,10 @@ local function merge_pinned(pinned_pre, selected, pinned_post)
 	for _, v in ipairs(pinned_post or {}) do
 		table.insert(combined, v)
 	end
-	return dedupe(combined)
+	return combined
 end
 
 return {
-	dedupe                 = dedupe,
 	normalize_pinned_globs = normalize_pinned_globs,
 	merge_pinned           = merge_pinned,
 }

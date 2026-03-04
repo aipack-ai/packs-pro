@@ -349,8 +349,10 @@ function run_before_all(inputs)
 
 	-- === Normalize pinned globs
 	local pinned_context, pinned_err = u_pinned.normalize_pinned_globs(meta.context_globs_pinned, "context_globs_pinned")
+	pinned_context = pinned_context or {}
 	if pinned_err then return nil, nil, pinned_err end
 	local pinned_knowledge, pk_err = u_pinned.normalize_pinned_globs(meta.knowledge_globs_pinned, "knowledge_globs_pinned")
+	pinned_knowledge = pinned_knowledge or {}
 	if pk_err then return nil, nil, pk_err end
 
 	-- Inject pinned pre globs into context_globs and knowledge_globs before auto-context
