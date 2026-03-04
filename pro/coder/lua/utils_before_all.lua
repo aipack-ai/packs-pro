@@ -1,5 +1,6 @@
 -- CONST
 local CONST = require("consts")
+local u_pinned = require("utils_pinned")
 
 -- === Support Functions
 
@@ -346,6 +347,22 @@ function run_before_all(inputs)
 	-- === Extract the meta and instruction
 	local meta, inst = extract_meta_and_inst(first_part)
 
+	-- === Normalize pinned globs
+	local pinned_context, pinned_err = u_pinned.normalize_pinned_globs(meta.context_globs_pinned, "context_globs_pinned")
+	if pinned_err then return nil, nil, pinned_err end
+	local pinned_knowledge, pk_err = u_pinned.normalize_pinned_globs(meta.knowledge_globs_pinned, "knowledge_globs_pinned")
+	if pk_err then return nil, nil, pk_err end
+
+	-- Inject pinned pre globs into context_globs and knowledge_globs before auto-context
+	if #pinned_context.pre > 0 then
+		local orig = meta.context_globs or {}
+		meta.context_globs = u_pinned.merge_pinned(pinned_context.pre, orig, {})
+	end
+	if #pinned_knowledge.pre > 0 then
+		local orig = meta.knowledge_globs or {}
+		meta.knowledge_globs = u_pinned.merge_pinned(pinned_knowledge.pre, orig, {})
+	end
+
 	-- === Compute the agent options
 	local options = {
 		model             = meta.model,
@@ -371,6 +388,15 @@ function run_before_all(inputs)
 			meta, inst, err = u_sub_agent.run_sub_agent(ac_config, "pre", meta, inst, options, coder_prompt_dir)
 			if err then return nil, nil, err end
 			meta = meta or {}
+			-- Apply pinned post globs after auto-context
+			if #pinned_context.post > 0 or #pinned_context.pre > 0 then
+				local current = meta.context_globs or {}
+				meta.context_globs = u_pinned.merge_pinned(pinned_context.pre, current, pinned_context.post)
+			end
+			if #pinned_knowledge.post > 0 or #pinned_knowledge.pre > 0 then
+				local current = meta.knowledge_globs or {}
+				meta.knowledge_globs = u_pinned.merge_pinned(pinned_knowledge.pre, current, pinned_knowledge.post)
+			end
 			-- recompute options from the meta returned
 			options = {
 				model             = meta.model,
@@ -388,6 +414,15 @@ function run_before_all(inputs)
 		meta = meta or {} -- make the type nil check happy
 
 		if err then return nil, nil, err end
+		-- Apply pinned post globs after sub-agents (in case sub-agents modified globs)
+		if #pinned_context.post > 0 or #pinned_context.pre > 0 then
+			local current = meta.context_globs or {}
+			meta.context_globs = u_pinned.merge_pinned(pinned_context.pre, current, pinned_context.post)
+		end
+		if #pinned_knowledge.post > 0 or #pinned_knowledge.pre > 0 then
+			local current = meta.knowledge_globs or {}
+			meta.knowledge_globs = u_pinned.merge_pinned(pinned_knowledge.pre, current, pinned_knowledge.post)
+		end
 		-- recompute options from the meta returned
 		options = {
 			model             = meta.model,
