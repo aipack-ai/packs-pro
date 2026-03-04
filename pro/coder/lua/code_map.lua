@@ -1,6 +1,9 @@
 -- === Consts
 local DEFAULT_INPUT_CONCURRENCY = 8
 
+local LABEL_STATUS              = "   Status:"
+local LABEL_RECOVERED           = "Recovered:"
+
 -- === Public Functions
 
 -- type CodeMapInput = {
@@ -90,12 +93,12 @@ local function extract_code_map_config(sub_input)
 	end
 
 	return {
-		code_map_dir       = code_map_dir,
-		map_defs           = map_defs,
-		all_globs          = all_globs,
-		user_prompt        = user_prompt,
-		model              = code_map_model,
-		input_concurrency  = code_map_input_concurrency,
+		code_map_dir      = code_map_dir,
+		map_defs          = map_defs,
+		all_globs         = all_globs,
+		user_prompt       = user_prompt,
+		model             = code_map_model,
+		input_concurrency = code_map_input_concurrency,
 	}
 end
 
@@ -120,5 +123,9 @@ end
 
 return {
 	extract_code_map_config = extract_code_map_config,
-	load_code_map_file      = load_code_map_file
+	load_code_map_file      = load_code_map_file,
+
+	-- consts
+	LABEL_STATUS            = LABEL_STATUS,
+	LABEL_RECOVERED         = LABEL_RECOVERED
 }

@@ -3,7 +3,6 @@
 ```lua
 local _cm = require("code_map")
 
-local LABEL_STATUS = "          Status:"
 local HASH_MTIME_UPDATED_MARKER = "__hash_mtime_updated__"
 local TMP_IN_PROGRESS_FILENAME = ".tmp-in-progress.jsonl"
 
@@ -28,6 +27,7 @@ if aip.path.exists(tmp_in_progress_path) then
 			local file_info_data = entry.file_info
 			if fpath and file_info_data then
 				local record = {
+					file_path = fpath,
 					summary = file_info_data.summary,
 					when_to_use = file_info_data.when_to_use,
 					public_types = file_info_data.public_types,
@@ -58,7 +58,7 @@ if aip.path.exists(tmp_in_progress_path) then
 end
 
 if recovered_count > 0 then
-	aip.run.pin("recovered", 0, { label = LABEL_STATUS, content = "♻️ Recovered " .. recovered_count .. " entries from previous interrupted run." })
+	aip.run.pin("recovered", 0, { label = _cm.LABEL_RECOVERED, content = "✅ " .. recovered_count .. " entries from previous interrupted run." })
 end
 
 -- Build before all data
@@ -91,13 +91,20 @@ for _, mdef in ipairs(code_map_config.map_defs) do
 		if file_map_file and file_map_file.mtime >= orig_file.mtime then
 			-- mtime is up to date; check if hash exists (backfill for older code map files)
 			if file_map_file.hash then
-				fstatus.maps_up_to_date_for[mdef.file_path] = true
+				-- check if file_path is missing and backfill if needed
+				if not file_map_file.file_path then
+					file_map_file.file_path = fpath
+					fstatus.maps_up_to_date_for[mdef.file_path] = HASH_MTIME_UPDATED_MARKER
+				else
+					fstatus.maps_up_to_date_for[mdef.file_path] = true
+				end
 				fstatus.cached_data = file_map_file
 			else
 				-- No hash in cached data, compute and backfill
 				local current_hash = aip.file.hash_blake3(fpath)
 				file_map_file.hash = current_hash
 				file_map_file.mtime = orig_file.mtime
+				file_map_file.file_path = fpath
 				fstatus.maps_up_to_date_for[mdef.file_path] = HASH_MTIME_UPDATED_MARKER
 				fstatus.cached_data = file_map_file
 			end
@@ -107,6 +114,7 @@ for _, mdef in ipairs(code_map_config.map_defs) do
 			if file_map_file and file_map_file.hash and file_map_file.hash == current_hash then
 				-- Content unchanged, just update mtime in the cached entry
 				file_map_file.mtime = orig_file.mtime
+				file_map_file.file_path = fpath
 				fstatus.maps_up_to_date_for[mdef.file_path] = HASH_MTIME_UPDATED_MARKER
 				fstatus.cached_data = file_map_file
 			else
@@ -167,7 +175,7 @@ else
 	end
 end
 
-aip.run.pin("status", 1, { label = LABEL_STATUS, content = status_msg })
+aip.run.pin("status", 1, { label = _cm.LABEL_STATUS, content = status_msg })
 
 -- If all files resolved via hash comparison (none need AI), save updated mtime values now
 if #files_to_process == 0 and (hash_mtime_updated or recovered_count > 0) then
@@ -175,9 +183,9 @@ if #files_to_process == 0 and (hash_mtime_updated or recovered_count > 0) then
 		local content = aip.json.stringify_pretty(map_data)
 		aip.file.save(map_path, content)
 	end
-	-- Clean up the tmp file if it exists
+	-- Empty the tmp file if it exists
 	if aip.path.exists(tmp_in_progress_path) then
-		aip.file.delete(tmp_in_progress_path)
+		aip.file.save(tmp_in_progress_path, "")
 	end
 end
 
@@ -337,7 +345,6 @@ if ai_response then
 else
 	return nil
 end
-
 ```
 
 # After All
@@ -349,7 +356,6 @@ local code_map_config    = before_all.code_map_config
 local loaded_maps        = before_all.loaded_maps
 local tmp_in_progress_path = before_all.tmp_in_progress_path
 
-local LABEL_STATUS = "          Status:"
 local updated_count = 0
 local created_count = 0
 local same_count = 0
@@ -367,6 +373,7 @@ if before_all.to_process_count > 0 then
 		local file_info_data = entry.file_info
 		if fpath and file_info_data then
 			local record = {
+				file_path = fpath,
 				summary = file_info_data.summary,
 				when_to_use = file_info_data.when_to_use,
 				public_types = file_info_data.public_types,
@@ -424,12 +431,12 @@ if before_all.to_process_count > 0 then
 	if #details > 0 then
 		status_msg = status_msg .. "\n   " .. table.concat(details, " | ")
 	end
-	aip.run.pin("status", 1, { label = LABEL_STATUS, content = status_msg })
+	aip.run.pin("status", 1, { label = _cm.LABEL_STATUS, content = status_msg })
 end
 
--- Delete the tmp in-progress file now that everything is committed
+-- Empty the tmp in-progress file now that everything is committed
 if aip.path.exists(tmp_in_progress_path) then
-	aip.file.delete(tmp_in_progress_path)
+	aip.file.save(tmp_in_progress_path, "")
 end
 
 local code_map_file_paths = {}
