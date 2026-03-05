@@ -6,7 +6,7 @@ The `pro@coder` pack provides AI-powered coding assistance through parametric pr
 
 The key concept of `pro@coder` is to give you full control over the AI context, enabling you to guide the AI to code the way you want, rather than adapting to the AI's default approach. This is done in part by splitting files into `knowledge`, `context`, and `working` (for concurrency) categories.
 
-[Coder Parameters](#coder-parameters) | [Auto Context](#auto_context) | [Workflow](#setup--workflow) | [Coder Intro](#coder-promptmd) | [Coder Parameters](#parametric-block-format) | [AIPack config override](#aipack-config-override) | [Plan Development](#plan-based-development)
+[Coder Parameters](#coder-parameters) | [Auto Context](#auto_context) | [Dev Chat](#dev_chat) | [Workflow](#setup--workflow) | [Coder Intro](#coder-promptmd) | [Coder Parameters](#parametric-block-format) | [AIPack config override](#aipack-config-override) | [Plan Development](#plan-based-development)
 
 ---
 
@@ -134,6 +134,13 @@ auto_context:
   # code_map_model: flash-low # code map model (optional, default auto_context model above)
   helper_globs:               # Files to help select relevant context files
     - .aipack/.prompt/pro@coder/dev/plan/*.md
+
+## Dev chat logger (shortcut for pro@coder/dev-chat sub-agent)
+dev_chat: true               # true uses default path below
+# dev_chat: .aipack/.prompt/pro@coder/.cache/dev/chat/dev-chat.md
+# dev_chat:
+#   enabled: true
+#   path: .aipack/.prompt/pro@coder/.cache/dev/chat/dev-chat.md
 
 ## Specialized agents to pre-process parameters and instructions (Stage: "pre")
 ## Since v0.3.0
@@ -360,6 +367,35 @@ auto_context:
     - .aipack/.prompt/pro@coder/dev/plan/*.md
 ```
 
+#### dev_chat
+
+Shortcut to configure and run the `pro@coder/dev-chat` sub-agent. This agent ensures a dev chat markdown file exists, then appends its path to `context_globs_post` (deduped).
+
+Can be:
+- **A boolean**:
+  - `true`: Enable with default path.
+  - `false`: Do not seed from this alias.
+- **A string**: Path to the dev chat file.
+- **A table**: Full sub-agent config (same shape as one `sub_agents` entry).
+
+Default path when `path` is omitted:
+
+`$coder_prompt_dir/.cache/dev/chat/dev-chat.md`
+
+For string/table path values, relative paths are passed through unchanged.
+
+Example:
+
+```yaml
+dev_chat: true
+# or
+dev_chat: .aipack/.prompt/pro@coder/.cache/dev/chat/dev-chat.md
+# or
+dev_chat:
+  enabled: true
+  path: .aipack/.prompt/pro@coder/.cache/dev/chat/dev-chat.md
+```
+
 #### sub_agents
 _since v0.3.0_
 
@@ -420,6 +456,21 @@ A sub-agent can return this data either from:
 Sub-agents require AIPack 0.8.15 or above.
 
 ## Builtin Sub Agents
+
+### Sub Agent - pro@coder/dev-chat
+
+The dev-chat sub-agent prepares and wires a dev chat markdown file into context.
+
+```yaml
+sub_agents:
+  - name: pro@coder/dev-chat
+    enabled: true
+    # path: .aipack/.prompt/pro@coder/.cache/dev/chat/dev-chat.md
+```
+
+- Resolves `path` from config, or defaults to `$coder_prompt_dir/.cache/dev/chat/dev-chat.md`.
+- Ensures the file exists, if the file is empty, it is initialized with the dev-chat template.
+- Appends the resolved path to `context_globs_post` when missing (deduped).
 
 ### Sub Agent - pro@coder/auto-context
 _since v0.4.0_

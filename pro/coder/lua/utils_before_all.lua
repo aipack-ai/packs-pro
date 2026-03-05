@@ -380,6 +380,15 @@ function run_before_all(inputs)
 
 	local seed_agents = {}
 
+	-- === Seed dev_chat into seed_agents if present
+	if not is_null(meta.dev_chat) then
+		local dc_config = u_sub_agent.new_dev_chat_sub_agent_config(meta.dev_chat)
+		if dc_config then
+			table.insert(seed_agents, dc_config)
+		end
+		meta.dev_chat = nil
+	end
+
 	-- === Seed auto_context into seed_agents if present
 	if not is_null(meta.auto_context) then
 		local ac_config = u_auto_context.new_auto_context_sub_agent_config(meta.auto_context)

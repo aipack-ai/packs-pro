@@ -1,0 +1,66 @@
+# Before All
+
+```lua
+local function append_unique(list, value)
+	for _, item in ipairs(list) do
+		if item == value then
+			return list
+		end
+	end
+	table.insert(list, value)
+	return list
+end
+
+local function default_dev_chat_content()
+	local template_path = CTX.AGENT_FILE_DIR .. "/templates/dev/chat/dev-chat.md"
+	local template_file = aip.file.load(template_path)
+	if type(template_file) == "table" and template_file.content then
+		return template_file.content
+	end
+
+	return "# Dev Chat\n\nAdd a new `## Request: _user_ask_title_concise_` with the answer below (concise title). Use markdown sub-headings for sub sections. Keep this top instruction in this file. \n"
+end
+
+local sub_input = inputs and inputs[1] or {}
+local agent_config = sub_input.agent_config or {}
+local coder_params = sub_input.coder_params or {}
+local coder_prompt_dir = sub_input.coder_prompt_dir or "."
+
+local path = agent_config.path
+if is_null(path) or path == "" then
+	path = coder_prompt_dir .. "/.cache/dev/chat/dev-chat.md"
+end
+
+local ensure_res = aip.file.ensure_exists(path, default_dev_chat_content(), { content_when_empty = true })
+if type(ensure_res) == "table" and ensure_res.error then
+	return aip.flow.before_all_response({
+		inputs = {},
+		before_all = {
+			success = false,
+			error_msg = "Failed to initialize dev chat file",
+			error_details = ensure_res.error
+		}
+	})
+end
+
+local context_globs_post = coder_params.context_globs_post
+if type(context_globs_post) ~= "table" then
+	context_globs_post = {}
+end
+append_unique(context_globs_post, path)
+
+return aip.flow.before_all_response({
+	inputs = {},
+	before_all = {
+		coder_params = {
+			context_globs_post = context_globs_post
+		}
+	}
+})
+```
+
+# After All
+
+```lua
+return before_all
+```

@@ -28,6 +28,18 @@ local function extract_sub_agent_configs(sub_agents)
 	return configs
 end
 
+local function new_dev_chat_sub_agent_config(dev_chat)
+	local dc_config = nil
+	if dev_chat == true then
+		dc_config = { name = "pro@coder/dev-chat", enabled = true }
+	elseif type(dev_chat) == "string" then
+		dc_config = { name = "pro@coder/dev-chat", enabled = true, path = dev_chat }
+	elseif type(dev_chat) == "table" then
+		dc_config = aip.lua.merge({ name = "pro@coder/dev-chat", enabled = true }, dev_chat)
+	end
+	return dc_config
+end
+
 local function extract_coder_params(coder_meta)
 	local params = {}
 	aip.lua.merge_deep(params, coder_meta)
@@ -158,6 +170,7 @@ end
 -- === /Public Interfaces
 
 return {
+	new_dev_chat_sub_agent_config = new_dev_chat_sub_agent_config,
 	run_sub_agent  = run_sub_agent,
 	run_sub_agents = run_sub_agents
 }
