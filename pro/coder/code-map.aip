@@ -20,38 +20,44 @@ end
 -- Recover from previous interrupted run
 local recovered_count = 0
 if aip.path.exists(tmp_in_progress_path) then
-	local recovered_entries = aip.file.load_ndjson(tmp_in_progress_path)
-	if recovered_entries and #recovered_entries > 0 then
-		for _, entry in ipairs(recovered_entries) do
-			local fpath = entry.file_path
-			local file_info_data = entry.file_info
-			if fpath and file_info_data then
-				local record = {
-					file_path = fpath,
-					summary = file_info_data.summary,
-					when_to_use = file_info_data.when_to_use,
-					public_types = file_info_data.public_types,
-					public_functions = file_info_data.public_functions,
-					mtime = entry.mtime,
-					hash = entry.hash,
-				}
-				if entry.maps_to_process_for then
-					for _, map_path in ipairs(entry.maps_to_process_for) do
-						if loaded_maps[map_path] then
-							loaded_maps[map_path].file_map[fpath] = record
+	local ok, recovered_entries = pcall(aip.file.load_ndjson, tmp_in_progress_path)
+	if ok then
+		if recovered_entries and #recovered_entries > 0 then
+			for _, entry in ipairs(recovered_entries) do
+				local fpath = entry.file_path
+				local file_info_data = entry.file_info
+				if fpath and file_info_data then
+					local record = {
+						file_path = fpath,
+						summary = file_info_data.summary,
+						when_to_use = file_info_data.when_to_use,
+						public_types = file_info_data.public_types,
+						public_functions = file_info_data.public_functions,
+						mtime = entry.mtime,
+						hash = entry.hash,
+					}
+					if entry.maps_to_process_for then
+						for _, map_path in ipairs(entry.maps_to_process_for) do
+							if loaded_maps[map_path] then
+								loaded_maps[map_path].file_map[fpath] = record
+							end
 						end
 					end
-				end
-				if entry.maps_up_to_date_for then
-					for _, map_path in ipairs(entry.maps_up_to_date_for) do
-						if loaded_maps[map_path] then
-							loaded_maps[map_path].file_map[fpath] = record
+					if entry.maps_up_to_date_for then
+						for _, map_path in ipairs(entry.maps_up_to_date_for) do
+							if loaded_maps[map_path] then
+								loaded_maps[map_path].file_map[fpath] = record
+							end
 						end
 					end
+					recovered_count = recovered_count + 1
 				end
-				recovered_count = recovered_count + 1
 			end
 		end
+	else
+		-- Truncate the invalid file so this run starts fresh and next run can recover cleanly
+		aip.file.save(tmp_in_progress_path, "")
+		error("Failed to run agent 'code-map': invalid tmp in-progress NDJSON at '" .. tmp_in_progress_path .. "'. File was reset. Please run again.")
 	end
 	-- Truncate the file so this run starts fresh
 	aip.file.save(tmp_in_progress_path, "")
@@ -364,7 +370,16 @@ if before_all.to_process_count > 0 then
 	-- Load entries written during this run from the tmp jsonl file
 	local run_entries = {}
 	if aip.path.exists(tmp_in_progress_path) then
-		run_entries = aip.file.load_ndjson(tmp_in_progress_path) or {}
+		local ok, run_entries_or_err = pcall(aip.file.load_ndjson, tmp_in_progress_path)
+		if ok then
+			run_entries = run_entries_or_err or {}
+		else
+			-- Empty the tmp in-progress file now that everything is committed
+			if aip.path.exists(tmp_in_progress_path) then
+				aip.file.save(tmp_in_progress_path, "")
+			end
+			error("Failed to run agent 'code-map': invalid tmp in-progress NDJSON at '" .. tmp_in_progress_path .. "'. File was reset. Please run again.")
+		end
 	end
 
 	-- Apply jsonl entries to loaded_maps
