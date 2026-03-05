@@ -1,6 +1,7 @@
 -- CONST
 local CONST = require("consts")
 local u_pinned = require("utils_pinned")
+local u_auto_context = require("auto_context")
 
 -- === Support Functions
 
@@ -377,27 +378,31 @@ function run_before_all(inputs)
 
 	local coder_prompt_dir = paths.prompt_dir
 
-	-- === Seed auto_context into sub_agents if present
+	local seed_agents = {}
+
+	-- === Seed auto_context into seed_agents if present
 	if not is_null(meta.auto_context) then
-		local ac_val = meta.auto_context
-		local ac_config = nil
-		if type(ac_val) == "string" then
-			ac_config = { name = "pro@coder/auto-context", model = ac_val, enabled = true }
-		elseif type(ac_val) == "table" then
-			ac_config = aip.lua.merge({ name = "pro@coder/auto-context", enabled = true }, ac_val)
-		end
+		local ac_config = u_auto_context.new_auto_context_sub_agent_config(meta.auto_context)
 		if ac_config then
-			local current_sub_agents = meta.sub_agents
-			if type(current_sub_agents) ~= "table" then
-				current_sub_agents = {}
-			end
-			local seeded_sub_agents = { ac_config }
-			for _, sa in ipairs(current_sub_agents) do
-				table.insert(seeded_sub_agents, sa)
-			end
-			meta.sub_agents = seeded_sub_agents
+			table.insert(seed_agents, ac_config)
 		end
 		meta.auto_context = nil
+	end
+
+	-- === Prepend seed_agents to eventual sub_agents
+	if #seed_agents > 0 then
+		local current_sub_agents = meta.sub_agents
+		if type(current_sub_agents) ~= "table" then
+			current_sub_agents = {}
+		end
+		local merged_sub_agents = {}
+		for _, sa in ipairs(seed_agents) do
+			table.insert(merged_sub_agents, sa)
+		end
+		for _, sa in ipairs(current_sub_agents) do
+			table.insert(merged_sub_agents, sa)
+		end
+		meta.sub_agents = merged_sub_agents
 	end
 
 	-- === Run Sub Agents
@@ -480,7 +485,8 @@ function run_before_all(inputs)
 	local context_refs_pre = #final_ctx_pre > 0 and aip.file.list(final_ctx_pre, { base_dir = base_dir }) or nil
 	local context_refs_post = #final_ctx_post > 0 and aip.file.list(final_ctx_post, { base_dir = base_dir }) or nil
 	local knowledge_refs_pre = #final_knl_pre > 0 and aip.file.list(final_knl_pre, { base_dir = CTX.WORKSPACE_DIR }) or nil
-	local knowledge_refs_post = #final_knl_post > 0 and aip.file.list(final_knl_post, { base_dir = CTX.WORKSPACE_DIR }) or nil
+	local knowledge_refs_post = #final_knl_post > 0 and aip.file.list(final_knl_post, { base_dir = CTX.WORKSPACE_DIR }) or
+	nil
 
 	-- Clean up pinned keys from meta before downstream use
 	meta.context_globs_pre = nil

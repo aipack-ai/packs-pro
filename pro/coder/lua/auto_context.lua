@@ -92,6 +92,16 @@ local function extract_auto_context_config(sub_input)
 	}
 end
 
+local function new_auto_context_sub_agent_config(auto_context)
+	local ac_config = nil
+	if type(auto_context) == "string" then
+		ac_config = { name = "pro@coder/auto-context", model = auto_context, enabled = true }
+	elseif type(auto_context) == "table" then
+		ac_config = aip.lua.merge({ name = "pro@coder/auto-context", enabled = true }, auto_context)
+	end
+	return ac_config
+end
+
 -- ctx: {
 --    context_files_count: number,
 --    context_files_size: number,
@@ -293,6 +303,7 @@ end
 
 return {
 	extract_auto_context_config = extract_auto_context_config,
+	new_auto_context_sub_agent_config = new_auto_context_sub_agent_config,
 	pin_status                  = pin_status,
 	sort_files_by_mtime         = sort_files_by_mtime,
 }
