@@ -142,8 +142,13 @@ end
 function handle_failed_changes(files_changes_failed, data)
 	if #files_changes_failed == 0 then return end
 
-	local ai_res_path = aip.path.diff(data.ai_responses_for_raw_path, CTX.WORKSPACE_DIR)
-	local fail_report_path = aip.path.diff(data.last_file_change_fails_report_path, CTX.WORKSPACE_DIR)
+	-- NOTE: Legacy, we should get rel path now
+	-- local ai_res_path = aip.path.diff(data.ai_responses_for_raw_path, CTX.WORKSPACE_DIR)
+	-- local fail_report_path = aip.path.diff(data.last_file_change_fails_report_path, CTX.WORKSPACE_DIR)
+	--
+	local ai_res_path = data.ai_responses_for_raw_path
+	local fail_report_path = data.last_file_change_fails_report_path
+
 
 	local fail_report_content = "❗ Here are the file change search misses.\nSee full AI response at:\n" .. ai_res_path
 	fail_report_content = fail_report_content .. "\n\n" .. "Below are the search misses by file:"
