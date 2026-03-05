@@ -377,7 +377,7 @@ function run_before_all(inputs)
 
 	local coder_prompt_dir = paths.prompt_dir
 
-	-- === Run Auto Context if present (shortcut)
+	-- === Seed auto_context into sub_agents if present
 	if not is_null(meta.auto_context) then
 		local ac_val = meta.auto_context
 		local ac_config = nil
@@ -386,20 +386,18 @@ function run_before_all(inputs)
 		elseif type(ac_val) == "table" then
 			ac_config = aip.lua.merge({ name = "pro@coder/auto-context", enabled = true }, ac_val)
 		end
-
 		if ac_config then
-			local err
-			meta, inst, err = u_sub_agent.run_sub_agent(ac_config, "pre", meta, inst, options, coder_prompt_dir)
-			if err then return nil, nil, err end
-			meta = meta or {}
-			-- recompute options from the meta returned
-			options = {
-				model             = meta.model,
-				temperature       = meta.temperature,
-				model_aliases     = meta.model_aliases,
-				input_concurrency = meta.input_concurrency
-			}
+			local current_sub_agents = meta.sub_agents
+			if type(current_sub_agents) ~= "table" then
+				current_sub_agents = {}
+			end
+			local seeded_sub_agents = { ac_config }
+			for _, sa in ipairs(current_sub_agents) do
+				table.insert(seeded_sub_agents, sa)
+			end
+			meta.sub_agents = seeded_sub_agents
 		end
+		meta.auto_context = nil
 	end
 
 	-- === Run Sub Agents
