@@ -382,7 +382,7 @@ if before_all.to_process_count > 0 then
 		else
 			-- Empty the tmp in-progress file now that everything is committed
 			if aip.path.exists(tmp_in_progress_path) then
-				aip.file.save(tmp_in_progress_path, "")
+				-- aip.file.save(tmp_in_progress_path, "")
 			end
 			error("Failed to run agent 'code-map': invalid tmp in-progress NDJSON at '" .. tmp_in_progress_path .. "'. File was reset. Please run again.")
 		end
