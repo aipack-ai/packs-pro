@@ -71,11 +71,15 @@ end
 local files_to_process = {}
 
 local file_status_by_path = {}
+local non_text_file_count = 0
 
 for _, mdef in ipairs(code_map_config.map_defs) do
 	local map_data = loaded_maps[mdef.file_path]
 	local file_map = map_data.file_map
-	local map_files = aip.file.list(mdef.globs)
+	local listed_files = aip.file.list(mdef.globs)
+	local filtered_files_result = _cm.filter_text_files(listed_files)
+	local map_files = filtered_files_result.files
+	non_text_file_count = non_text_file_count + filtered_files_result.non_text_file_count
 	
 	for _, orig_file in ipairs(map_files) do
 		local fpath = orig_file.path
@@ -176,6 +180,7 @@ else
 	local details = {}
 	if new_count > 0 then table.insert(details, new_count .. " creation") end
 	if update_count > 0 then table.insert(details, update_count .. " updating") end
+	if non_text_file_count > 0 then table.insert(details, non_text_file_count .. " non text files ignored") end
 	if #details > 0 then
 		status_msg = status_msg .. "\n   " .. table.concat(details, " | ")
 	end
@@ -210,6 +215,7 @@ return aip.flow.before_all_response({
 		hash_mtime_updated = hash_mtime_updated,
 		tmp_in_progress_path = tmp_in_progress_path,
 		recovered_count    = recovered_count,
+		non_text_file_count = non_text_file_count,
 	}
 })
 ```
@@ -443,6 +449,7 @@ if before_all.to_process_count > 0 then
 		table.insert(details, updated_count .. " updated")
 	end
 	if same_count > 0 then table.insert(details, same_count .. " same (no change)") end
+	if before_all.non_text_file_count and before_all.non_text_file_count > 0 then table.insert(details, before_all.non_text_file_count .. " non text files ignored") end
 	if #details > 0 then
 		status_msg = status_msg .. "\n   " .. table.concat(details, " | ")
 	end

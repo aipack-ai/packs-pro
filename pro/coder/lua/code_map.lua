@@ -121,9 +121,28 @@ local function load_code_map_file(code_map_file_path)
 	end
 end
 
+-- - files: T[]
+-- - return: { files: T[], non_text_file_count: number }
+local function filter_text_files(files)
+	local out_files = {}
+	local non_text_file_count = 0
+	for _, f in ipairs(files or {}) do
+		if f and f.is_likely_text == true then
+			table.insert(out_files, f)
+		else
+			non_text_file_count = non_text_file_count + 1
+		end
+	end
+	return {
+		files = out_files,
+		non_text_file_count = non_text_file_count
+	}
+end
+
 return {
 	extract_code_map_config = extract_code_map_config,
 	load_code_map_file      = load_code_map_file,
+	filter_text_files       = filter_text_files,
 
 	-- consts
 	LABEL_STATUS            = LABEL_STATUS,
