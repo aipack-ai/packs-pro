@@ -1,5 +1,6 @@
 -- === Consts
 local DEFAULT_INPUT_CONCURRENCY = 8
+local u_common = require("utils_common")
 
 local LABEL_STATUS              = "   Status:"
 local LABEL_RECOVERED           = "Recovered:"
@@ -124,14 +125,11 @@ end
 -- - files: T[]
 -- - return: { files: T[], non_text_file_count: number }
 local function filter_text_files(files)
-	local out_files = {}
-	local non_text_file_count = 0
-	for _, f in ipairs(files or {}) do
-		if f and f.is_likely_text == true then
-			table.insert(out_files, f)
-		else
-			non_text_file_count = non_text_file_count + 1
-		end
+	local input_files = files or {}
+	local out_files = u_common.filter_likely_text(input_files) or {}
+	local non_text_file_count = #input_files - #out_files
+	if non_text_file_count < 0 then
+		non_text_file_count = 0
 	end
 	return {
 		files = out_files,
