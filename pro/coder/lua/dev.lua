@@ -31,7 +31,12 @@ end
 local function new_dev_sub_agent_config(dev, options)
 	local dev_config = nil
 
-	if dev == true then
+	if is_null(dev) then
+		dev_config = {
+			name = "pro@coder/dev",
+			enabled = false
+		}
+	elseif dev == true then
 		dev_config = {
 			name = "pro@coder/dev",
 			enabled = true
@@ -44,6 +49,9 @@ local function new_dev_sub_agent_config(dev, options)
 	elseif type(dev) == "table" then
 		local base = aip.lua.merge({ name = "pro@coder/dev", enabled = true }, dev)
 		base.chat = normalize_dev_chat_config(base.chat, options)
+		if is_null(base.chat) or base.chat.enabled == false then
+			base.enabled = false
+		end
 		dev_config = base
 	end
 
