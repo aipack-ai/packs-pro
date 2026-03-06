@@ -92,15 +92,8 @@ local coder_params = sub_input.coder_params or {}
 
 local chat = agent_config.chat
 if type(chat) ~= "table" then
-	return aip.flow.before_all_response({
-		inputs = {},
-		before_all = {
-			coder_params = {}
-		}
-	})
-end
-
-if chat.enabled == false then
+	chat = nil
+elseif chat.enabled == false then
 	chat = nil
 end
 
@@ -212,6 +205,8 @@ return aip.flow.before_all_response({
 	inputs = {},
 	before_all = {
 		coder_params = updated_coder_params,
+		chat = chat,
+		plan = plan,
 		agent_result = {
 			dev_content_globs = dev_content_globs
 		}
