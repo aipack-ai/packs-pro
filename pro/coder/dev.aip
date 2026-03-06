@@ -27,26 +27,39 @@ local function merge_unique(target, source)
 end
 
 local function pin_dev_status(chat, plan)
-	aip.run.pin("dev-chat", 2, {
-		label = "Dev Chat:",
-		content = chat and chat.path or "(disabled)"
-	})
+	if is_null(chat) or not chat.path then
+		aip.run.pin("dev-chat", 2, {
+			label = "Dev Chat:",
+			content = "(not activated)"
+		})	
+	else
+		local content = chat.path .. "\n(Added to context_globs_post)"
+		aip.run.pin("dev-chat", 2, {
+			label = "Dev Chat:",
+			content = content
+		})
+	end
+
 	if plan ~= nil then
 		local plan_pin_lines = {}
 		local dir = plan.dir
 		local rules_path = dir .. "/_plan-rules.md"
-		table.insert(plan_pin_lines, "Dir: " .. dir)
-		table.insert(plan_pin_lines, "\nRules:")
-		table.insert(plan_pin_lines, "- " .. rules_path)
-		table.insert(plan_pin_lines, "\nPlans:")
+		-- plan flies
+		table.insert(plan_pin_lines, "Plan Files:")
 		local existing_plan_files = aip.file.list({ dir .. "/plan-*.md" })
 		if type(existing_plan_files) == "table" and #existing_plan_files > 0 then
 			for _, file in ipairs(existing_plan_files) do
 				table.insert(plan_pin_lines, "- " .. file.path)
 			end
+			table.insert(plan_pin_lines, "(Added to context_globs_post)")
 		else
 			table.insert(plan_pin_lines, "- (none yet)")
 		end
+		
+		table.insert(plan_pin_lines, "\nPlan Rules File: " .. rules_path)
+		table.insert(plan_pin_lines, "(Added to knowledge_globs_pre)")
+				
+		-- do the pin
 		aip.run.pin("dev-plan", 3, {
 			label = " Dev Plan:",
 			content = table.concat(plan_pin_lines, "\n")
@@ -117,8 +130,6 @@ if type(next_knowledge_globs_pre) ~= "table" then
 	next_knowledge_globs_pre = {}
 end
 
-local status_lines = {}
-
 if chat ~= nil then
 	local path = chat.path
 	if is_null(path) or path == "" then
@@ -144,8 +155,6 @@ if chat ~= nil then
 	end
 
 	append_unique(next_context_globs_post, path)
-	table.insert(status_lines, "✅ dev chat path ➜ " .. path)
-	table.insert(status_lines, "   (Added in coder params 'context_globs_post:')")
 end
 
 if plan ~= nil then
@@ -177,24 +186,9 @@ if plan ~= nil then
 	append_unique(next_context_globs_post, dir .. "/plan-*.md")
 
 	local existing_plan_files = aip.file.list({ dir .. "/plan-*.md" })
-	local plan_lines = {}
-	table.insert(plan_lines, "✅ dev plan dir ➜ " .. dir)
-	table.insert(plan_lines, "\n    Rules:")
-	table.insert(plan_lines, "   - " .. rules_path)
-	table.insert(plan_lines, "\n   Plans:")
-	if type(existing_plan_files) == "table" and #existing_plan_files > 0 then
-		for _, file in ipairs(existing_plan_files) do
-			table.insert(plan_lines, "   - " .. file.path)
-		end
-	else
-		table.insert(plan_lines, "   - (none yet, pattern: " .. dir .. "/plan-*.md)")
-	end
-	table.insert(plan_lines, "   (Added in coder params 'knowledge_globs_pre:' and 'context_globs_post:')")
-	status_lines = merge_unique(status_lines, plan_lines)
 end
 
-if #status_lines > 0 then
-	local status_content = table.concat(status_lines, "\n")
+if chat ~= nil or plan ~= nil then
 	pin_dev_status(chat, plan)
 end
 
