@@ -1,6 +1,8 @@
 # Before All
 
 ```lua
+aip.run.set_label("dev-chat")
+
 local function append_unique(list, value)
 	for _, item in ipairs(list) do
 		if item == value then
@@ -48,6 +50,14 @@ if type(context_globs_post) ~= "table" then
 	context_globs_post = {}
 end
 append_unique(context_globs_post, path)
+
+
+local status_content = "✅ dev chat path ➜ " .. path
+status_content = status_content .. "\n   (Added in coder params 'context_globs_post:')"
+aip.run.pin("status", 1, {
+	label = "Status:",
+	content = status_content
+})
 
 return aip.flow.before_all_response({
 	inputs = {},
