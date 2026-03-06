@@ -150,10 +150,10 @@ auto_context:
 ## Dev helpers (shortcut for pro@coder/dev sub-agent)
 dev:
   chat: true                 # true uses default path below
-  # chat: .aipack/.prompt/pro@coder/.cache/dev/chat/dev-chat.md
+  # chat: .aipack/.prompt/pro@coder/dev/chat/dev-chat.md
   # chat:
   #   enabled: true
-  #   path: .aipack/.prompt/pro@coder/.cache/dev/chat/dev-chat.md
+  #   path: .aipack/.prompt/pro@coder/dev/chat/dev-chat.md
 
 ## Specialized agents to pre-process parameters and instructions (Stage: "pre")
 ## Since v0.3.0
@@ -397,7 +397,7 @@ Supported `dev.chat` values:
 
 Default path when `dev.chat.path` is omitted:
 
-`$coder_prompt_dir/.cache/dev/chat/dev-chat.md`
+`$coder_prompt_dir/dev/chat/dev-chat.md`
 
 For string/table path values, relative paths are passed through unchanged.
 
@@ -408,12 +408,12 @@ dev:
   chat: true
 # or
 dev:
-  chat: .aipack/.prompt/pro@coder/.cache/dev/chat/dev-chat.md
+  chat: .aipack/.prompt/pro@coder/dev/chat/dev-chat.md
 # or
 dev:
   chat:
     enabled: true
-    path: .aipack/.prompt/pro@coder/.cache/dev/chat/dev-chat.md
+    path: .aipack/.prompt/pro@coder/dev/chat/dev-chat.md
 ```
 
 #### sub_agents
@@ -516,7 +516,7 @@ sub_agents:
     enabled: true
     chat:
       enabled: true
-      # path: .aipack/.prompt/pro@coder/.cache/dev/chat/dev-chat.md
+      # path: .aipack/.prompt/pro@coder/dev/chat/dev-chat.md
 ```
 
 - Resolves `chat.path` from config, or defaults to `$coder_prompt_dir/dev/chat/dev-chat.md`.
@@ -530,12 +530,12 @@ dev:
   chat: true
 # or
 dev:
-  chat: .aipack/.prompt/pro@coder/.cache/dev/chat/dev-chat.md
+  chat: .aipack/.prompt/pro@coder/dev/chat/dev-chat.md
 # or
 dev:
   chat:
     enabled: true
-    path: .aipack/.prompt/pro@coder/.cache/dev/chat/dev-chat.md
+    path: .aipack/.prompt/pro@coder/dev/chat/dev-chat.md
 ```
 
 - `dev.chat: true` enables `pro@coder/dev` chat with the default path.
