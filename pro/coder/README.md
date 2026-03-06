@@ -393,6 +393,7 @@ Behavior:
 - `chat` ensures the dev chat markdown file exists, then appends its path to `context_globs_post` (deduped).
 - `plan` ensures `_plan-rules.md` exists in the plan directory, prepends this rules file to `knowledge_globs_pre` (deduped), and appends `plan-*.md` to `context_globs_post` (deduped).
 - The sub-agent returns `agent_result.dev_content_globs` containing enabled dev content globs (chat path and/or plan glob). This lets downstream sub-agents consume helper files without depending on `dev` config internals.
+- If both `chat` and `plan` are disabled, the sub-agent is automatically disabled (no-op).
 
 Current shape:
 - **A table**:
@@ -560,8 +561,9 @@ sub_agents:
 - Resolves `plan.dir` from config, or defaults to `$coder_prompt_dir/dev/plan`.
 - Ensures the plan rules file exists at `$plan_dir/_plan-rules.md`, if empty, it is initialized from template.
 - Appends the resolved chat path and `plan-*.md` glob to `context_globs_post` when missing (deduped).
-- Appends the plan rules path to `knowledge_globs_pre` when missing (deduped).
+- Prepends the plan rules path to `knowledge_globs_pre` when missing (deduped).
 - Returns `agent_result.dev_content_globs` for downstream helper-context consumption.
+- If both capabilities are disabled, the agent is effectively disabled and does not modify params.
 
 The same behavior can be configured with the `dev` shortcut in the root config:
 
@@ -587,6 +589,7 @@ dev:
 - `dev.plan: true` enables plan with the default directory.
 - A string sets the corresponding path or directory directly.
 - A table maps to the chat or plan config shape.
+- If both are disabled via table config (`enabled: false`), `pro@coder` seeds `pro@coder/dev` as disabled.
 
 ### Sub Agent - pro@coder/auto-context
 _since v0.4.0_
