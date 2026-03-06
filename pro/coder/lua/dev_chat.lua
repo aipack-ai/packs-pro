@@ -34,4 +34,3 @@ return {
 	new_dev_chat_sub_agent_config = new_dev_chat_sub_agent_config,
 	resolve_dev_chat_path = resolve_dev_chat_path
 }
-

@@ -381,6 +381,7 @@ if ai_response then
 		return {
 			success = true,
 			same = true,
+			same_no_file_info = true,
 			file_path = file_path,
 			_display = "code map same (no change) for file:\n- " .. file_path
 		}
@@ -402,6 +403,7 @@ local tmp_in_progress_path = before_all.tmp_in_progress_path
 local updated_count = 0
 local created_count = 0
 local same_count = 0
+local same_no_file_info_count = 0
 
 if before_all.to_process_count > 0 then 
 	-- Load entries written during this run from the tmp jsonl file
@@ -454,6 +456,9 @@ if before_all.to_process_count > 0 then
 	for i, output in ipairs(outputs) do
 		if output and output.success and output.same then
 			same_count = same_count + 1
+			if output.same_no_file_info then
+				same_no_file_info_count = same_no_file_info_count + 1
+			end
 		elseif output and output.success then
 			if output.had_previous then
 				updated_count = updated_count + 1
@@ -480,6 +485,7 @@ if before_all.to_process_count > 0 then
 		table.insert(details, updated_count .. " updated")
 	end
 	if same_count > 0 then table.insert(details, same_count .. " same (no change)") end
+	if same_no_file_info_count > 0 then table.insert(details, same_no_file_info_count .. " same-marker persisted") end
 	if before_all.non_text_file_count and before_all.non_text_file_count > 0 then table.insert(details, before_all.non_text_file_count .. " non text files ignored") end
 	if #details > 0 then
 		status_msg = status_msg .. "\n   " .. table.concat(details, " | ")
