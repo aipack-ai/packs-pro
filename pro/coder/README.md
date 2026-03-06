@@ -154,6 +154,11 @@ dev:
   # chat:
   #   enabled: true
   #   path: .aipack/.prompt/pro@coder/dev/chat/dev-chat.md
+  plan: true                 # true uses default dir below
+  # plan: .aipack/.prompt/pro@coder/dev/plan
+  # plan:
+  #   enabled: true
+  #   dir: .aipack/.prompt/pro@coder/dev/plan
 
 ## Specialized agents to pre-process parameters and instructions (Stage: "pre")
 ## Since v0.3.0
@@ -382,11 +387,17 @@ auto_context:
 
 #### dev
 
-Shortcut to configure and run the `pro@coder/dev` sub-agent. This agent can enable dev capabilities under a single namespace. The first supported capability is `chat`, it ensures a dev chat markdown file exists, then appends its path to `context_globs_post` (deduped).
+Shortcut to configure and run the `pro@coder/dev` sub-agent. This agent can enable dev capabilities under a single namespace. Current capabilities are `chat` and `plan`.
+
+Behavior:
+- `chat` ensures the dev chat markdown file exists, then appends its path to `context_globs_post` (deduped).
+- `plan` ensures `_plan-rules.md` exists in the plan directory, prepends this rules file to `knowledge_globs_pre` (deduped), and appends `plan-*.md` to `context_globs_post` (deduped).
+- The sub-agent returns `agent_result.dev_content_globs` containing enabled dev content globs (chat path and/or plan glob). This lets downstream sub-agents consume helper files without depending on `dev` config internals.
 
 Current shape:
 - **A table**:
   - `dev.chat`
+  - `dev.plan`
 
 Supported `dev.chat` values:
 - **A boolean**:
@@ -395,9 +406,20 @@ Supported `dev.chat` values:
 - **A string**: Path to the dev chat file.
 - **A table**: `enabled`, `path`, and future-safe extra keys.
 
+Supported `dev.plan` values:
+- **A boolean**:
+  - `true`: Enable with default directory.
+  - `false`: Disable plan.
+- **A string**: Path to the plan directory.
+- **A table**: `enabled`, `dir`, and future-safe extra keys.
+
 Default path when `dev.chat.path` is omitted:
 
 `$coder_prompt_dir/dev/chat/dev-chat.md`
+
+Default directory when `dev.plan.dir` is omitted:
+
+`$coder_prompt_dir/dev/plan`
 
 For string/table path values, relative paths are passed through unchanged.
 
@@ -406,14 +428,19 @@ Example:
 ```yaml
 dev:
   chat: true
+  plan: true
 # or
 dev:
   chat: .aipack/.prompt/pro@coder/dev/chat/dev-chat.md
+  plan: .aipack/.prompt/pro@coder/dev/plan
 # or
 dev:
   chat:
     enabled: true
     path: .aipack/.prompt/pro@coder/dev/chat/dev-chat.md
+  plan:
+    enabled: true
+    dir: .aipack/.prompt/pro@coder/dev/plan
 ```
 
 #### sub_agents
@@ -453,12 +480,15 @@ To modify the request state, the sub-agent should return a table. If the return 
 
 ```ts
 type SubAgentOutput = {
-  coder_params?: table,    // Optional: Merged into the current parameters
-  coder_prompt?: string,   // Optional: Replaces the current instruction
+  coder_params?: table,      // Optional: Merged into the current parameters
+  coder_prompt?: string,     // Optional: Replaces the current instruction
+  agent_result?: any,        // Optional: Pipeline payload exposed in sub_agents_prev
 
-  success?: boolean,       // Optional (defaults to true). Set to false to fail.
-  error_msg?: string,      // Optional. If present, the run fails with this message.
-  error_details?: string,  // Optional. More context for the failure.
+  sub_agents_next?: table[], // Optional: Replaces the pending sub-agent tail
+
+  success?: boolean,         // Optional (defaults to true). Set to false to fail.
+  error_msg?: string,        // Optional. If present, the run fails with this message.
+  error_details?: string,    // Optional. More context for the failure.
 }
 ```
 
@@ -466,6 +496,8 @@ type SubAgentOutput = {
 
 - `coder_params`: If provided, this table is shallow-merged into the current parameters. This means you only need to return the keys you wish to add or change.
 - `coder_prompt`: If provided, this string replaces the current instruction for the remainder of the pipeline.
+- `agent_result`: If provided, this payload is exposed to downstream sub-agents through `sub_agents_prev[*].agent_result` (and `sub_agent_result` for compatibility).
+- `sub_agents_next`: If provided, it replaces the pending tail of the pipeline.
 - Errors: If `success` is `false` or `error_msg` is present, the entire `pro@coder` run will halt with the provided error.
 
 A sub-agent can return this data either from:
@@ -487,7 +519,8 @@ Shape:
 ```ts
 type SubAgentHistoryItem = {
   config: table,            // normalized sub-agent config
-  sub_agent_result: any,    // after_all return value of that sub-agent, or nil if none
+  agent_result: any,        // canonical result payload from that sub-agent, or nil if none
+  sub_agent_result: any,    // compatibility alias of agent_result
 }
 ```
 
@@ -508,39 +541,52 @@ This is an advanced feature intended for orchestrating multi-agent flows and sho
 
 ### Sub Agent - pro@coder/dev
 
-The dev sub-agent prepares and wires dev capabilities into context. Version 1 supports `chat`.
+The dev sub-agent prepares and wires dev capabilities into context. Current capabilities are `chat` and `plan`.
 
 ```yaml
 sub_agents:
   - name: pro@coder/dev
     enabled: true
-    chat:
-      enabled: true
+    chat:            # or chat: true (default false)
+      enabled: true  
       # path: .aipack/.prompt/pro@coder/dev/chat/dev-chat.md
+    plan:            # or plan: true (default false)
+      enabled: true  
+      # dir: .aipack/.prompt/pro@coder/dev/plan
 ```
 
 - Resolves `chat.path` from config, or defaults to `$coder_prompt_dir/dev/chat/dev-chat.md`.
-- Ensures the file exists, if the file is empty, it is initialized with the dev-chat template.
-- Appends the resolved path to `context_globs_post` when missing (deduped).
+- Ensures the chat file exists, if the file is empty, it is initialized with the dev-chat template.
+- Resolves `plan.dir` from config, or defaults to `$coder_prompt_dir/dev/plan`.
+- Ensures the plan rules file exists at `$plan_dir/_plan-rules.md`, if empty, it is initialized from template.
+- Appends the resolved chat path and `plan-*.md` glob to `context_globs_post` when missing (deduped).
+- Appends the plan rules path to `knowledge_globs_pre` when missing (deduped).
+- Returns `agent_result.dev_content_globs` for downstream helper-context consumption.
 
 The same behavior can be configured with the `dev` shortcut in the root config:
 
 ```yaml
 dev:
   chat: true
+  plan: true
 # or
 dev:
   chat: .aipack/.prompt/pro@coder/dev/chat/dev-chat.md
+  plan: .aipack/.prompt/pro@coder/dev/plan
 # or
 dev:
   chat:
     enabled: true
     path: .aipack/.prompt/pro@coder/dev/chat/dev-chat.md
+  plan:
+    enabled: true
+    dir: .aipack/.prompt/pro@coder/dev/plan
 ```
 
-- `dev.chat: true` enables `pro@coder/dev` chat with the default path.
-- A string sets the path directly.
-- A table maps to the chat config shape.
+- `dev.chat: true` enables chat with the default path.
+- `dev.plan: true` enables plan with the default directory.
+- A string sets the corresponding path or directory directly.
+- A table maps to the chat or plan config shape.
 
 ### Sub Agent - pro@coder/auto-context
 _since v0.4.0_
