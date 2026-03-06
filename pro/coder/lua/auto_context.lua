@@ -32,6 +32,19 @@ local function extract_auto_context_config(sub_input)
 
 	-- helper_globs
 	local helper_globs = input_agent_config.helper_globs
+	-- Add dev chat path as helper_glob if present in previous sub-agents
+	if type(sub_input.sub_agents_prev) == "table" then
+		for _, prev in ipairs(sub_input.sub_agents_prev) do
+			if type(prev) == "table" and type(prev.config) == "table" then
+				local cfg = prev.config
+				if cfg.name == "pro@coder/dev-chat" and not is_null(cfg.path) and cfg.path ~= "" then
+					helper_globs = value_or(helper_globs, {})
+					table.insert(helper_globs, cfg.path)
+					break
+				end
+			end
+		end
+	end
 
 	-- mode
 	local mode = sub_input.agent_config.mode
@@ -302,8 +315,8 @@ end
 
 
 return {
-	extract_auto_context_config = extract_auto_context_config,
+	extract_auto_context_config       = extract_auto_context_config,
 	new_auto_context_sub_agent_config = new_auto_context_sub_agent_config,
-	pin_status                  = pin_status,
-	sort_files_by_mtime         = sort_files_by_mtime,
+	pin_status                        = pin_status,
+	sort_files_by_mtime               = sort_files_by_mtime,
 }
