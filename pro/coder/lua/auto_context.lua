@@ -19,6 +19,19 @@ local function append_helper_globs_from_sub_agents(helper_globs, sub_agents_prev
 	for _, prev in ipairs(sub_agents_prev) do
 		if type(prev) == "table" and type(prev.config) == "table" then
 			local cfg = prev.config
+			local agent_result = prev.agent_result
+			if is_null(agent_result) then
+				agent_result = prev.sub_agent_result
+			end
+
+			if type(agent_result) == "table" and type(agent_result.dev_content_globs) == "table" then
+				for _, g in ipairs(agent_result.dev_content_globs) do
+					if type(g) == "string" and g ~= "" then
+						helper_globs = value_or(helper_globs, {})
+						table.insert(helper_globs, g)
+					end
+				end
+			end
 
 			-- pro@coder/dev with chat config
 			if cfg.name == "pro@coder/dev" and type(cfg.chat) == "table" then
@@ -57,6 +70,17 @@ local function extract_auto_context_config(sub_input)
 	local helper_globs = input_agent_config.helper_globs
 	-- Add dev chat path as helper_glob if present in previous sub-agents
 	helper_globs = append_helper_globs_from_sub_agents(helper_globs, sub_input.sub_agents_prev)
+	if type(helper_globs) == "table" and #helper_globs > 1 then
+		local seen = {}
+		local deduped = {}
+		for _, g in ipairs(helper_globs) do
+			if type(g) == "string" and g ~= "" and not seen[g] then
+				seen[g] = true
+				table.insert(deduped, g)
+			end
+		end
+		helper_globs = deduped
+	end
 
 	-- mode
 	local mode = sub_input.agent_config.mode

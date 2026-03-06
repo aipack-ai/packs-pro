@@ -204,7 +204,8 @@ function run_sub_agents(stage, coder_meta, inst, coder_options, coder_prompt_dir
 
 		table.insert(executed, {
 			config = clone_shallow(config),
-			sub_agent_result = sub_agent_result
+			sub_agent_result = sub_agent_result,
+			agent_result = sub_agent_result
 		})
 
 		if returned_next ~= nil then
