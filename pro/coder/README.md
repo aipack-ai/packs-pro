@@ -467,6 +467,35 @@ A sub-agent can return this data either from:
 
 Sub-agents require AIPack 0.8.15 or above.
 
+#### Advanced pipeline context: `sub_agents_prev` and `sub_agents_next`
+
+When a sub-agent runs in the `pre` stage, `pro@coder` also provides pipeline context in the sub-agent input:
+
+- `sub_agents_prev`: already executed sub-agents, in execution order.
+- `sub_agents_next`: not-yet-executed sub-agents, in execution order.
+
+Shape:
+
+```ts
+type SubAgentHistoryItem = {
+  config: table,            // normalized sub-agent config
+  sub_agent_result: any,    // after_all return value of that sub-agent, or nil if none
+}
+```
+
+- `sub_agents_prev` is an array of `SubAgentHistoryItem`.
+- `sub_agents_next` is an array of normalized sub-agent configs (same shape as `sub_agents` entries after normalization).
+
+Behavior:
+
+- A running sub-agent can return `sub_agents_next` to replace the pending tail of the pipeline.
+- This allows dynamically adding, removing, reordering, or re-introducing agents.
+- Duplicates are allowed, no deduplication is applied.
+- Already executed agents are not modified in-place.
+- Safety cap: the dynamic pipeline is limited to 100 total steps to prevent accidental loops.
+
+This is an advanced feature intended for orchestrating multi-agent flows and should generally be used only when standard `sub_agents` chaining is not sufficient.
+
 ## Builtin Sub Agents
 
 ### Sub Agent - pro@coder/dev-chat
