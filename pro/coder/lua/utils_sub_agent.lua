@@ -33,22 +33,11 @@ end
 
 local function clone_shallow(value)
 	if type(value) ~= "table" then return value end
-	local copy = {}
-	for k, v in pairs(value) do
-		copy[k] = v
-	end
-	return copy
+	return aip.lua.merge({}, value)
 end
 
 local function clone_history(history)
-	local out = {}
-	for _, item in ipairs(history) do
-		table.insert(out, {
-			config = clone_shallow(item.config),
-			sub_agent_result = item.sub_agent_result
-		})
-	end
-	return out
+	return aip.lua.merge_deep({}, history)
 end
 
 local function new_dev_chat_sub_agent_config(dev_chat, options)
@@ -199,7 +188,8 @@ function run_sub_agents(stage, coder_meta, inst, coder_options, coder_prompt_dir
 
 		local err
 		local returned_next
-		current_params, current_coder_prompt, returned_next, err = run_sub_agent(
+		local sub_agent_result
+		current_params, current_coder_prompt, returned_next, sub_agent_result, err = run_sub_agent(
 			config,
 			stage,
 			current_params,
@@ -214,7 +204,7 @@ function run_sub_agents(stage, coder_meta, inst, coder_options, coder_prompt_dir
 
 		table.insert(executed, {
 			config = clone_shallow(config),
-			sub_agent_result = nil
+			sub_agent_result = sub_agent_result
 		})
 
 		if returned_next ~= nil then
