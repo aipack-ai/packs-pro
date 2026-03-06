@@ -40,7 +40,12 @@ local function pin_dev_status(chat, plan)
 		})
 	end
 
-	if plan ~= nil then
+	if is_null(plan) or not plan.dir then
+		aip.run.pin("dev-plan", 3, {
+			label = " Dev Plan:",
+			content = "(not activated)"
+		})
+	else
 		local plan_pin_lines = {}
 		local dir = plan.dir
 		local rules_path = dir .. "/_plan-rules.md"
@@ -181,9 +186,7 @@ if plan ~= nil then
 	local existing_plan_files = aip.file.list({ dir .. "/plan-*.md" })
 end
 
-if chat ~= nil or plan ~= nil then
-	pin_dev_status(chat, plan)
-end
+pin_dev_status(chat, plan)
 
 local updated_coder_params = {}
 if #next_context_globs_post > 0 then
