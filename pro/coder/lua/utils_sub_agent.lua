@@ -1,4 +1,4 @@
-local u_dev_chat = require("dev_chat")
+local u_dev = require("dev")
 
 -- === Support Functions
 local MAX_SUB_AGENT_STEPS = 100
@@ -40,8 +40,8 @@ local function clone_history(history)
 	return aip.lua.merge_deep({}, history)
 end
 
-local function new_dev_chat_sub_agent_config(dev_chat, options)
-	return u_dev_chat.new_dev_chat_sub_agent_config(dev_chat, options)
+local function new_dev_sub_agent_config(dev, options)
+	return u_dev.new_dev_sub_agent_config(dev, options)
 end
 
 local function extract_coder_params(coder_meta)
@@ -231,7 +231,7 @@ end
 -- === /Public Interfaces
 
 return {
-	new_dev_chat_sub_agent_config = new_dev_chat_sub_agent_config,
+	new_dev_sub_agent_config = new_dev_sub_agent_config,
 	run_sub_agent  = run_sub_agent,
 	run_sub_agents = run_sub_agents
 }

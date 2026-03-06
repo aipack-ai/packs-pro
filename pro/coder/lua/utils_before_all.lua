@@ -3,6 +3,7 @@ local CONST = require("consts")
 local u_pinned = require("utils_pinned")
 local u_auto_context = require("auto_context")
 local u_common = require("utils_common")
+local u_dev = require("dev")
 
 -- === Support Functions
 
@@ -306,7 +307,6 @@ function run_before_all(inputs)
 	local u_utils = require("utils_data")
 	local u_tmpl = require("utils_tmpl")
 	local u_sub_agent = require("utils_sub_agent")
-	local u_dev_chat = require("dev_chat")
 
 	-- === Check AIPACK Version
 	local version_ok, version_err = check_version()
@@ -367,13 +367,13 @@ function run_before_all(inputs)
 
 	local seed_agents = {}
 
-	-- === Seed dev_chat into seed_agents if present
-	if not is_null(meta.dev_chat) then
-		local dc_config = u_dev_chat.new_dev_chat_sub_agent_config(meta.dev_chat, { coder_prompt_dir = coder_prompt_dir })
-		if dc_config then
-			table.insert(seed_agents, dc_config)
+	-- === Seed dev into seed_agents if present
+	if not is_null(meta.dev) then
+		local dev_config = u_dev.new_dev_sub_agent_config(meta.dev, { coder_prompt_dir = coder_prompt_dir })
+		if dev_config then
+			table.insert(seed_agents, dev_config)
 		end
-		meta.dev_chat = nil
+		meta.dev = nil
 	end
 
 	-- === Seed auto_context into seed_agents if present

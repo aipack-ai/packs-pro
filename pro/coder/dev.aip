@@ -1,7 +1,7 @@
 # Before All
 
 ```lua
-aip.run.set_label("dev-chat")
+aip.run.set_label("dev")
 
 local function append_unique(list, value)
 	for _, item in ipairs(list) do
@@ -26,11 +26,35 @@ end
 local sub_input = inputs and inputs[1] or {}
 local agent_config = sub_input.agent_config or {}
 local coder_params = sub_input.coder_params or {}
-local coder_prompt_dir = sub_input.coder_prompt_dir or "."
 
-local path = agent_config.path
+local chat = agent_config.chat
+if type(chat) ~= "table" then
+	return aip.flow.before_all_response({
+		inputs = {},
+		before_all = {
+			coder_params = {}
+		}
+	})
+end
+
+if chat.enabled == false then
+	return aip.flow.before_all_response({
+		inputs = {},
+		before_all = {
+			coder_params = {}
+		}
+	})
+end
+
+local path = chat.path
 if is_null(path) or path == "" then
-	path = coder_prompt_dir .. "/.cache/dev/chat/dev-chat.md"
+	return aip.flow.before_all_response({
+		inputs = {},
+		before_all = {
+			success = false,
+			error_msg = "Invalid dev.chat.path"
+		}
+	})
 end
 
 local ensure_res = aip.file.ensure_exists(path, default_dev_chat_content(), { content_when_empty = true })
@@ -50,7 +74,6 @@ if type(context_globs_post) ~= "table" then
 	context_globs_post = {}
 end
 append_unique(context_globs_post, path)
-
 
 local status_content = "✅ dev chat path ➜ " .. path
 status_content = status_content .. "\n   (Added in coder params 'context_globs_post:')"
