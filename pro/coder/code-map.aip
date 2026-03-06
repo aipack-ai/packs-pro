@@ -346,7 +346,38 @@ if ai_response then
 			}
 		end
 	else
-		print("No FILE_INFO tag for " .. file_path .. "\n(might match current info)")
+		print("No FILE_INFO tag for " .. file_path .. "\nAI Response:\n" .. output_content)
+		if input.file_map_file then
+			local mtime_val = input.file.mtime
+			local hash_val = input.current_hash or aip.file.hash_blake3(file_path)
+
+			-- Build maps_to_process_for and maps_up_to_date_for as lists for jsonl
+			local maps_to_process_list = {}
+			for map_path, _ in pairs(input.maps_to_process_for) do
+				table.insert(maps_to_process_list, map_path)
+			end
+			local maps_up_to_date_list = {}
+			for map_path, _ in pairs(input.maps_up_to_date_for) do
+				table.insert(maps_up_to_date_list, map_path)
+			end
+
+			local jsonl_entry = {
+				same_no_file_info = true,
+				file_path = file_path,
+				mtime = mtime_val,
+				hash = hash_val,
+				maps_to_process_for = maps_to_process_list,
+				maps_up_to_date_for = maps_up_to_date_list,
+				file_info = {
+					summary = input.file_map_file.summary,
+					when_to_use = input.file_map_file.when_to_use,
+					public_types = input.file_map_file.public_types,
+					public_functions = input.file_map_file.public_functions,
+				}
+			}
+
+			aip.file.append_json_line(before_all.tmp_in_progress_path, jsonl_entry)
+		end
 		return {
 			success = true,
 			same = true,
