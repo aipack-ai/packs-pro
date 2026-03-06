@@ -11,6 +11,29 @@ local LABEL_HFILES              = "    Helper Files:"
 
 local DEFAULT_INPUT_CONCURRENCY = 8
 
+local function append_helper_globs_from_sub_agents(helper_globs, sub_agents_prev)
+	if type(sub_agents_prev) ~= "table" then
+		return helper_globs
+	end
+
+	for _, prev in ipairs(sub_agents_prev) do
+		if type(prev) == "table" and type(prev.config) == "table" then
+			local cfg = prev.config
+
+			-- pro@coder/dev with chat config
+			if cfg.name == "pro@coder/dev" and type(cfg.chat) == "table" then
+				local chat = cfg.chat
+				if chat.enabled ~= false and not is_null(chat.path) and chat.path ~= "" then
+					helper_globs = value_or(helper_globs, {})
+					table.insert(helper_globs, chat.path)
+				end
+			end
+		end
+	end
+
+	return helper_globs
+end
+
 
 -- return: {
 --  user_prompt: string,
@@ -33,18 +56,7 @@ local function extract_auto_context_config(sub_input)
 	-- helper_globs
 	local helper_globs = input_agent_config.helper_globs
 	-- Add dev chat path as helper_glob if present in previous sub-agents
-	if type(sub_input.sub_agents_prev) == "table" then
-		for _, prev in ipairs(sub_input.sub_agents_prev) do
-			if type(prev) == "table" and type(prev.config) == "table" then
-				local cfg = prev.config
-				if cfg.name == "pro@coder/dev-chat" and not is_null(cfg.path) and cfg.path ~= "" then
-					helper_globs = value_or(helper_globs, {})
-					table.insert(helper_globs, cfg.path)
-					break
-				end
-			end
-		end
-	end
+	helper_globs = append_helper_globs_from_sub_agents(helper_globs, sub_input.sub_agents_prev)
 
 	-- mode
 	local mode = sub_input.agent_config.mode
@@ -315,8 +327,9 @@ end
 
 
 return {
-	extract_auto_context_config       = extract_auto_context_config,
-	new_auto_context_sub_agent_config = new_auto_context_sub_agent_config,
-	pin_status                        = pin_status,
-	sort_files_by_mtime               = sort_files_by_mtime,
+	extract_auto_context_config         = extract_auto_context_config,
+	new_auto_context_sub_agent_config   = new_auto_context_sub_agent_config,
+	pin_status                          = pin_status,
+	sort_files_by_mtime                 = sort_files_by_mtime,
+	append_helper_globs_from_sub_agents = append_helper_globs_from_sub_agents,
 }

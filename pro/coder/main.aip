@@ -358,7 +358,7 @@ local u_tmpl = require("utils_tmpl")
 
 local base_dir = data.base_dir
 
-local ai_content = ai_response.content
+local ai_content = ai_response.content or ""
 
 -- By default, the second part is the ai_content
 local second_part = ai_content
