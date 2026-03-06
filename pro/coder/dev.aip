@@ -26,6 +26,34 @@ local function merge_unique(target, source)
 	return target
 end
 
+local function pin_dev_status(chat, plan)
+	aip.run.pin("dev-chat", 2, {
+		label = "Dev Chat:",
+		content = chat and chat.path or "(disabled)"
+	})
+	if plan ~= nil then
+		local plan_pin_lines = {}
+		local dir = plan.dir
+		local rules_path = dir .. "/_plan-rules.md"
+		table.insert(plan_pin_lines, "Dir: " .. dir)
+		table.insert(plan_pin_lines, "\nRules:")
+		table.insert(plan_pin_lines, "- " .. rules_path)
+		table.insert(plan_pin_lines, "\nPlans:")
+		local existing_plan_files = aip.file.list({ dir .. "/plan-*.md" })
+		if type(existing_plan_files) == "table" and #existing_plan_files > 0 then
+			for _, file in ipairs(existing_plan_files) do
+				table.insert(plan_pin_lines, "- " .. file.path)
+			end
+		else
+			table.insert(plan_pin_lines, "- (none yet)")
+		end
+		aip.run.pin("dev-plan", 3, {
+			label = " Dev Plan:",
+			content = table.concat(plan_pin_lines, "\n")
+		})
+	end
+end
+
 local function default_dev_chat_content()
 	local template_path = CTX.AGENT_FILE_DIR .. "/templates/dev/chat/dev-chat.md"
 	local template_file = aip.file.load(template_path)
@@ -167,31 +195,7 @@ end
 
 if #status_lines > 0 then
 	local status_content = table.concat(status_lines, "\n")
-	aip.run.pin("dev-chat", 2, {
-		label = "Dev Chat:",
-		content = chat and chat.path or "(disabled)"
-	})
-	if plan ~= nil then
-		local plan_pin_lines = {}
-		local dir = plan.dir
-		local rules_path = dir .. "/_plan-rules.md"
-		table.insert(plan_pin_lines, "Dir: " .. dir)
-		table.insert(plan_pin_lines, "\nRules:")
-		table.insert(plan_pin_lines, "- " .. rules_path)
-		table.insert(plan_pin_lines, "\nPlans:")
-		local existing_plan_files = aip.file.list({ dir .. "/plan-*.md" })
-		if type(existing_plan_files) == "table" and #existing_plan_files > 0 then
-			for _, file in ipairs(existing_plan_files) do
-				table.insert(plan_pin_lines, "- " .. file.path)
-			end
-		else
-			table.insert(plan_pin_lines, "- (none yet)")
-		end
-		aip.run.pin("dev-plan", 3, {
-			label = " Dev Plan:",
-			content = table.concat(plan_pin_lines, "\n")
-		})
-	end
+	pin_dev_status(chat, plan)
 end
 
 local updated_coder_params = {}
