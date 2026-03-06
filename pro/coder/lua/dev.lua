@@ -34,8 +34,12 @@ local function new_dev_sub_agent_config(dev, options)
 	if dev == true then
 		dev_config = {
 			name = "pro@coder/dev",
-			enabled = true,
-			chat = normalize_dev_chat_config(true, options)
+			enabled = true
+		}
+	elseif dev == false then
+		dev_config = {
+			name = "pro@coder/dev",
+			enabled = false
 		}
 	elseif type(dev) == "table" then
 		local base = aip.lua.merge({ name = "pro@coder/dev", enabled = true }, dev)
