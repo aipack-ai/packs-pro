@@ -1,3 +1,5 @@
+local u_dev_chat = require("dev_chat")
+
 -- === Support Functions
 
 -- Create a new sub_agent_config
@@ -28,16 +30,8 @@ local function extract_sub_agent_configs(sub_agents)
 	return configs
 end
 
-local function new_dev_chat_sub_agent_config(dev_chat)
-	local dc_config = nil
-	if dev_chat == true then
-		dc_config = { name = "pro@coder/dev-chat", enabled = true }
-	elseif type(dev_chat) == "string" then
-		dc_config = { name = "pro@coder/dev-chat", enabled = true, path = dev_chat }
-	elseif type(dev_chat) == "table" then
-		dc_config = aip.lua.merge({ name = "pro@coder/dev-chat", enabled = true }, dev_chat)
-	end
-	return dc_config
+local function new_dev_chat_sub_agent_config(dev_chat, options)
+	return u_dev_chat.new_dev_chat_sub_agent_config(dev_chat, options)
 end
 
 local function extract_coder_params(coder_meta)
