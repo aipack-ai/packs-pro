@@ -12,18 +12,16 @@ knowledge_globs:
   # - core@doc/**/*.md                 # For help building .aip AIPack agents
   # - pro@rust10x/guide/base/**/*.md   # Examples of best practices for Rust coding (require `aip install pro@rust10x`)
 
-## File path & content included in prompt (relative only)
+## Files the AI will work on (paths & content included in prompt, relative only)
 context_globs:
   # - package.json  # for Node.js
   # - Cargo.toml    # for Rust
   # - README.md 
-  - src/**/*.*      # Narrow the scope or enable auto_context
-  ## dev-chat (uncomment for dev chat mode)
-  # - .aipack/.prompt/pro@coder/dev/chat/dev-chat.md
+  - src/**/*.*      
 
-## Only matched file paths included in prompt (relative only)
+## File paths to give AI a broader view of the project (paths only in prompt, relative only)
 structure_globs:
-  - src/**/*.*
+  - src/**/*.*      
   
 ## Set to true to write the files
 write_mode: false
