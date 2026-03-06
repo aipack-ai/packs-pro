@@ -12,12 +12,6 @@ knowledge_globs:
   # - core@doc/**/*.md                 # For help building .aip AIPack agents
   # - pro@rust10x/guide/base/**/*.md   # Examples of best practices for Rust coding (require `aip install pro@rust10x`)
 
-## Pinned knowledge globs (always included, not removed by auto_context)
-# knowledge_globs_pre:       # Prepended before auto-context selection
-#   - core@doc/**/*.md
-# knowledge_globs_post:      # Appended after auto-context selection
-#   - path/to/best-practices/**/*.md
-
 ## File path & content included in prompt (relative only)
 context_globs:
   # - package.json  # for Node.js
@@ -26,12 +20,6 @@ context_globs:
   - src/**/*.*      # Narrow the scope or enable auto_context
   ## dev-chat (uncomment for dev chat mode)
   # - .aipack/.prompt/pro@coder/dev/chat/dev-chat.md
-
-## Pinned context globs (always included, not removed by auto_context)
-# context_globs_pre:         # Prepended before auto-context selection
-#   - package.json
-# context_globs_post:        # Appended after auto-context selection
-#   - .aipack/.prompt/pro@coder/dev/plan/*.md
 
 ## Only matched file paths included in prompt (relative only)
 structure_globs:

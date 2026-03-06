@@ -72,6 +72,12 @@ knowledge_globs:
 # - core@doc/**/*.md                  # To help code .aip aipack agents
 # - pro@rust10x/guide/base/**/*.md    # Some Rust best practices
 
+## Pinned knowledge globs (always included, not removed by auto_context)
+knowledge_globs_pre:       # Prepended before auto-context selection
+  - core@doc/**/*.md
+knowledge_globs_post:      # Appended after auto-context selection
+  - path/to/best-practices/**/*.md
+
 ## Files that will be included in your prompt as context files.
 ## Relative to base_dir, try to keep them as narrow as possible for a large codebase
 ## The manifest file like package.json or Cargo.toml are good context for the AI at relatively low context cost/size
@@ -80,6 +86,12 @@ context_globs:
 # - package.json    # e.g., for Node.js
 # - Cargo.toml      # e.g., for Rust
   - src/**/*.*      # Narrow glob when more than 10 files
+  
+## Pinned context globs (always included, not removed by auto_context)
+context_globs_pre:         # Prepended before auto-context selection
+  - package.json
+context_globs_post:        # Appended after auto-context selection
+  - .aipack/.prompt/pro@coder/dev/plan/*.md  
 
 ## Relative to base_dir. Only include paths (not content) in the prompt.
 ## (A good way to give the AI a cheap overview of the overall structure of the project)
