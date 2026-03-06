@@ -13,6 +13,19 @@ local function append_unique(list, value)
 	return list
 end
 
+local function merge_unique(target, source)
+	if type(target) ~= "table" then
+		target = {}
+	end
+	if type(source) ~= "table" then
+		return target
+	end
+	for _, value in ipairs(source) do
+		append_unique(target, value)
+	end
+	return target
+end
+
 local function default_dev_chat_content()
 	local template_path = CTX.AGENT_FILE_DIR .. "/templates/dev/chat/dev-chat.md"
 	local template_file = aip.file.load(template_path)
@@ -21,6 +34,15 @@ local function default_dev_chat_content()
 	end
 
 	return "# Dev Chat\n\nAdd a new `## Request: _user_ask_title_concise_` with the answer below (concise title). Use markdown sub-headings for sub sections. Keep this top instruction in this file. \n"
+end
+
+local function load_plan_rules_from_template()
+	local template_path = CTX.AGENT_FILE_DIR .. "/templates/dev/plan/_plan-rules.md"
+	local template_file = aip.file.load(template_path)
+	if type(template_file) == "table" and type(template_file.content) == "string" and template_file.content ~= "" then
+		return template_file.content
+	end
+	return "# Plan Rules\n\n- Keep plans concise and actionable.\n"
 end
 
 local sub_input = inputs and inputs[1] or {}
@@ -38,6 +60,17 @@ if type(chat) ~= "table" then
 end
 
 if chat.enabled == false then
+	chat = nil
+end
+
+local plan = agent_config.plan
+if type(plan) ~= "table" then
+	plan = nil
+elseif plan.enabled == false then
+	plan = nil
+end
+
+if chat == nil and plan == nil then
 	return aip.flow.before_all_response({
 		inputs = {},
 		before_all = {
@@ -46,48 +79,137 @@ if chat.enabled == false then
 	})
 end
 
-local path = chat.path
-if is_null(path) or path == "" then
-	return aip.flow.before_all_response({
-		inputs = {},
-		before_all = {
-			success = false,
-			error_msg = "Invalid dev.chat.path"
-		}
+local next_context_globs_post = coder_params.context_globs_post
+if type(next_context_globs_post) ~= "table" then
+	next_context_globs_post = {}
+end
+
+local next_knowledge_globs_pre = coder_params.knowledge_globs_pre
+if type(next_knowledge_globs_pre) ~= "table" then
+	next_knowledge_globs_pre = {}
+end
+
+local status_lines = {}
+
+if chat ~= nil then
+	local path = chat.path
+	if is_null(path) or path == "" then
+		return aip.flow.before_all_response({
+			inputs = {},
+			before_all = {
+				success = false,
+				error_msg = "Invalid dev.chat.path"
+			}
+		})
+	end
+
+	local ensure_res = aip.file.ensure_exists(path, default_dev_chat_content(), { content_when_empty = true })
+	if type(ensure_res) == "table" and ensure_res.error then
+		return aip.flow.before_all_response({
+			inputs = {},
+			before_all = {
+				success = false,
+				error_msg = "Failed to initialize dev chat file",
+				error_details = ensure_res.error
+			}
+		})
+	end
+
+	append_unique(next_context_globs_post, path)
+	table.insert(status_lines, "✅ dev chat path ➜ " .. path)
+	table.insert(status_lines, "   (Added in coder params 'context_globs_post:')")
+end
+
+if plan ~= nil then
+	local dir = plan.dir
+	if is_null(dir) or dir == "" then
+		return aip.flow.before_all_response({
+			inputs = {},
+			before_all = {
+				success = false,
+				error_msg = "Invalid dev.plan.dir"
+			}
+		})
+	end
+
+	local rules_path = dir .. "/_plan-rules.md"
+	local rules_ensure_res = aip.file.ensure_exists(rules_path, load_plan_rules_from_template(), { content_when_empty = true })
+	if type(rules_ensure_res) == "table" and rules_ensure_res.error then
+		return aip.flow.before_all_response({
+			inputs = {},
+			before_all = {
+				success = false,
+				error_msg = "Failed to initialize dev plan rules file",
+				error_details = rules_ensure_res.error
+			}
+		})
+	end
+
+	append_unique(next_knowledge_globs_pre, rules_path)
+	append_unique(next_context_globs_post, dir .. "/plan-*.md")
+
+	local existing_plan_files = aip.file.list({ dir .. "/plan-*.md" })
+	local plan_lines = {}
+	table.insert(plan_lines, "✅ dev plan dir ➜ " .. dir)
+	table.insert(plan_lines, "   Rules:")
+	table.insert(plan_lines, "   - " .. rules_path)
+	table.insert(plan_lines, "   Plans:")
+	if type(existing_plan_files) == "table" and #existing_plan_files > 0 then
+		for _, file in ipairs(existing_plan_files) do
+			table.insert(plan_lines, "   - " .. file.path)
+		end
+	else
+		table.insert(plan_lines, "   - (none yet, pattern: " .. dir .. "/plan-*.md)")
+	end
+	table.insert(plan_lines, "   (Added in coder params 'knowledge_globs_pre:' and 'context_globs_post:')")
+	status_lines = merge_unique(status_lines, plan_lines)
+end
+
+if #status_lines > 0 then
+	local status_content = table.concat(status_lines, "\n")
+	aip.run.pin("status", 1, {
+		label = "Status:",
+		content = status_content
 	})
-end
-
-local ensure_res = aip.file.ensure_exists(path, default_dev_chat_content(), { content_when_empty = true })
-if type(ensure_res) == "table" and ensure_res.error then
-	return aip.flow.before_all_response({
-		inputs = {},
-		before_all = {
-			success = false,
-			error_msg = "Failed to initialize dev chat file",
-			error_details = ensure_res.error
-		}
+	aip.run.pin("dev-chat", 2, {
+		label = "Dev Chat:",
+		content = chat and chat.path or "(disabled)"
 	})
+	if plan ~= nil then
+		local plan_pin_lines = {}
+		local dir = plan.dir
+		local rules_path = dir .. "/_plan-rules.md"
+		table.insert(plan_pin_lines, "Dir: " .. dir)
+		table.insert(plan_pin_lines, "Rules:")
+		table.insert(plan_pin_lines, "- " .. rules_path)
+		table.insert(plan_pin_lines, "Plans:")
+		local existing_plan_files = aip.file.list({ dir .. "/plan-*.md" })
+		if type(existing_plan_files) == "table" and #existing_plan_files > 0 then
+			for _, file in ipairs(existing_plan_files) do
+				table.insert(plan_pin_lines, "- " .. file.path)
+			end
+		else
+			table.insert(plan_pin_lines, "- (none yet)")
+		end
+		aip.run.pin("dev-plan", 3, {
+			label = " Dev Plan:",
+			content = table.concat(plan_pin_lines, "\n")
+		})
+	end
 end
 
-local context_globs_post = coder_params.context_globs_post
-if type(context_globs_post) ~= "table" then
-	context_globs_post = {}
+local updated_coder_params = {}
+if #next_context_globs_post > 0 then
+	updated_coder_params.context_globs_post = next_context_globs_post
 end
-append_unique(context_globs_post, path)
-
-local status_content = "✅ dev chat path ➜ " .. path
-status_content = status_content .. "\n   (Added in coder params 'context_globs_post:')"
-aip.run.pin("status", 1, {
-	label = "Status:",
-	content = status_content
-})
+if #next_knowledge_globs_pre > 0 then
+	updated_coder_params.knowledge_globs_pre = next_knowledge_globs_pre
+end
 
 return aip.flow.before_all_response({
 	inputs = {},
 	before_all = {
-		coder_params = {
-			context_globs_post = context_globs_post
-		}
+		coder_params = updated_coder_params
 	}
 })
 ```

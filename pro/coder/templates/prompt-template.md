@@ -35,7 +35,8 @@ auto_context:
   enabled: false         # (Default true) Comment or set to true to enable.
 
 dev:
-  chat: false   # default to PATH_TO_PRO_CODER_DIR/dev/chat/dev-chat.md 
+  chat: false   # default path: PATH_TO_PRO_CODER_DIR/dev/chat/dev-chat.md 
+  plan: false   # default  dir: PATH_TO_PRO_CODER_DIR/dev/plan/
 
 ## Full model names or aliases (see aliases ~/.aipack-base/config-default.toml)
 ## -high, -medium, or -low suffixes to customize reasoning effor (e.g., "flash-low", "opus-high", "codex-high")

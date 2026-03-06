@@ -9,6 +9,17 @@ local function resolve_dev_chat_path(dev_chat_path, options)
 	return dev_chat_path
 end
 
+local function resolve_dev_plan_dir(dev_plan_dir, options)
+	options = options or {}
+	local coder_prompt_dir = options.coder_prompt_dir or "."
+
+	if is_null(dev_plan_dir) or dev_plan_dir == "" then
+		return coder_prompt_dir .. "/dev/plan"
+	end
+
+	return dev_plan_dir
+end
+
 local function normalize_dev_chat_config(dev_chat, options)
 	local chat = nil
 	if dev_chat == true then
@@ -26,6 +37,25 @@ local function normalize_dev_chat_config(dev_chat, options)
 		chat.path = resolve_dev_chat_path(chat.path, options)
 	end
 	return chat
+end
+
+local function normalize_dev_plan_config(dev_plan, options)
+	local plan = nil
+	if dev_plan == true then
+		plan = {
+			enabled = true,
+			dir = resolve_dev_plan_dir(nil, options)
+		}
+	elseif type(dev_plan) == "string" then
+		plan = {
+			enabled = true,
+			dir = resolve_dev_plan_dir(dev_plan, options)
+		}
+	elseif type(dev_plan) == "table" then
+		plan = aip.lua.merge({ enabled = true }, dev_plan)
+		plan.dir = resolve_dev_plan_dir(plan.dir, options)
+	end
+	return plan
 end
 
 local function new_dev_sub_agent_config(dev, options)
@@ -49,7 +79,10 @@ local function new_dev_sub_agent_config(dev, options)
 	elseif type(dev) == "table" then
 		local base = aip.lua.merge({ name = "pro@coder/dev", enabled = true }, dev)
 		base.chat = normalize_dev_chat_config(base.chat, options)
-		if is_null(base.chat) or base.chat.enabled == false then
+		base.plan = normalize_dev_plan_config(base.plan, options)
+		local chat_enabled = not is_null(base.chat) and base.chat.enabled ~= false
+		local plan_enabled = not is_null(base.plan) and base.plan.enabled ~= false
+		if not chat_enabled and not plan_enabled then
 			base.enabled = false
 		end
 		dev_config = base
@@ -61,5 +94,7 @@ end
 return {
 	new_dev_sub_agent_config = new_dev_sub_agent_config,
 	normalize_dev_chat_config = normalize_dev_chat_config,
-	resolve_dev_chat_path = resolve_dev_chat_path
+	resolve_dev_chat_path = resolve_dev_chat_path,
+	normalize_dev_plan_config = normalize_dev_plan_config,
+	resolve_dev_plan_dir = resolve_dev_plan_dir
 }
