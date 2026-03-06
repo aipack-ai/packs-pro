@@ -28,15 +28,18 @@ structure_globs:
 ## Set to true to write the files
 write_mode: false
 
-## Full model names or aliases (any model name for available API Keys) (see aliases ~/.aipack-base/config-default.toml)
-## Customize reasoning effort with -high, -medium, or -low suffixes (e.g., "flash-low", "opus-high", "gpro-low")
-model: flash
-
 ## Optimize context files selection (other properties: code_map_model, helper_globs, knowledge: true/false)
 auto_context: 
   model: flash           # (Use a small or inexpensive model)
   input_concurrency: 16  # (default 8)
   enabled: false         # (Default true) Comment or set to true to enable.
+
+dev:
+  chat: false   # default to PATH_TO_PRO_CODER_DIR/dev/chat/dev-chat.md 
+
+## Full model names or aliases (see aliases ~/.aipack-base/config-default.toml)
+## -high, -medium, or -low suffixes to customize reasoning effor (e.g., "flash-low", "opus-high", "codex-high")
+model: flash
 
 ## (see PATH_TO_PRO_CODER_DIR/README.md for full pro@coder documentation)
 ```
