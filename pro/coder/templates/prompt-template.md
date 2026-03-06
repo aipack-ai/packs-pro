@@ -1,7 +1,7 @@
 ```yaml
 #!meta (parametric prompt)
 
-# See PATH_TO_PRO_CODER_README for additional documentation
+# See PATH_TO_PRO_CODER_DIR/README.md for additional documentation
 # Other possible parameters: sub_agents, base_dir, working_globs, max_files_size_kb, ...
 # Note: All relative paths are relative to the workspace directory (that is, the parent folder of .aipack/)
 
@@ -38,7 +38,7 @@ auto_context:
   input_concurrency: 16  # (default 8)
   enabled: false         # (Default true) Comment or set to true to enable.
 
-## (see PATH_TO_PRO_CODER_README for full pro@coder documentation)
+## (see PATH_TO_PRO_CODER_DIR/README.md for full pro@coder documentation)
 ```
 
 
