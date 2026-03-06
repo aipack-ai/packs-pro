@@ -509,9 +509,25 @@ sub_agents:
     # path: .aipack/.prompt/pro@coder/.cache/dev/chat/dev-chat.md
 ```
 
-- Resolves `path` from config, or defaults to `$coder_prompt_dir/.cache/dev/chat/dev-chat.md`.
+- Resolves `path` from config, or defaults to `$coder_prompt_dir/dev/chat/dev-chat.md`.
 - Ensures the file exists, if the file is empty, it is initialized with the dev-chat template.
 - Appends the resolved path to `context_globs_post` when missing (deduped).
+
+The same behavior can be configured with the `dev_chat` shortcut in the root config:
+
+```yaml
+dev_chat: true
+# or
+dev_chat: .aipack/.prompt/pro@coder/.cache/dev/chat/dev-chat.md
+# or
+dev_chat:
+  enabled: true
+  path: .aipack/.prompt/pro@coder/.cache/dev/chat/dev-chat.md
+```
+
+- `true` enables `pro@coder/dev-chat` with the default path.
+- A string sets the path directly.
+- A table maps to the sub-agent config shape.
 
 ### Sub Agent - pro@coder/auto-context
 _since v0.4.0_
