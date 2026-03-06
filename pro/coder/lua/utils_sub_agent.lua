@@ -6,7 +6,7 @@ local MAX_SUB_AGENT_STEPS = 100
 -- Create a new sub_agent_config
 -- NOTE: when item is a table, not realy validation for now, just make sure .enabled is default to true
 -- TODO: when table should validate at lest that name is define
-local function new_sub_agent_config(sub_agent_item)
+local function new_sub_agent_config(sub_agent_item, options)
 	local item = sub_agent_item
 	if type(item) == "string" then
 		return { name = item, enabled = true }
@@ -14,16 +14,22 @@ local function new_sub_agent_config(sub_agent_item)
 		if item.enabled == nil then
 			item.enabled = true -- default true
 		end
+		if item.name == "pro@coder/dev" then
+			local dev_config = u_dev.new_dev_sub_agent_config(item, options)
+			if dev_config then
+				return dev_config
+			end
+		end
 		return item
 	end
 end
 
-local function extract_sub_agent_configs(sub_agents)
+local function extract_sub_agent_configs(sub_agents, options)
 	local configs = {}
 	if type(sub_agents) ~= "table" then return configs end
 
 	for _, item in ipairs(sub_agents) do
-		local sub_agent_config = new_sub_agent_config(item)
+		local sub_agent_config = new_sub_agent_config(item, options)
 		if sub_agent_config then
 			table.insert(configs, sub_agent_config)
 		end
@@ -135,7 +141,7 @@ function run_sub_agent(config, stage, current_params, current_coder_prompt, code
 		end
 
 		if res.sub_agents_next ~= nil then
-			next_configs = extract_sub_agent_configs(res.sub_agents_next)
+			next_configs = extract_sub_agent_configs(res.sub_agents_next, { coder_prompt_dir = coder_prompt_dir })
 		end
 	end
 
@@ -152,7 +158,7 @@ function run_sub_agents(stage, coder_meta, inst, coder_options, coder_prompt_dir
 
 	local sub_agents = coder_meta.sub_agents
 
-	local agent_configs = extract_sub_agent_configs(sub_agents)
+	local agent_configs = extract_sub_agent_configs(sub_agents, { coder_prompt_dir = coder_prompt_dir })
 	if #agent_configs == 0 then
 		return coder_meta, inst
 	end
