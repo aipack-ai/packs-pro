@@ -253,9 +253,7 @@ Here are some important knowledge, guidelines, and best practices I like you to 
 {{#each data.knowledge_files}}
 
 <KNOWLEDGE_FILE file_path="{{this.path}}">
-````{{this.ext}}
 {{this.content}}
-````
 </KNOWLEDGE_FILE>
 
 {{/each}}
@@ -283,9 +281,7 @@ Now, here are the context source files that are related to the work to be done.
 {{#each data.context_files}}
 
 <CONTEXT_FILE file_path="{{this.path}}">
-````{{this.ext}}
 {{this.content}}
-````
 </CONTEXT_FILE>
 
 {{/each}}
@@ -302,9 +298,7 @@ Here is the working files you need to work on.
 
 {{#each data.working_files}}
 <WORKING_FILE file_path="{{this.path}}">
-````{{this.ext}}
 {{this.content}}
-````
 </WORKING_FILE>
 
 {{/each}}
