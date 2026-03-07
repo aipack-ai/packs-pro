@@ -21,7 +21,8 @@ context_globs:
 
 ## File paths to give AI a broader view of the project (paths only in prompt, relative only)
 structure_globs:
-  - src/**/*.*      
+  - "*.*"
+  - src/**/*.*
   
 ## Set to true to write the files
 write_mode: false
