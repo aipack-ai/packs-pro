@@ -11,13 +11,18 @@ Always create, read, and modify these plan files **in the same directory** as th
 
 - `plan-1-todo-steps.md` lists upcoming steps, ordered top to bottom. The topmost item is the next step to activate.
 
-- `plan-2-current-step.md` holds the single step in progress, marked `      status: current`. It is created only when implementation begins, by moving the topmost todo step into it (typically triggered by "do next step" or an explicit request to continue work). It represents what was worked on in the latest turn and what is currently being worked on by the AI. It is not a queue of upcoming steps. If work spans multiple turns, add sub-steps here.
+- `plan-2-current-step.md` holds the single step that was just implemented or updated, marked `      status: current`.  
+  A step is moved here **only at the moment implementation is performed**. The move and the implementation are a single action and must happen in the same request.  
+  Never move a step to current without performing the implementation in that same response.
+
+  It represents what was worked on in the latest turn and what is currently being worked on by the AI. It is not a queue of upcoming steps. If work spans multiple turns, add sub-steps here.
 
 - `plan-3-done-steps.md` archives completed steps, marked `      status: done`, with a concise summary.
 
-Current is created when implementation starts, and exists only to reflect the work actively being performed by the AI, including what has just been implemented. Do not treat the current step as the "next to do". It mirrors the work just performed and the ongoing work until the user says "do next step" or "continue to work on current step". Do not create or keep a current step during planning-only phases.
+`plan-2-current-step.md` exists only to reflect the work actively being performed by the AI, including what has just been implemented.  
+Do not treat the current step as the "next to do". It mirrors the work just performed and the ongoing work until the user says "do next step" or "continue to work on current step". Do not create or keep a current step during planning-only phases.
 
-- When the user asks to do the next step, but there is nothing in the todo file and a current step in the current-step file, simply move the current step to the done file as usual, and inform the user that everything is completed.
+- When the user asks to do the next step, but there is nothing in the plan-1-todo file and a current step in the current-step file, simply move the current step to the done file as usual, and inform the user that everything is completed.
 
 - If the user continues to ask to do something when there is nothing in the todo file, just say that there are no more items in the plan-1-todo-steps file.
 
@@ -63,13 +68,13 @@ Each step must be defined in a way that does not break the code or existing func
 
 - When asked to create or update the plan, do not implement any step. Only create or modify the plan files. Implementation work begins only when the user explicitly requests "do next step" or "continue to work on current step".
 
-- Always move a step from todo to current before doing any work on it. Never move a todo step directly to done.
+- Always move a step from todo to current **as part of performing the implementation**. Never move a todo step to current without implementing it in the same response. Never move a todo step directly to done.
 
-- Create `plan-2-current-step.md` only when beginning implementation. When beginning work, move the topmost step from `plan-1-todo-steps.md` into it and set `      status: current`.
+- Create `plan-2-current-step.md` only when beginning implementation. When beginning work, move the topmost step from `plan-1-todo-steps.md` into it and set `      status: current`, **while simultaneously performing the implementation for that step**.
 
 - When the user says "do next step":
-  - If a current step exists, finalize it, move it to done with `      status: done`. If a next todo step exists, activate the topmost todo as the new current. If there are no remaining todo steps, inform the user that there are no more steps to be done.
-  - If there is no current step, activate the topmost todo as current and proceed.
+  - If a current step exists, finalize it, move it to done with `      status: done`. If a next todo step exists, activate the topmost todo as the new current **and implement it in the same response**. If there are no remaining todo steps, inform the user that there are no more steps to be done.
+  - If there is no current step, activate the topmost todo as current **and implement it immediately in the same response**.
 
 - When a step becomes current, keep its original todo content verbatim. Only add supplementary sections like `### Implementation Considerations` or sub-steps as needed.
 
@@ -95,12 +100,12 @@ Each step must be defined in a way that does not break the code or existing func
 
 - When a step will build on a definition or specification from a previous step, include an explicit reference in the body, for example "References: see the definition in plan-2-current-step.md or plan-3-done-steps.md, step 'Step - ...'". This ensures the next step picks up the defined content from current or done.
 
-- When a step is activated, move the entire step to `plan-2-current-step.md`, change `      status` to `current`, and remove it from todo. Preserve all original content.
+- When a step is activated, move the entire step to `plan-2-current-step.md`, change `      status` to `current`, and remove it from todo **while performing its implementation in the same response**. Preserve all original content.
 
 
 ## plan-2-current-step.md rules
 
-- Contains exactly one step with `      status: current` only while implementation is in progress. If there is no active implementation, this file may be absent or empty. Create it and activate the topmost todo only when beginning implementation.
+- Contains exactly one step with `      status: current` only while implementation is in progress. If there is no active implementation, this file may be absent or empty. Create it and activate the topmost todo **only when performing implementation**.
 
 - This file is here in case the user wants new things or if something needs to be fixed (see sub-step below)
 
@@ -141,7 +146,7 @@ IF_NEEDED_OTHER_SUB_STEP_SECTION_FOR_ADDITIONAL_INFORMATION
   - If there are no sub-steps, move the step as-is to done with `      status: done`.
   - If there are many sub-steps or back-and-forth, consolidate them into a concise set of instructions or summary, then mark `      status: done` and archive, except when the step is primarily defining or specifying something. In that case, do not consolidate, carry the entire content verbatim into done so that subsequent steps have full information.
 
-- After archiving the current step, if a next todo exists, immediately activate the topmost todo as the new current to continue the flow. If there are no remaining todo steps, inform the user that there are no more steps to be done.
+- After archiving the current step, if a next todo exists, immediately activate the topmost todo as the new current **and implement it in the same response**. If there are no remaining todo steps, inform the user that there are no more steps to be done.
 
 
 ## plan-3-done-steps.md rules
