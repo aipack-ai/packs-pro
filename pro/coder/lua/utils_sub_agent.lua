@@ -3,6 +3,15 @@ local u_dev = require("dev")
 -- === Support Functions
 local MAX_SUB_AGENT_STEPS = 100
 
+-- Properties that must be cleared from coder_params returned by sub-agents.
+-- These are top-level config concerns and should not be merged back into pipeline state.
+local CLEAR_CODER_PARAMS_RESPONSE_PROPERTIES = {
+	"auto_context",
+	"chat",
+	"dev",
+	"sub_agents",
+}
+
 -- Create a new sub_agent_config
 -- NOTE: when item is a table, not realy validation for now, just make sure .enabled is default to true
 -- TODO: when table should validate at lest that name is define
@@ -133,6 +142,10 @@ function run_sub_agent(config, stage, current_params, current_coder_prompt, code
 
 		-- Merge or replace state
 		if res.coder_params then
+			-- Clear config-level properties that sub-agents should not propagate
+			for _, key in ipairs(CLEAR_CODER_PARAMS_RESPONSE_PROPERTIES) do
+				res.coder_params[key] = nil
+			end
 			-- we merge here so, that the return value does not have to return unchanged things
 			current_params = aip.lua.merge(current_params, res.coder_params)
 		end
