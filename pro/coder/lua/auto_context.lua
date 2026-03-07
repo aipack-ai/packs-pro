@@ -32,15 +32,6 @@ local function append_helper_globs_from_sub_agents(helper_globs, sub_agents_prev
 					end
 				end
 			end
-
-			-- pro@coder/dev with chat config
-			if cfg.name == "pro@coder/dev" and type(cfg.chat) == "table" then
-				local chat = cfg.chat
-				if chat.enabled ~= false and not is_null(chat.path) and chat.path ~= "" then
-					helper_globs = value_or(helper_globs, {})
-					table.insert(helper_globs, chat.path)
-				end
-			end
 		end
 	end
 

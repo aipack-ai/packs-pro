@@ -145,7 +145,9 @@ function run_sub_agent(config, stage, current_params, current_coder_prompt, code
 		end
 	end
 
-	return current_params, current_coder_prompt, next_configs
+	local agent_result = type(res) == "table" and res.agent_result or nil
+
+	return current_params, current_coder_prompt, next_configs, agent_result
 end
 
 -- Executes a list of sub-agents for a specific stage.
@@ -194,8 +196,8 @@ function run_sub_agents(stage, coder_meta, inst, coder_options, coder_prompt_dir
 
 		local err
 		local returned_next
-		local sub_agent_result
-		current_params, current_coder_prompt, returned_next, sub_agent_result, err = run_sub_agent(
+		local agent_result
+		current_params, current_coder_prompt, returned_next, agent_result, err = run_sub_agent(
 			config,
 			stage,
 			current_params,
@@ -210,8 +212,8 @@ function run_sub_agents(stage, coder_meta, inst, coder_options, coder_prompt_dir
 
 		table.insert(executed, {
 			config = clone_shallow(config),
-			sub_agent_result = sub_agent_result,
-			agent_result = sub_agent_result
+			sub_agent_result = agent_result,
+			agent_result = agent_result
 		})
 
 		if returned_next ~= nil then
