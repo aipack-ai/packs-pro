@@ -9,7 +9,7 @@
 knowledge_globs:
   # - /abs/or/rel/path/to/**/*.md      # Any relative or absolute path/glob for Markdown files
   # - pro@coder/README.md              # Pack path supported (here ask question about pro@coder)
-  # - core@doc/**/*.md                 # For help building .aip AIPack agents
+  # - core@doc/for-llm/**/*.md         # For help building .aip AIPack agents
   # - pro@rust10x/guide/base/**/*.md   # Examples of best practices for Rust coding (require `aip install pro@rust10x`)
 
 ## Files the AI will work on (paths & content included in prompt, relative only)
