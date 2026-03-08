@@ -1,4 +1,5 @@
 local CONST = require("consts")
+local u_common = require("utils_common")
 
 local M = {}
 
@@ -62,10 +63,6 @@ function M.init_fixed_files(prompt_dir)
 		{
 			src_path  = CTX.AGENT_FILE_DIR .. "/templates/dev/plan/_plan-rules.md",
 			dest_path = prompt_dir .. "/dev/plan/_plan-rules.md"
-		},
-		{
-			src_path  = CTX.AGENT_FILE_DIR .. "/templates/dev/chat/dev-chat.md",
-			dest_path = prompt_dir .. "/dev/chat/dev-chat.md"
 		}
 	}
 
@@ -75,6 +72,8 @@ function M.init_fixed_files(prompt_dir)
 			aip.file.save(f.dest_path, content)
 		end
 	end
+
+	u_common.ensure_dev_chat_file(prompt_dir .. "/dev/chat")
 end
 
 -- Concatenates the prompt parts with the AI response for prompt update.

@@ -17,7 +17,65 @@ local function filter_likely_text(files)
 	return filtered
 end
 
+local function resolve_dev_chat_path(dev_chat_path, options)
+	options = options or {}
+	local coder_prompt_dir = options.coder_prompt_dir or "."
+
+	if is_null(dev_chat_path) or dev_chat_path == "" then
+		return coder_prompt_dir .. "/dev/chat/dev-chat.md"
+	end
+
+	local normalized_path = dev_chat_path:gsub("/+$", "")
+	local _dir, file_name = aip.path.split(normalized_path)
+	local has_extension = file_name and file_name:match("^.+%.[^%.]+$") ~= nil
+	if not has_extension then
+		return normalized_path .. "/dev-chat.md"
+	end
+
+	return normalized_path
+end
+
+local function load_dev_chat_template_content()
+	local template_path = CTX.AGENT_FILE_DIR .. "/templates/dev/chat/dev-chat.md"
+	local template_file = aip.file.load(template_path)
+	if type(template_file) == "table" and type(template_file.content) == "string" and template_file.content ~= "" then
+		return template_file.content
+	end
+
+	return
+	"# Dev Chat\n\nAdd a new `## Request: _user_ask_title_concise_` with the answer below (concise title). Use markdown sub-headings for sub sections. Keep this top instruction in this file. \n"
+end
+
+local function ensure_dev_chat_file(dev_chat_path, options)
+	options = options or {}
+	local resolved_path = resolve_dev_chat_path(dev_chat_path, options)
+
+	if aip.file.exists(resolved_path) then
+		return resolved_path
+	end
+
+	local seed_content = options.seed_content
+	if is_null(seed_content) and resolved_path:lower():match("%.md$") then
+		seed_content = load_dev_chat_template_content()
+	end
+
+	local ensure_res = nil
+	if not is_null(seed_content) then
+		ensure_res = aip.file.ensure_exists(resolved_path, seed_content)
+	else
+		ensure_res = aip.file.ensure_exists(resolved_path)
+	end
+
+	if type(ensure_res) == "table" and ensure_res.error then
+		return nil, ensure_res.error
+	end
+
+	return resolved_path
+end
+
 return {
 	filter_likely_text = filter_likely_text,
+	resolve_dev_chat_path = resolve_dev_chat_path,
+	load_dev_chat_template_content = load_dev_chat_template_content,
+	ensure_dev_chat_file = ensure_dev_chat_file,
 }
-

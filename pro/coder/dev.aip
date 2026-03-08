@@ -2,6 +2,7 @@
 
 ```lua
 aip.run.set_label("dev")
+local u_common = require("utils_common")
 
 local function append_unique(list, value)
 	for _, item in ipairs(list) do
@@ -73,13 +74,7 @@ local function pin_dev_status(chat, plan)
 end
 
 local function default_dev_chat_content()
-	local template_path = CTX.AGENT_FILE_DIR .. "/templates/dev/chat/dev-chat.md"
-	local template_file = aip.file.load(template_path)
-	if type(template_file) == "table" and template_file.content then
-		return template_file.content
-	end
-
-	return "# Dev Chat\n\nAdd a new `## Request: _user_ask_title_concise_` with the answer below (concise title). Use markdown sub-headings for sub sections. Keep this top instruction in this file. \n"
+	return u_common.load_dev_chat_template_content()
 end
 
 local function load_plan_rules_from_template()
@@ -129,7 +124,7 @@ if type(next_knowledge_globs_pre) ~= "table" then
 end
 
 if chat ~= nil then
-	local path = chat.path
+	local path, ensure_err = u_common.ensure_dev_chat_file(chat.path, { seed_content = default_dev_chat_content() })
 	if is_null(path) or path == "" then
 		return aip.flow.before_all_response({
 			inputs = {},
@@ -140,18 +135,18 @@ if chat ~= nil then
 		})
 	end
 
-	local ensure_res = aip.file.ensure_exists(path, default_dev_chat_content(), { content_when_empty = true })
-	if type(ensure_res) == "table" and ensure_res.error then
+	if ensure_err then
 		return aip.flow.before_all_response({
 			inputs = {},
 			before_all = {
 				success = false,
 				error_msg = "Failed to initialize dev chat file",
-				error_details = ensure_res.error
+				error_details = ensure_err
 			}
 		})
 	end
 
+	chat.path = path
 	append_unique(next_context_globs_post, path)
 end
 
@@ -168,7 +163,12 @@ if plan ~= nil then
 	end
 
 	local rules_path = dir .. "/_plan-rules.md"
-	local rules_ensure_res = aip.file.ensure_exists(rules_path, load_plan_rules_from_template(), { content_when_empty = true })
+	local rules_ensure_res
+	if aip.file.exists(rules_path) then
+		rules_ensure_res = aip.file.info(rules_path)
+	else
+		rules_ensure_res = aip.file.ensure_exists(rules_path, load_plan_rules_from_template())
+	end
 	if type(rules_ensure_res) == "table" and rules_ensure_res.error then
 		return aip.flow.before_all_response({
 			inputs = {},

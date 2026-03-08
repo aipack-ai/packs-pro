@@ -1,12 +1,7 @@
+local u_common = require("utils_common")
+
 local function resolve_dev_chat_path(dev_chat_path, options)
-	options = options or {}
-	local coder_prompt_dir = options.coder_prompt_dir or "."
-
-	if is_null(dev_chat_path) or dev_chat_path == "" then
-		return coder_prompt_dir .. "/dev/chat/dev-chat.md"
-	end
-
-	return dev_chat_path
+	return u_common.resolve_dev_chat_path(dev_chat_path, options)
 end
 
 local function resolve_dev_plan_dir(dev_plan_dir, options)
