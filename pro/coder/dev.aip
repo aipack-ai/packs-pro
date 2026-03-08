@@ -102,6 +102,18 @@ if type(plan) ~= "table" then
 	plan = nil
 elseif plan.enabled == false then
 	plan = nil
+elseif not is_null(plan._resolve_err) and plan._resolve_err ~= "" then
+	aip.run.pin("dev-plan", 3, {
+		label = " Dev Plan:",
+		content = "ERROR: " .. plan._resolve_err
+	})
+	return aip.flow.before_all_response({
+		inputs = {},
+		before_all = {
+			success = false,
+			error_msg = plan._resolve_err
+		}
+	})
 end
 
 if chat == nil and plan == nil then
@@ -151,7 +163,21 @@ if chat ~= nil then
 end
 
 if plan ~= nil then
-	local dir = plan.dir
+	local dir, _rules_path, ensure_err = u_common.ensure_dev_plan_file(plan.dir)
+	if ensure_err then
+		aip.run.pin("dev-plan", 3, {
+			label = " Dev Plan:",
+			content = "ERROR: " .. ensure_err
+		})
+		return aip.flow.before_all_response({
+			inputs = {},
+			before_all = {
+				success = false,
+				error_msg = "Failed to initialize dev plan rules file",
+				error_details = ensure_err
+			}
+		})
+	end
 	if is_null(dir) or dir == "" then
 		return aip.flow.before_all_response({
 			inputs = {},
@@ -161,26 +187,9 @@ if plan ~= nil then
 			}
 		})
 	end
+	plan.dir = dir
 
-	local rules_path = dir .. "/_plan-rules.md"
-	local rules_ensure_res
-	if aip.file.exists(rules_path) then
-		rules_ensure_res = aip.file.info(rules_path)
-	else
-		rules_ensure_res = aip.file.ensure_exists(rules_path, load_plan_rules_from_template())
-	end
-	if type(rules_ensure_res) == "table" and rules_ensure_res.error then
-		return aip.flow.before_all_response({
-			inputs = {},
-			before_all = {
-				success = false,
-				error_msg = "Failed to initialize dev plan rules file",
-				error_details = rules_ensure_res.error
-			}
-		})
-	end
-
-	append_unique(next_knowledge_globs_pre, rules_path)
+	append_unique(next_knowledge_globs_pre, _rules_path)
 	append_unique(next_context_globs_post, dir .. "/plan-*.md")
 
 	local existing_plan_files = aip.file.list({ dir .. "/plan-*.md" })

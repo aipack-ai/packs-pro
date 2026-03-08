@@ -6,13 +6,7 @@ end
 
 local function resolve_dev_plan_dir(dev_plan_dir, options)
 	options = options or {}
-	local coder_prompt_dir = options.coder_prompt_dir or "."
-
-	if is_null(dev_plan_dir) or dev_plan_dir == "" then
-		return coder_prompt_dir .. "/dev/plan"
-	end
-
-	return dev_plan_dir
+	return u_common.resolve_dev_plan_dir(dev_plan_dir, options)
 end
 
 local function normalize_dev_chat_config(dev_chat, options)
@@ -48,7 +42,7 @@ local function normalize_dev_plan_config(dev_plan, options)
 		}
 	elseif type(dev_plan) == "table" then
 		plan = aip.lua.merge({ enabled = true }, dev_plan)
-		plan.dir = resolve_dev_plan_dir(plan.dir, options)
+		plan.dir, plan._resolve_err = resolve_dev_plan_dir(plan.dir, aip.lua.merge({}, options, { strict_dir = true }))
 	end
 	return plan
 end

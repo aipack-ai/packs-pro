@@ -332,6 +332,8 @@ function run_before_all(inputs)
 
 	-- Save the dev plan files only if not present
 	u_tmpl.init_fixed_files(paths.prompt_dir)
+	u_common.ensure_dev_chat_file(nil, { coder_prompt_dir = paths.prompt_dir })
+	u_common.ensure_dev_plan_file(nil, { coder_prompt_dir = paths.prompt_dir })
 
 	-- === Extract data from prompt files
 	local first_part, second_part = extract_prompt_parts(prompt_file.content)

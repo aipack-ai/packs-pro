@@ -35,6 +35,32 @@ local function resolve_dev_chat_path(dev_chat_path, options)
 	return normalized_path
 end
 
+local function resolve_dev_plan_dir(dev_plan_dir, options)
+	options = options or {}
+	local coder_prompt_dir = options.coder_prompt_dir or "."
+	local strict_dir = options.strict_dir == true
+
+	if is_null(dev_plan_dir) or dev_plan_dir == "" then
+		return coder_prompt_dir .. "/dev/plan"
+	end
+
+	local normalized_path = dev_plan_dir:gsub("/+$", "")
+	local _dir, file_name = aip.path.split(normalized_path)
+	local has_extension = file_name and file_name:match("^.+%.[^%.]+$") ~= nil
+	if has_extension then
+		if strict_dir then
+			return nil, "Invalid dev.plan.dir, expected directory path, got file path: " .. normalized_path
+		end
+		local parent_dir = aip.path.parent(normalized_path)
+		if is_null(parent_dir) or parent_dir == "" then
+			return "."
+		end
+		return parent_dir:gsub("/+$", "")
+	end
+
+	return normalized_path
+end
+
 local function load_dev_chat_template_content()
 	local template_path = CTX.AGENT_FILE_DIR .. "/templates/dev/chat/dev-chat.md"
 	local template_file = aip.file.load(template_path)
@@ -73,9 +99,42 @@ local function ensure_dev_chat_file(dev_chat_path, options)
 	return resolved_path
 end
 
+local function load_dev_plan_rules_template_content()
+	local template_path = CTX.AGENT_FILE_DIR .. "/templates/dev/plan/_plan-rules.md"
+	local template_file = aip.file.load(template_path)
+	if type(template_file) == "table" and type(template_file.content) == "string" and template_file.content ~= "" then
+		return template_file.content
+	end
+	return "# Plan Rules\n\n- Keep plans concise and actionable.\n"
+end
+
+local function ensure_dev_plan_file(dev_plan_dir, options)
+	options = options or {}
+	local resolved_dir, resolve_err = resolve_dev_plan_dir(dev_plan_dir, options)
+	if is_null(resolved_dir) or resolved_dir == "" then
+		return nil, nil, resolve_err or "Invalid dev.plan.dir"
+	end
+
+	local rules_path = resolved_dir .. "/_plan-rules.md"
+	local ensure_res
+	if aip.file.exists(rules_path) then
+		ensure_res = aip.file.info(rules_path)
+	else
+		ensure_res = aip.file.ensure_exists(rules_path, load_dev_plan_rules_template_content())
+	end
+
+	if type(ensure_res) == "table" and ensure_res.error then
+		return nil, nil, ensure_res.error
+	end
+
+	return resolved_dir, rules_path
+end
+
 return {
 	filter_likely_text = filter_likely_text,
 	resolve_dev_chat_path = resolve_dev_chat_path,
+	resolve_dev_plan_dir = resolve_dev_plan_dir,
 	load_dev_chat_template_content = load_dev_chat_template_content,
 	ensure_dev_chat_file = ensure_dev_chat_file,
+	ensure_dev_plan_file = ensure_dev_plan_file,
 }

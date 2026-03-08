@@ -411,7 +411,7 @@ Supported `dev.plan` values:
 - **A boolean**:
   - `true`: Enable with default directory.
   - `false`: Disable plan.
-- **A string**: Path to the plan directory.
+- **A string**: Path to the plan directory, or a `.md` file path whose parent directory will be used as the plan directory.
 - **A table**: `enabled`, `dir`, and future-safe extra keys.
 
 Default path when `dev.chat.path` is omitted:
@@ -424,6 +424,14 @@ Default directory when `dev.plan.dir` is omitted:
 
 For string/table path values, relative paths are passed through unchanged.
 
+Plan path handling details:
+
+- `dev.plan: "some/dir"` resolves to `some/dir`.
+- `dev.plan: "some/file.md"` resolves to `some` (parent directory).
+- `dev.plan: "plan.md"` resolves to `.`.
+- Trailing slashes are normalized.
+- For table mode, `dev.plan.dir` must be a directory path, `.md` file paths are rejected with a validation error.
+
 Example:
 
 ```yaml
@@ -434,6 +442,9 @@ dev:
 dev:
   chat: .aipack/.prompt/pro@coder/dev/chat/dev-chat.md
   plan: .aipack/.prompt/pro@coder/dev/plan
+# or
+dev:
+  plan: .aipack/.prompt/pro@coder/dev/plan.md   # resolves to .aipack/.prompt/pro@coder/dev
 # or
 dev:
   chat:
@@ -587,9 +598,10 @@ dev:
 
 - `dev.chat: true` enables chat with the default path.
 - `dev.plan: true` enables plan with the default directory.
-- A string sets the corresponding path or directory directly.
+- A string sets the corresponding directory directly, if it is a `.md` path, its parent directory is used.
 - A table maps to the chat or plan config shape.
 - If both are disabled via table config (`enabled: false`), `pro@coder` seeds `pro@coder/dev` as disabled.
+- For table mode, `dev.plan.dir` is strict and must be a directory path.
 
 ### Sub Agent - pro@coder/auto-context
 _since v0.4.0_
