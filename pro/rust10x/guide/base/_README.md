@@ -15,6 +15,10 @@ Follow them when providing Rust code.
 
 - If no edition is specified, assume Edition 2024, and use if-let chains when possible.
 
+- Avoid manual pattern match when possible
+  - For example, avoid: `line.trim_start_matches(|c: char| c == ' ' || c == '\t')`
+  - When  this would work `line.trim_start_matches([' ', '\t']).len()`
+
 - When using proc or declarative macros, make sure to import them with `use ...` rather than using the qualified name like `lib_name::macro_name!(...)` (this is a bad pattern).
     - So the good pattern for macros is:
     - First, import them like `use lib_name::macro_name;`
