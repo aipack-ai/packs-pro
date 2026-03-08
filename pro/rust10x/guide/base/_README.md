@@ -13,11 +13,27 @@ Follow them when providing Rust code.
 
 - In enum variants and struct fields, if there is a comment or attribute before the variant or field, add an empty line before it for readability.
 
-- If no edition is specified, assume Edition 2024, and use if-let chains when possible.
+- If no edition is specified, assume Edition 2024 and modern runst. 
+
+- Use the  if let chain. 
+  For example DO THIS:
+  ```rust
+  	if let Some(prev_hint) = hints.prev_hint
+  		&& !prev_hint.trim().is_empty()
+  		...
+  ```	
+
+  DO NOT DO THIS:
+  ```rust
+  	if let Some(prev_hint) = hints.prev_hint {
+  		if !prev_hint.trim().is_empty() && candidate_start > 0 {
+  		...
+  ```		
+	
 
 - Avoid manual pattern match when possible
-  - For example, avoid: `line.trim_start_matches(|c: char| c == ' ' || c == '\t')`
-  - When  this would work `line.trim_start_matches([' ', '\t']).len()`
+  - For example, Do this `line.trim_start_matches([' ', '\t']).len()`
+  - Do not do this: `line.trim_start_matches(|c: char| c == ' ' || c == '\t')`
 
 - When using proc or declarative macros, make sure to import them with `use ...` rather than using the qualified name like `lib_name::macro_name!(...)` (this is a bad pattern).
     - So the good pattern for macros is:
