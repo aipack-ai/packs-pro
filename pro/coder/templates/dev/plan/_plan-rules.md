@@ -11,11 +11,7 @@ Always create, read, and modify these plan files **in the same directory** as th
 
 - `plan-1-todo-steps.md` lists upcoming steps, ordered top to bottom. The topmost item is the next step to activate.
 
-- `plan-2-active-step.md` holds the single step that was just implemented or updated, marked `      status: active`.  
-  A step is moved here **only at the moment implementation is performed**. The move and the implementation are a single action and must happen in the same request.  
-  Never move a step to active without performing the implementation in that same response.
-
-  It represents what was worked on in the latest turn and what is currently being worked on by the AI. It is not a queue of upcoming steps. If work spans multiple turns, add sub-steps here.
+- `plan-2-active-step.md` when a new step is implemented, it is taken from `plan-1-todo-steps` and put in this file. This way, the user can see what is implemented. The user can also ask to work more on this active step if there is a bug or something. Otherwise, it moves to `plan-3-done-steps` when a new step is completed and moved from this file.
 
 - `plan-3-done-steps.md` archives completed steps, marked `      status: done`, with a concise summary.
 
