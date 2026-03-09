@@ -225,6 +225,8 @@ The user will give you:
 - The possible file helpers
 - and the user prompt
 
+Note: When the user ask explicitly to add some files to the context_globs, it means they need to be added in the needed_context_files list. 
+
 # Instruction
 
 {{#if data.knowledge_enabled}}
