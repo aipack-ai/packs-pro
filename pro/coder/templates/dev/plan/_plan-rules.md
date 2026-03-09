@@ -7,7 +7,7 @@ All three plan files **must always live in the same directory as this `_plan-rul
 - `plan-2-active-step.md`
 - `plan-3-done-steps.md`
 
-Always create, read, and modify these plan files **in the same directory** as the `_plan-rules.md` file. Never place them in any other directory.
+Create, read, and modify these plan files **in the same directory** as the `_plan-rules.md` file. Never place them in any other directory.
 
 - `plan-1-todo-steps.md` lists upcoming steps, ordered top to bottom. The topmost item is the next step to activate.
 
@@ -15,10 +15,22 @@ Always create, read, and modify these plan files **in the same directory** as th
 
 - `plan-3-done-steps.md` archives completed steps, marked `      status: done`, with a concise summary.
 
-`plan-2-active-step.md` exists only to reflect the work actively being performed by the AI, including what has just been implemented.  
+Important note: 
+
+- If you cannot do the next step because there is not enough information, just tell the user using the `<missing_files>` tag or in the response, but do not update the pland files, except if asked by the user to say why implementation was not done for example.
+
+- only moved todo to active when implementation is actually performed in that same response
+
+- kept active as a real in-progress implementation mirror, not a planning transition artifact
+
+- `plan-2-active-step.md` exists only to reflect the work actively being performed by the AI, including what has just been implemented.  
 Do not treat the active step as the "next to do". It mirrors the work just performed and the ongoing work until the user says "do next step" or "continue to work on active step". Do not create or keep an active step during planning-only phases.
 
-- When the user asks to do the next step, but there is nothing in the plan-1-todo file and an active step in the active-step file, simply move the active step to the done file as usual, and inform the user that everything is completed.
+- When the user asks a question about the active step, add this information to the active step file. 
+
+- Only move something to active steps if it can be implemented. If the next step cannot be implemented, due to missing files or anything else, then just tell the user in the prompt or note it as missing files, but do not edit the plan files. 
+
+- When the user asks to do, that is, implement, the next step, but there is nothing in the plan-1-todo file and there is an active step in the active-step file, simply move the active step to the done file as usual, and inform the user that everything is complete.
 
 - If the user continues to ask to do something when there is nothing in the todo file, just say that there are no more items in the plan-1-todo-steps file.
 
