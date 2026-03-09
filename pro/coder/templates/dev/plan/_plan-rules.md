@@ -13,9 +13,11 @@ Create, read, and modify these plan files **in the same directory** as the `_pla
 
 - `plan-2-active-step.md` when a new step is implemented, it is taken from `plan-1-todo-steps` and put in this file. This way, the user can see what is implemented. The user can also ask to work more on this active step if there is a bug or something. Otherwise, it moves to `plan-3-done-steps` when a new step is completed and moved from this file.
 
-- `plan-3-done-steps.md` archives completed steps, marked `      status: done`, with a concise summary.
+- `plan-3-done-steps.md` archives completed steps, marked `      status: done`, with a concise summary. (can be created when moving the first step to it)
 
 Important note: 
+
+- Make sure when asked to implement (e.g., do, work, ...) the next step or to work/fix active step, the plan file only get updated if works has been done (or if a note needs to be added in active). Do not update the plan files if you do not any implementation.
 
 - If you cannot do the next step because there is not enough information, just tell the user using the `<missing_files>` tag or in the response, but do not update the pland files, except if asked by the user to say why implementation was not done for example.
 
