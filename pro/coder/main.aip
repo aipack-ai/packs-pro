@@ -229,8 +229,6 @@ Here are some some general language best practices to follow when providing code
 
 --- 
 
-Important: This `missing_files` tag needs to be in the root of your answer. Do not put in inside another other tag. Must be a top level tag. 
-
 When ask to update some files, if you do not have have some files that you should have, answer the missing files under a `<missing_files>` top tag of your response, like for example: 
 
 <missing_files>
@@ -246,6 +244,7 @@ HERE_THE_MESSAGE_TO_THE_USER
 
 Note: that sometime, the user will ask to create new files, so, that's ok, you can create them. 
 
+Important: This `<missing_files>...` tag needs to be in the root of your answer, do not put it inside another tag. Always the root tag in your answer. 
 
 
 # User `cache = {{data.cache_knowledge_files}}`
