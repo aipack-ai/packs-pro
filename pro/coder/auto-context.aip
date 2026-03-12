@@ -4,6 +4,7 @@
 ```lua
 local _cm = require("code_map")
 local _ac = require("auto_context")
+local u_common = require("utils_common")
 
 aip.run.set_label("auto-context")
 
@@ -16,13 +17,13 @@ local auto_context_config   = _ac.extract_auto_context_config(sub_agent_input)
 local helper_files = nil
 
 if not is_null(auto_context_config.helper_globs) and #auto_context_config.helper_globs > 0 then
-	helper_files = aip.file.list_load(auto_context_config.helper_globs)
+	helper_files = u_common.list_load_likely_text(auto_context_config.helper_globs)
 end
 
 
 -- === Show status
 local context_globs = sub_agent_input.coder_params.context_globs
-local context_files = aip.file.list(context_globs)
+local context_files = u_common.list_likely_text(context_globs)
 local context_files_size = 0
 for _, cfile in ipairs(context_files) do
 	context_files_size = context_files_size + cfile.size
@@ -33,7 +34,7 @@ local knowledge_globs = auto_context_config.knowledge_globs
 local knowledge_files = {}
 local knowledge_files_size = 0
 if auto_context_config.knowledge and knowledge_globs then
-	knowledge_files = aip.file.list(knowledge_globs)
+	knowledge_files = u_common.list_likely_text(knowledge_globs)
 	for _, kfile in ipairs(knowledge_files) do
 		knowledge_files_size = knowledge_files_size + kfile.size
 	end
@@ -95,7 +96,7 @@ if not user_prompt or not user_prompt:find("%S") then
 end
 
 -- === Extract base_files (the upper bound file set)
-local available_files = aip.file.list(auto_context_config.code_map_globs)
+local available_files = u_common.list_likely_text(auto_context_config.code_map_globs)
 
 -- === Extract c_files (the code map files info)
 local c_files = {}
@@ -135,7 +136,7 @@ end
 local k_files_txt = ""
 local k_files_count = 0
 if auto_context_config.knowledge and knowledge_code_map then
-	local available_knowledge_files = aip.file.list(knowledge_globs)
+	local available_knowledge_files = u_common.list_likely_text(knowledge_globs)
 	local k_files = {}
 	local k_file_map = knowledge_code_map.file_map
 	for _, kfile in ipairs(available_knowledge_files) do

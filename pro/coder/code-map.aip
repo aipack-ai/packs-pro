@@ -76,10 +76,10 @@ local non_text_file_count = 0
 for _, mdef in ipairs(code_map_config.map_defs) do
 	local map_data = loaded_maps[mdef.file_path]
 	local file_map = map_data.file_map
-	local listed_files = aip.file.list(mdef.globs)
-	local filtered_files_result = _cm.filter_text_files(listed_files)
-	local map_files = filtered_files_result.files
-	non_text_file_count = non_text_file_count + filtered_files_result.non_text_file_count
+	local u_common = require("utils_common")
+	local filtered_result = u_common.list_likely_text_with_stats(mdef.globs)
+	local map_files = filtered_result.files
+	non_text_file_count = non_text_file_count + filtered_result.non_text_file_count
 	
 	for _, orig_file in ipairs(map_files) do
 		local fpath = orig_file.path

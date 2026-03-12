@@ -141,11 +141,7 @@ local function resolve_refs(meta)
 	local u_utils = require("utils_data")
 	local knowledge_refs = nil
 	if u_utils.is_not_empty(meta.knowledge_globs) then
-		knowledge_refs = aip.file.list(meta.knowledge_globs, { base_dir = CTX.WORKSPACE_DIR })
-	end
-
-	if knowledge_refs then
-		knowledge_refs = u_common.filter_likely_text(knowledge_refs)
+		knowledge_refs = u_common.list_likely_text(meta.knowledge_globs, { base_dir = CTX.WORKSPACE_DIR })
 	end
 
 	local base_dir = meta.base_dir or ""
@@ -162,8 +158,7 @@ local function resolve_refs(meta)
 		end
 
 		if u_utils.is_not_empty(meta.context_globs) then
-			context_refs = aip.file.list(meta.context_globs, { base_dir = base_dir })
-			context_refs = u_common.filter_likely_text(context_refs)
+			context_refs = u_common.list_likely_text(meta.context_globs, { base_dir = base_dir })
 		end
 
 		if u_utils.is_not_empty(meta.working_globs) then

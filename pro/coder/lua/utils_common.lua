@@ -17,6 +17,29 @@ local function filter_likely_text(files)
 	return filtered
 end
 
+local function list_likely_text(globs, options)
+	local files = aip.file.list(globs, options)
+	return filter_likely_text(files)
+end
+
+local function list_likely_text_with_stats(globs, options)
+	local all_files = aip.file.list(globs, options)
+	local filtered = filter_likely_text(all_files)
+	local non_text_file_count = #all_files - #filtered
+	if non_text_file_count < 0 then
+		non_text_file_count = 0
+	end
+	return {
+		files = filtered,
+		non_text_file_count = non_text_file_count
+	}
+end
+
+local function list_load_likely_text(globs, options)
+	local files = aip.file.list_load(globs, options)
+	return filter_likely_text(files)
+end
+
 local function resolve_dev_chat_path(dev_chat_path, options)
 	options = options or {}
 	local coder_prompt_dir = options.coder_prompt_dir or "."
@@ -132,6 +155,9 @@ end
 
 return {
 	filter_likely_text = filter_likely_text,
+	list_likely_text = list_likely_text,
+	list_likely_text_with_stats = list_likely_text_with_stats,
+	list_load_likely_text = list_load_likely_text,
 	resolve_dev_chat_path = resolve_dev_chat_path,
 	resolve_dev_plan_dir = resolve_dev_plan_dir,
 	load_dev_chat_template_content = load_dev_chat_template_content,
