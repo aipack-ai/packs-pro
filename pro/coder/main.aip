@@ -118,7 +118,7 @@ prompt_files_content = prompt_files_content .. build_section("Knowledge Files", 
 prompt_files_content = prompt_files_content .. build_section("Context Files", new_context_refs, new_context_refs_pre, new_context_refs_post)
 
 prompt_files_content = prompt_files_content .. "# Working Files"   .. "\n\n" .. p_utils.file_refs_to_md(working_refs) .. "\n\n"
-prompt_files_content = prompt_files_content .. "# Struture Files"  .. "\n\n" .. p_utils.file_refs_to_md(base.structure_refs, {
+prompt_files_content = prompt_files_content .. "# Structure Files"  .. "\n\n" .. p_utils.file_refs_to_md(base.structure_refs, {
 			preamble = "(Only file paths, not their content)", 
 			single_nested = true
 		}

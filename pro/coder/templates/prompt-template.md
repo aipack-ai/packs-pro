@@ -24,8 +24,8 @@ structure_globs:
   - "*.*"
   - src/**/*.*
   
-## Set to true to write the files
-write_mode: false
+## Set to false to disable file writing (response below this file's prompt)
+write_mode: true
 
 ## Optimize context files selection (other properties: code_map_model, helper_globs, knowledge: true/false)
 auto_context: 
