@@ -123,11 +123,13 @@ function apply_changes(ai_content, data)
 					local _file_changed, changes_info = aip.file.save_changes(file_path, file_change_content)
 					if changes_info and changes_info.failed_changes then
 						table.insert(files_changes_failed, { path = file_path, changes_info = changes_info })
+					else
+						table.insert(files_changed, file_path)
 					end
 				else
 					aip.file.save(file_path, file_change_content)
+					table.insert(files_changed, file_path)
 				end
-				table.insert(files_changed, file_path)
 			else
 				-- If no file path, we just append the content back to second_part
 				second_part = second_part .. "\n" .. elem.content
