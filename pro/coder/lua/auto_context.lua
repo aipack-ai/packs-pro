@@ -11,6 +11,10 @@ local LABEL_HFILES              = "    Helper Files:"
 
 local DEFAULT_INPUT_CONCURRENCY = 8
 
+local function build_pending_status_line()
+	return ""
+end
+
 local function append_helper_globs_from_sub_agents(helper_globs, sub_agents_prev)
 	if type(sub_agents_prev) ~= "table" then
 		return helper_globs
@@ -206,6 +210,8 @@ local function pin_status(auto_context_config, ctx)
 		msg = msg .. string.format("%-30s", " Now " .. #new_context_files .. " context files")
 		local new_context_files_size_fmt = aip.text.format_size(new_context_files_size)
 		msg = msg .. " (" .. new_context_files_size_fmt .. ")"
+	else
+		msg = msg .. '\n' .. build_pending_status_line()
 	end
 
 	-- Knowledge status line
@@ -221,6 +227,8 @@ local function pin_status(auto_context_config, ctx)
 			msg = msg .. string.format("%-30s", " Now " .. #new_knowledge_files .. " knowledge files")
 			local new_knowledge_files_size_fmt = aip.text.format_size(new_knowledge_files_size)
 			msg = msg .. " (" .. new_knowledge_files_size_fmt .. ")"
+		else
+			msg = msg .. '\n' .. build_pending_status_line()
 		end
 	end
 
