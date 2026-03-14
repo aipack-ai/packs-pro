@@ -481,6 +481,37 @@ function run_before_all(inputs)
 	local knowledge_refs_post = #final_knl_post > 0 and aip.file.list(final_knl_post, { base_dir = CTX.WORKSPACE_DIR }) or
 	nil
 
+	-- Ensure pinned pre/post refs are included in context_refs (they may have been
+	-- dropped by list_likely_text filtering in resolve_refs, but aip.file.list found them).
+	if context_refs_pre or context_refs_post then
+		local merged = {}
+		for _, r in ipairs(context_refs_pre or {}) do
+			table.insert(merged, r)
+		end
+		for _, r in ipairs(context_refs or {}) do
+			table.insert(merged, r)
+		end
+		for _, r in ipairs(context_refs_post or {}) do
+			table.insert(merged, r)
+		end
+		context_refs = merged
+	end
+
+	-- Same for knowledge_refs: ensure pinned pre/post are present.
+	if knowledge_refs_pre or knowledge_refs_post then
+		local merged = {}
+		for _, r in ipairs(knowledge_refs_pre or {}) do
+			table.insert(merged, r)
+		end
+		for _, r in ipairs(knowledge_refs or {}) do
+			table.insert(merged, r)
+		end
+		for _, r in ipairs(knowledge_refs_post or {}) do
+			table.insert(merged, r)
+		end
+		knowledge_refs = merged
+	end
+
 	-- Clean up pinned keys from meta before downstream use
 	meta.context_globs_pre = nil
 	meta.context_globs_post = nil
