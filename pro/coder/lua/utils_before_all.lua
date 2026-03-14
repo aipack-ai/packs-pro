@@ -479,37 +479,78 @@ function run_before_all(inputs)
 	local context_refs_post = #final_ctx_post > 0 and aip.file.list(final_ctx_post, { base_dir = base_dir }) or nil
 	local knowledge_refs_pre = #final_knl_pre > 0 and aip.file.list(final_knl_pre, { base_dir = CTX.WORKSPACE_DIR }) or nil
 	local knowledge_refs_post = #final_knl_post > 0 and aip.file.list(final_knl_post, { base_dir = CTX.WORKSPACE_DIR }) or
-	nil
+			nil
 
 	-- Ensure pinned pre/post refs are included in context_refs (they may have been
 	-- dropped by list_likely_text filtering in resolve_refs, but aip.file.list found them).
 	if context_refs_pre or context_refs_post then
-		local merged = {}
-		for _, r in ipairs(context_refs_pre or {}) do
-			table.insert(merged, r)
-		end
+		-- Build a set of paths already in context_refs to avoid duplicates.
+		-- Pre/post globs were merged into meta.context_globs before resolve_refs,
+		-- so resolve_refs may already include them. We only add missing ones.
+		local existing = {}
 		for _, r in ipairs(context_refs or {}) do
-			table.insert(merged, r)
+			existing[r.path] = true
 		end
-		for _, r in ipairs(context_refs_post or {}) do
-			table.insert(merged, r)
+		-- Prepend missing pre refs
+		if context_refs_pre and #context_refs_pre > 0 then
+			local prepend = {}
+			for _, r in ipairs(context_refs_pre) do
+				if not existing[r.path] then
+					table.insert(prepend, r)
+					existing[r.path] = true
+				end
+			end
+			if #prepend > 0 then
+				for _, r in ipairs(context_refs or {}) do
+					table.insert(prepend, r)
+				end
+				context_refs = prepend
+			end
 		end
-		context_refs = merged
+		-- Append missing post refs
+		if context_refs_post and #context_refs_post > 0 then
+			context_refs = context_refs or {}
+			for _, r in ipairs(context_refs_post) do
+				if not existing[r.path] then
+					table.insert(context_refs, r)
+					existing[r.path] = true
+				end
+			end
+		end
 	end
 
 	-- Same for knowledge_refs: ensure pinned pre/post are present.
 	if knowledge_refs_pre or knowledge_refs_post then
-		local merged = {}
-		for _, r in ipairs(knowledge_refs_pre or {}) do
-			table.insert(merged, r)
-		end
+		local existing = {}
 		for _, r in ipairs(knowledge_refs or {}) do
-			table.insert(merged, r)
+			existing[r.path] = true
 		end
-		for _, r in ipairs(knowledge_refs_post or {}) do
-			table.insert(merged, r)
+		-- Prepend missing pre refs
+		if knowledge_refs_pre and #knowledge_refs_pre > 0 then
+			local prepend = {}
+			for _, r in ipairs(knowledge_refs_pre) do
+				if not existing[r.path] then
+					table.insert(prepend, r)
+					existing[r.path] = true
+				end
+			end
+			if #prepend > 0 then
+				for _, r in ipairs(knowledge_refs or {}) do
+					table.insert(prepend, r)
+				end
+				knowledge_refs = prepend
+			end
 		end
-		knowledge_refs = merged
+		-- Append missing post refs
+		if knowledge_refs_post and #knowledge_refs_post > 0 then
+			knowledge_refs = knowledge_refs or {}
+			for _, r in ipairs(knowledge_refs_post) do
+				if not existing[r.path] then
+					table.insert(knowledge_refs, r)
+					existing[r.path] = true
+				end
+			end
+		end
 	end
 
 	-- Clean up pinned keys from meta before downstream use
