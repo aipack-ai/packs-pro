@@ -421,15 +421,6 @@ function run_before_all(inputs)
 	local final_knl_pre = meta.knowledge_globs_pre or {}
 	local final_knl_post = meta.knowledge_globs_post or {}
 
-	if #final_ctx_pre > 0 or #final_ctx_post > 0 then
-		local current = meta.context_globs or {}
-		meta.context_globs = u_pinned.merge_pinned(final_ctx_pre, current, final_ctx_post)
-	end
-	if #final_knl_pre > 0 or #final_knl_post > 0 then
-		local current = meta.knowledge_globs or {}
-		meta.knowledge_globs = u_pinned.merge_pinned(final_knl_pre, current, final_knl_post)
-	end
-
 	aip.run.pin("pfile", 0, {
 		label = CONST.LABEL_PROMPT_FILE,
 		content = paths.prompt_file_rel_path
@@ -450,8 +441,23 @@ function run_before_all(inputs)
 
 	local knowledge_refs, structure_refs, context_refs, working_refs_list, base_dir = resolve_refs(meta)
 
-	local write_mode = meta.write_mode or false
+	-- Resolve pinned pre/post separately (aip.file.list, not list_likely_text),
+	-- then do a single ordered merge per ref type.
+	local ctx_pre_refs  = #final_ctx_pre > 0  and aip.file.list(final_ctx_pre, { base_dir = base_dir }) or {}
+	local ctx_post_refs = #final_ctx_post > 0 and aip.file.list(final_ctx_post, { base_dir = base_dir }) or {}
+	local knl_pre_refs  = #final_knl_pre > 0  and aip.file.list(final_knl_pre, { base_dir = CTX.WORKSPACE_DIR }) or {}
+	local knl_post_refs = #final_knl_post > 0 and aip.file.list(final_knl_post, { base_dir = CTX.WORKSPACE_DIR }) or {}
 
+	context_refs   = u_pinned.merge_pinned(ctx_pre_refs, context_refs or {}, ctx_post_refs)
+	knowledge_refs = u_pinned.merge_pinned(knl_pre_refs, knowledge_refs or {}, knl_post_refs)
+
+	-- For the report, keep pre/post as separate lists (nil if empty).
+	local context_refs_pre   = #ctx_pre_refs > 0  and ctx_pre_refs  or nil
+	local context_refs_post  = #ctx_post_refs > 0 and ctx_post_refs or nil
+	local knowledge_refs_pre = #knl_pre_refs > 0  and knl_pre_refs  or nil
+	local knowledge_refs_post = #knl_post_refs > 0 and knl_post_refs or nil
+
+	local write_mode = meta.write_mode or false
 	-- === Compute include_second_partby default we include second part if not nil
 	local include_second_part = second_part ~= nil
 	if write_mode == true then
@@ -473,85 +479,6 @@ function run_before_all(inputs)
 	-- === Compute file_content_mode
 	local file_content_mode, err = get_file_content_mode(meta, write_mode)
 	if err then return nil, nil, err end
-
-	-- === Resolve pre/post refs for report
-	local context_refs_pre = #final_ctx_pre > 0 and aip.file.list(final_ctx_pre, { base_dir = base_dir }) or nil
-	local context_refs_post = #final_ctx_post > 0 and aip.file.list(final_ctx_post, { base_dir = base_dir }) or nil
-	local knowledge_refs_pre = #final_knl_pre > 0 and aip.file.list(final_knl_pre, { base_dir = CTX.WORKSPACE_DIR }) or nil
-	local knowledge_refs_post = #final_knl_post > 0 and aip.file.list(final_knl_post, { base_dir = CTX.WORKSPACE_DIR }) or
-			nil
-
-	-- Ensure pinned pre/post refs are included in context_refs (they may have been
-	-- dropped by list_likely_text filtering in resolve_refs, but aip.file.list found them).
-	if context_refs_pre or context_refs_post then
-		-- Build a set of paths already in context_refs to avoid duplicates.
-		-- Pre/post globs were merged into meta.context_globs before resolve_refs,
-		-- so resolve_refs may already include them. We only add missing ones.
-		local existing = {}
-		for _, r in ipairs(context_refs or {}) do
-			existing[r.path] = true
-		end
-		-- Prepend missing pre refs
-		if context_refs_pre and #context_refs_pre > 0 then
-			local prepend = {}
-			for _, r in ipairs(context_refs_pre) do
-				if not existing[r.path] then
-					table.insert(prepend, r)
-					existing[r.path] = true
-				end
-			end
-			if #prepend > 0 then
-				for _, r in ipairs(context_refs or {}) do
-					table.insert(prepend, r)
-				end
-				context_refs = prepend
-			end
-		end
-		-- Append missing post refs
-		if context_refs_post and #context_refs_post > 0 then
-			context_refs = context_refs or {}
-			for _, r in ipairs(context_refs_post) do
-				if not existing[r.path] then
-					table.insert(context_refs, r)
-					existing[r.path] = true
-				end
-			end
-		end
-	end
-
-	-- Same for knowledge_refs: ensure pinned pre/post are present.
-	if knowledge_refs_pre or knowledge_refs_post then
-		local existing = {}
-		for _, r in ipairs(knowledge_refs or {}) do
-			existing[r.path] = true
-		end
-		-- Prepend missing pre refs
-		if knowledge_refs_pre and #knowledge_refs_pre > 0 then
-			local prepend = {}
-			for _, r in ipairs(knowledge_refs_pre) do
-				if not existing[r.path] then
-					table.insert(prepend, r)
-					existing[r.path] = true
-				end
-			end
-			if #prepend > 0 then
-				for _, r in ipairs(knowledge_refs or {}) do
-					table.insert(prepend, r)
-				end
-				knowledge_refs = prepend
-			end
-		end
-		-- Append missing post refs
-		if knowledge_refs_post and #knowledge_refs_post > 0 then
-			knowledge_refs = knowledge_refs or {}
-			for _, r in ipairs(knowledge_refs_post) do
-				if not existing[r.path] then
-					table.insert(knowledge_refs, r)
-					existing[r.path] = true
-				end
-			end
-		end
-	end
 
 	-- Clean up pinned keys from meta before downstream use
 	meta.context_globs_pre = nil
