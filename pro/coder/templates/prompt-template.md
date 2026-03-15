@@ -2,15 +2,14 @@
 #!meta (parametric prompt)
 
 # See PATH_TO_PRO_CODER_DIR/README.md for additional documentation
-# Other possible parameters: sub_agents, base_dir, working_globs, max_files_size_kb, ...
-# Note: All relative paths are relative to the workspace directory (that is, the parent folder of .aipack/)
+# Note: All relative paths are relative to the workspace directory (parent folder of .aipack/)
 
 ## Static knowledge (relative & absolute)
 knowledge_globs:
   # - /abs/or/rel/path/to/**/*.md      # Any relative or absolute path/glob for Markdown files
   # - pro@coder/README.md              # Pack path supported (here ask question about pro@coder)
   # - core@doc/for-llm/**/*.md         # For help building .aip AIPack agents
-  # - pro@rust10x/guide/base/**/*.md   # Examples of best practices for Rust coding (require `aip install pro@rust10x`)
+  # - pro@rust10x/guide/base/**/*.md   # Rust best practices (require `aip install pro@rust10x`)
 
 ## Files the AI will work on (paths & content included in prompt, relative only)
 context_globs:
@@ -27,7 +26,7 @@ structure_globs:
 ## Set to false to disable file writing (response below this file's prompt)
 write_mode: true
 
-## Optimize context files selection (other properties: code_map_model, helper_globs, knowledge: true/false)
+## Optimize context files selection (other properties: code_map_model, helper_globs, ..)
 auto_context: 
   model: flash           # (Use a small or inexpensive model)
   input_concurrency: 16  # (default 8)
@@ -38,7 +37,7 @@ dev:
   plan: false   # default  dir: PATH_TO_PRO_CODER_DIR/dev/plan/
 
 ## Full model names or aliases (see aliases ~/.aipack-base/config-default.toml)
-## -high, -medium, or -low suffixes to customize reasoning effor (e.g., "flash-low", "opus-high", "codex-high")
+## -high, -medium, or -low suffixes for custom reasoning (e.g., "flash-low", "opus-max", "gpt-high")
 model: flash
 
 ## (see PATH_TO_PRO_CODER_DIR/README.md for full pro@coder documentation)
