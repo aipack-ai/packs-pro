@@ -11,19 +11,19 @@ Create, read, and modify these plan files **in the same directory** as the `_pla
 
 - `plan-1-todo-steps.md` lists upcoming steps, ordered top to bottom. The topmost item is the next step to activate.
 
-- `plan-2-active-step.md` when a new step is implemented, it is taken from `plan-1-todo-steps` and put in this file. This way, the user can see what is implemented. The user can also ask to work more on this active step if there is a bug or something. Otherwise, it moves to `plan-3-done-steps` when a new step is completed and moved from this file.
+- `plan-2-active-step.md` when a new step is implemented, it is taken from `plan-1-todo-steps.md` and put in this file. This way, the user can see what is implemented. The user can also ask to work more on this active step if there is a bug or something. Otherwise, it moves to `plan-3-done-steps.md` when a new step is completed and moved from this file.
 
 - `plan-3-done-steps.md` archives completed steps, marked `      status: done`, with a concise summary. (can be created when moving the first step to it)
 
 Important note: 
 
-- Make sure when asked to implement (e.g., do, work, ...) the next step or to work/fix active step, the plan file only get updated if works has been done (or if a note needs to be added in active). Do not update the plan files if you do not any implementation.
+- Make sure when asked to implement (e.g., do, work, ...) the next step or to work/fix active step, the plan files only get updated if work has been done (or if a note needs to be added in active). Do not update the plan files if you did not do any implementation.
 
-- If you cannot do the next step because there is not enough information, just tell the user using the `<missing_files>` tag or in the response, but do not update the pland files, except if asked by the user to say why implementation was not done for example.
+- If you cannot do the next step because there is not enough information, just tell the user using the `<missing_files>` tag or in the response, but do not update the plan files, except if asked by the user to say why implementation was not done for example.
 
-- only moved todo to active when implementation is actually performed in that same response
+- Only move todo to active when implementation is actually performed in that same response.
 
-- kept active as a real in-progress implementation mirror, not a planning transition artifact
+- Keep active as a real in-progress implementation mirror, not a planning transition artifact.
 
 - `plan-2-active-step.md` exists only to reflect the work actively being performed by the AI, including what has just been implemented.  
 Do not treat the active step as the "next to do". It mirrors the work just performed and the ongoing work until the user says "do next step" or "continue to work on active step". Do not create or keep an active step during planning-only phases.
@@ -44,8 +44,8 @@ Do not treat the active step as the "next to do". It mirrors the work just perfo
 - Favor bullet point format for the step content when appropriate.  
 - Use `-` character for bullet points
 - When bullet points have a long line or sub-bullet points, include an empty line between the top-level bullet points
-- For headings, except for the `## Step` and `### Sub Step`, leave exactly one empty line after the heading
-    - For `## Step ...` and `### Sub Step ...`, do not insert any empty line after the heading. The `      status: ...` line must be immediately after the heading with no blank line in between, followed by any `time-...` fields on subsequent lines. 
+- For headings, except for the `## Step` and `### sub-step`, leave exactly one empty line after the heading.
+    - For `## Step ...` and `### sub-step ...`, do not insert any empty line after the heading. The `      status: ...` line must be immediately after the heading with no blank line in between, followed by any `time-...` fields on subsequent lines. 
 
 - Info alignment: It is important that the values of all of the values for status:, time-created, time-current, and time-done align, so they should have the appropriate spaces. For example: 
 
@@ -53,16 +53,17 @@ Do not treat the active step as the "next to do". It mirrors the work just perfo
 ## Step - ...
       status: 
 time-created:
+time-current:
    time-done:
 ```
 
 - Steps should not be numbered, so just as shown above.
 - So, the `      status:` will be prefixed with 6 spaces
-- the `   time-done:` prefixed with 3 spaces
-- and `time-created:` or `time-current:` does not need any space prefixes. 
+- The `   time-done:` prefixed with 3 spaces.
+- The `time-created:` and `time-current:` do not need any space prefixes. 
 
-- Below the step, all `      status:` will have a 6-space prefix to align with the properties
-- As well as all `   time-done:` will have a 3-space prefix to align with other properties
+- Below the step, all `      status:` will have a 6-space prefix to align with the properties.
+- As well as all `   time-done:` will have a 3-space prefix to align with other properties.
 
 
 ## Step Rules
