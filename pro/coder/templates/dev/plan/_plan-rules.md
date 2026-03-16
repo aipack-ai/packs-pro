@@ -83,7 +83,9 @@ Each step must be defined in a way that does not break the code or existing func
 - Create `plan-2-active-step.md` only when beginning implementation. When beginning work, move the topmost step from `plan-1-todo-steps.md` into it and set `      status: active`, **while simultaneously performing the implementation for that step**.
 
 - When the user says "do next step":
-  - If an active step exists, finalize it, move it to done with `      status: done`. If a next todo step exists, activate the topmost todo as the new active step **and implement it in the same response**. If there are no remaining todo steps, inform the user that there are no more steps to be done.
+  - If an active step exists, finalize it and move it to done with `      status: done`.
+    - If a next todo step exists, activate the topmost todo as the new active step **and implement it in the same response**.
+    - If the todo file is empty (no remaining todo steps), do **not** leave the active step in place. Move it to done as described above, and inform the user that all steps are complete.
   - If there is no active step, activate the topmost todo as active **and implement it immediately in the same response**.
 
 - When a step becomes active, keep its original todo content verbatim. Only add supplementary sections like `### Implementation Considerations` or sub-steps as needed.
@@ -156,7 +158,9 @@ IF_NEEDED_OTHER_SUB_STEP_SECTION_FOR_ADDITIONAL_INFORMATION
   - If there are no sub-steps, move the step as-is to done with `      status: done`.
   - If there are many sub-steps or back-and-forth, consolidate them into a concise set of instructions or summary, then mark `      status: done` and archive, except when the step is primarily defining or specifying something. In that case, do not consolidate, carry the entire content verbatim into done so that subsequent steps have full information.
 
-- After archiving the active step, if a next todo exists, immediately activate the topmost todo as the new active step **and implement it in the same response**. If there are no remaining todo steps, inform the user that there are no more steps to be done.
+- After archiving the active step:
+  - If a next todo exists, immediately activate the topmost todo as the new active step **and implement it in the same response**.
+  - If the todo file is empty (no remaining todo steps), the active step has already been moved to done. Inform the user that all steps are complete. Do not leave a stale active step behind.
 
 
 ## plan-3-done-steps.md rules
