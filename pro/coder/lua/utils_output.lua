@@ -157,12 +157,14 @@ function handle_failed_changes(files_changes_failed, data)
 
 	local msg = "❗❗❗ Failed to apply some changes to file(s) ❗❗❗\n"
 	for _, fc in ipairs(files_changes_failed) do
+		local cause = aip.text.truncate(fc.changes_info.failed_changes[1].reason, 1000, "...")
 		msg = msg .. "\n- " .. fc.path .. " (failed changes: " .. #fc.changes_info.failed_changes ..
-				", cause: " .. fc.changes_info.failed_changes[1].reason .. ")"
+				", cause: " .. cause .. ")"
 
 		fail_report_content = fail_report_content .. "\n\n# " .. fc.path .. "\n\nFailed searches:"
 		for _, fail_change in ipairs(fc.changes_info.failed_changes) do
-			fail_report_content = fail_report_content .. "\n\n````\n" .. fail_change.search .. "\n````"
+			local search_text = aip.text.truncate(fail_change.search, 1000, "...")
+			fail_report_content = fail_report_content .. "\n\n````\n" .. search_text .. "\n````"
 		end
 	end
 
