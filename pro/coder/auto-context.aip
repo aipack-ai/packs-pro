@@ -233,6 +233,13 @@ Note: When the user ask explicitly to add some files to the context_globs, it me
 {{#if data.knowledge_enabled}}
 You will select files from two categories: **context files** and **knowledge files**.
 
+Important rule:
+
+- Files listed under `<available_context_files>` can only be selected in `needed_context_files`.
+- Files listed under `<available_knowledge_files>` can only be selected in `needed_knowledge_files`.
+- Never put a knowledge file in `needed_context_files`.
+- Never put a context file in `needed_knowledge_files`.
+
 First, for context files, put the result under a `needed_context_files` tag:
 
 <needed_context_files>
@@ -286,6 +293,12 @@ Here are the available context files and their descriptions
 ---
 
 Here are the available knowledge files and their descriptions
+
+Important reminder:
+
+- The files below are knowledge files only.
+- They are not context files.
+- If you select any of them, place them only in `needed_knowledge_files`.
 
 <available_knowledge_files>
 {{data.k_files_txt}}
