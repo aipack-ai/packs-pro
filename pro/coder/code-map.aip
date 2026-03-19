@@ -292,7 +292,7 @@ Here is the preview previous file info
 ```lua
 if ai_response then
 	local file_path = data.file.path
-	local output_content = ai_response.content
+	local output_content = ai_response.content or ""
 	local tag_map = aip.tag.extract_as_map(output_content, "FILE_INFO")
 
 	if tag_map.FILE_INFO then
