@@ -74,6 +74,96 @@ function process_ui_directives(content)
 	end
 end
 
+local function file_change_status_letter(kind)
+	if kind == "New" then return "A" end
+	if kind == "Patch" then return "M" end
+	if kind == "Delete" then return "D" end
+	if kind == "Rename" then return "M" end
+	return nil
+end
+
+local function file_change_status_rank(status)
+	if status == "A" then return 1 end
+	if status == "M" then return 2 end
+	if status == "D" then return 3 end
+	return 99
+end
+
+local function sort_changed_files(files_changed)
+	table.sort(files_changed, function(a, b)
+		local a_status = type(a) == "table" and a.status or nil
+		local b_status = type(b) == "table" and b.status or nil
+		local a_path = type(a) == "table" and a.path or tostring(a)
+		local b_path = type(b) == "table" and b.path or tostring(b)
+
+		local a_rank = file_change_status_rank(a_status)
+		local b_rank = file_change_status_rank(b_status)
+		if a_rank ~= b_rank then
+			return a_rank < b_rank
+		end
+		return a_path < b_path
+	end)
+end
+
+function build_changed_files_report(files_changed)
+	if not files_changed or #files_changed == 0 then
+		return nil
+	end
+
+	local has_structured_status = true
+	for _, item in ipairs(files_changed) do
+		if type(item) ~= "table" or not item.path or not item.status then
+			has_structured_status = false
+			break
+		end
+	end
+
+	if not has_structured_status then
+		local paths = {}
+		for _, item in ipairs(files_changed) do
+			if type(item) == "table" and item.path then
+				table.insert(paths, item.path)
+			else
+				table.insert(paths, tostring(item))
+			end
+		end
+
+		local file_txt = "file"
+		if #paths > 1 then
+			file_txt = "files"
+		end
+
+		return {
+			header = "" .. #paths .. " " .. file_txt .. " changed:",
+			lines = { "→ " .. table.concat(paths, "\n→ ") }
+		}
+	end
+
+	local items = {}
+	for _, item in ipairs(files_changed) do
+		table.insert(items, {
+			path = item.path,
+			status = item.status
+		})
+	end
+	sort_changed_files(items)
+
+	local file_txt = "file"
+	if #items > 1 then
+		file_txt = "files"
+	end
+
+	local lines = {}
+	for _, item in ipairs(items) do
+		table.insert(lines, item.status .. " → " .. item.path)
+	end
+
+	return {
+		header = "" .. #items .. " " .. file_txt .. " changed (A: added, M: modified, D: deleted):\n",
+		lines = lines
+	}
+end
+
 -- ==== RETURN
 
 -- Applies file changes based on the mode defined in data (udiffx or AIP_FILE_CHANGE tags).
@@ -96,7 +186,16 @@ function apply_changes(ai_content, data)
 			for _, item in ipairs(changes_status.items) do
 				local f_path = aip.path.join(base_dir, item.file_path)
 				if item.success then
-					table.insert(files_changed, f_path)
+					local status = file_change_status_letter(item.kind)
+					if status then
+						table.insert(files_changed, {
+							path = f_path,
+							status = status,
+							kind = item.kind
+						})
+					else
+						table.insert(files_changed, f_path)
+					end
 				else
 					local reason = item.error_msg or "Unknown error"
 					table.insert(files_changes_failed, {
@@ -178,8 +277,9 @@ end
 -- ==== RETURN
 
 return {
-	process_ui_directives = process_ui_directives,
-	build_info_lines      = build_info_lines,
-	apply_changes         = apply_changes,
-	handle_failed_changes = handle_failed_changes
+	process_ui_directives      = process_ui_directives,
+	build_info_lines           = build_info_lines,
+	build_changed_files_report = build_changed_files_report,
+	apply_changes              = apply_changes,
+	handle_failed_changes      = handle_failed_changes
 }

@@ -406,12 +406,9 @@ if data.write_mode then
         response = response .. "\n\nCheck prompt file for more AI answer."
         response = response .. "\nPrompt file:\n→ " .. data.prompt_file_rel_path        
     else 
-        local file_txt = "file"
-        if #files_changed > 1 then
-            file_txt = "files"
-        end
-        response = response .. "" .. #files_changed .. " " .. file_txt .. " changed:\n"
-        response = response .. "→ " .. table.concat(files_changed, "\n→ ")
+        local change_report = u_output.build_changed_files_report(files_changed)
+        response = response .. change_report.header .. "\n"
+        response = response .. table.concat(change_report.lines, "\n")
     end
 else 
 		response = response .. "No files were updated because `write_mode: false` (in the coder-prompt.md)."
