@@ -672,6 +672,42 @@ sub_agents:
 - `model`: (Optional) The AI model used to generate the summaries and metadata for each file.
 - `input_concurrency`: (Optional) The number of concurrent tasks used when generating or updating file summaries.
 
+## AI Response Utility Tags
+
+The `pro@coder` output parser also supports a few utility tags in the AI response body. These are useful for surfacing helper actions in the terminal UI without mixing them into file change directives.
+
+### `AIP_TO_PIN`
+
+Use the upper-case `<AIP_TO_PIN>` tag to pin custom content in the current task UI.
+
+Supported attributes:
+
+- `label`, optional string
+- `priority`, optional integer encoded as a string, for example `"3"` or `"-4"`
+
+Behavior:
+
+- If the tag body is empty or trims to empty, nothing is pinned.
+- `priority` falls back to `1` when missing or when it is not an integer.
+- `label` may be omitted, in which case it is passed as `nil`.
+
+Example:
+
+```xml
+<AIP_TO_PIN label="Next Step" priority="3">
+Review the generated patch and run the targeted tests.
+</AIP_TO_PIN>
+```
+
+This results in a task pin equivalent to:
+
+```lua
+aip.task.pin(label, priority, {
+	label   = label,
+	content = body
+})
+```
+
 ## AIPack config override
 
 As mentioned above, the `pro@coder` parametric prompt `coder-prompt.md` allows you to override the AI Pack workspace and base configurations. 
