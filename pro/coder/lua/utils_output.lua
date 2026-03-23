@@ -78,6 +78,50 @@ function process_ui_directives(content)
 	end
 end
 
+local function build_failed_hunk_report_block(fc)
+	if type(fc) ~= "table" then
+		return nil
+	end
+
+	local error_hunks = fc.error_hunks
+	if type(error_hunks) ~= "table" or #error_hunks == 0 then
+		return nil
+	end
+
+	local lines = {
+		"----",
+		"- " .. tostring(fc.path or "")
+	}
+
+	local failed_count = #error_hunks
+	local total_count = tonumber(fc.total_count or nil)
+	local success_count = tonumber(fc.success_count or nil)
+	local summary = tostring(failed_count) .. " hunks failed to applied"
+	if total_count ~= nil and success_count ~= nil and success_count > 0 then
+		summary = summary .. " (" .. tostring(success_count) .. " other hunk got applied)"
+	elseif total_count ~= nil then
+		local other_applied = total_count - failed_count
+		if other_applied > 0 then
+			summary = summary .. " (" .. tostring(other_applied) .. " other hunk got applied)"
+		end
+	end
+	table.insert(lines, summary)
+
+	for idx, error_hunk in ipairs(error_hunks) do
+		table.insert(lines, "")
+		table.insert(lines, "Fail hunk " .. idx .. ":")
+		if error_hunk.cause and error_hunk.cause ~= "" then
+			table.insert(lines, "Cause: " .. error_hunk.cause)
+		end
+		table.insert(lines, "```text")
+		table.insert(lines, error_hunk.hunk_body or "")
+		table.insert(lines, "```")
+	end
+
+	table.insert(lines, "----")
+	return table.concat(lines, "\n")
+end
+
 local function file_change_status_letter(kind)
 	if kind == "New" then return "A" end
 	if kind == "Patch" then return "M" end
@@ -204,6 +248,9 @@ function apply_changes(ai_content, data)
 					local reason = item.error_msg or "Unknown error"
 					table.insert(files_changes_failed, {
 						path = f_path,
+						error_hunks = item.error_hunks,
+						total_count = changes_status.total_count,
+						success_count = changes_status.success_count,
 						changes_info = {
 							failed_changes = { { reason = reason, search = "UDIFFX Block failed: " .. reason } }
 						}
@@ -260,14 +307,20 @@ function handle_failed_changes(files_changes_failed, data)
 
 	local msg = "❗❗❗ Failed to apply some changes to file(s) ❗❗❗\n"
 	for _, fc in ipairs(files_changes_failed) do
-		local cause = aip.text.truncate(fc.changes_info.failed_changes[1].reason, 1000, "...")
-		msg = msg .. "\n- " .. fc.path .. " (failed changes: " .. #fc.changes_info.failed_changes ..
-				", cause: " .. cause .. ")"
+		local hunk_block = build_failed_hunk_report_block(fc)
+		if hunk_block then
+			msg = msg .. "\n\n" .. hunk_block
+			fail_report_content = fail_report_content .. "\n\n" .. hunk_block
+		else
+			local cause = aip.text.truncate(fc.changes_info.failed_changes[1].reason, 1000, "...")
+			msg = msg .. "\n- " .. fc.path .. " (failed changes: " .. #fc.changes_info.failed_changes ..
+					", cause: " .. cause .. ")"
 
-		fail_report_content = fail_report_content .. "\n\n# " .. fc.path .. "\n\nFailed searches:"
-		for _, fail_change in ipairs(fc.changes_info.failed_changes) do
-			local search_text = aip.text.truncate(fail_change.search, 1000, "...")
-			fail_report_content = fail_report_content .. "\n\n````\n" .. search_text .. "\n````"
+			fail_report_content = fail_report_content .. "\n\n# " .. fc.path .. "\n\nFailed searches:"
+			for _, fail_change in ipairs(fc.changes_info.failed_changes) do
+				local search_text = aip.text.truncate(fail_change.search, 1000, "...")
+				fail_report_content = fail_report_content .. "\n\n````\n" .. search_text .. "\n````"
+			end
 		end
 	end
 
