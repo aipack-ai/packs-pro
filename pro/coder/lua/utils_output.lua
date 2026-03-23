@@ -125,15 +125,19 @@ end
 local function file_change_status_letter(kind)
 	if kind == "New" then return "A" end
 	if kind == "Patch" then return "M" end
+	if kind == "Append" then return "M" end
 	if kind == "Delete" then return "D" end
-	if kind == "Rename" then return "M" end
+	if kind == "Rename" then return "R" end
+	if kind == "Copy" then return "C" end
 	return nil
 end
 
 local function file_change_status_rank(status)
 	if status == "A" then return 1 end
 	if status == "M" then return 2 end
-	if status == "D" then return 3 end
+	if status == "R" then return 3 end
+	if status == "C" then return 4 end
+	if status == "D" then return 5 end
 	return 99
 end
 
@@ -207,7 +211,7 @@ function build_changed_files_report(files_changed)
 	end
 
 	return {
-		header = "" .. #items .. " " .. file_txt .. " changed (A: added, M: modified, D: deleted):\n",
+		header = "" .. #items .. " " .. file_txt .. " changed (A: added, M: modified, R: renamed, C: copied, D: deleted):\n",
 		lines = lines
 	}
 end
