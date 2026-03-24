@@ -157,6 +157,37 @@ local function sort_changed_files(files_changed)
 	end)
 end
 
+local function build_changed_files_legend(items)
+	local seen = {}
+	for _, item in ipairs(items) do
+		if type(item) == "table" and item.status then
+			seen[item.status] = true
+		end
+	end
+
+	local ordered_statuses = { "A", "M", "R", "C", "D" }
+	local labels = {
+		A = "added",
+		M = "modified",
+		R = "renamed",
+		C = "copied",
+		D = "deleted"
+	}
+
+	local parts = {}
+	for _, status in ipairs(ordered_statuses) do
+		if seen[status] then
+			table.insert(parts, status .. ": " .. labels[status])
+		end
+	end
+
+	if #parts == 0 then
+		return nil
+	end
+
+	return table.concat(parts, ", ")
+end
+
 function build_changed_files_report(files_changed)
 	if not files_changed or #files_changed == 0 then
 		return nil
@@ -205,13 +236,19 @@ function build_changed_files_report(files_changed)
 		file_txt = "files"
 	end
 
+	local legend = build_changed_files_legend(items)
 	local lines = {}
 	for _, item in ipairs(items) do
 		table.insert(lines, item.status .. " → " .. item.path)
 	end
 
+	local header = "" .. #items .. " " .. file_txt .. " changed"
+	if legend ~= nil then
+		header = header .. " (" .. legend .. ")"
+	end
+
 	return {
-		header = "" .. #items .. " " .. file_txt .. " changed (A: added, M: modified, R: renamed, C: copied, D: deleted):\n",
+		header = header .. ":\n",
 		lines = lines
 	}
 end
