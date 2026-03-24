@@ -113,9 +113,6 @@ local function build_failed_hunk_report_block(fc)
 		if error_hunk.cause and error_hunk.cause ~= "" then
 			table.insert(lines, "Cause: " .. error_hunk.cause)
 		end
-		table.insert(lines, "```text")
-		table.insert(lines, error_hunk.hunk_body or "")
-		table.insert(lines, "```")
 	end
 
 	table.insert(lines, "----")
