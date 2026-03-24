@@ -19,7 +19,7 @@ Create, read, and modify these plan files **in the same directory** as the `_pla
 
 - `plan-2-active-step.md` when a new step is implemented, it is taken from `plan-1-todo-steps.md` and put in this file. This way, the user can see what is implemented. The user can also ask to work more on this active step if there is a bug or something. Otherwise, it moves to `plan-3-done-steps.md` when a new step is completed and moved from this file.
 
-- `plan-3-done-steps.md` archives completed steps, marked `      status: done`, with a concise summary. (can be created when moving the first step to it)
+- `plan-3-done-steps.md`, when a new step becomes the active step, move the previous active step to this file so it shows completed steps, marked `      status: done`, with a concise summary. (This file can be created when the first step is moved to it)
 
 Important note: 
 
