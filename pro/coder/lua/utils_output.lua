@@ -125,6 +125,37 @@ local function build_failed_hunk_report_block(fc)
 	return table.concat(lines, "\n")
 end
 
+local function build_failed_hunk_searches_block(fc)
+	if type(fc) ~= "table" then
+		return nil
+	end
+
+	local error_hunks = fc.error_hunks
+	if type(error_hunks) ~= "table" or #error_hunks == 0 then
+		return nil
+	end
+
+	local lines = {}
+	for idx, error_hunk in ipairs(error_hunks) do
+		table.insert(lines, "")
+		table.insert(lines, "## Fail hunk " .. idx)
+		if error_hunk.cause and error_hunk.cause ~= "" then
+			table.insert(lines, "")
+			table.insert(lines, "Cause: " .. error_hunk.cause)
+		end
+		if error_hunk.hunk_body and error_hunk.hunk_body ~= "" then
+			table.insert(lines, "")
+			table.insert(lines, "Hunk:")
+			table.insert(lines, "")
+			table.insert(lines, "````")
+			table.insert(lines, error_hunk.hunk_body)
+			table.insert(lines, "````")
+		end
+	end
+
+	return table.concat(lines, "\n")
+end
+
 local function file_change_status_letter(kind)
 	if kind == "New" then return "A" end
 	if kind == "Patch" then return "M" end
@@ -372,14 +403,9 @@ function handle_failed_changes(files_changes_failed, data)
 
 			fail_report_content = fail_report_content .. "\n\n# " .. fc.path .. "\n\nFailed searches:"
 			if fc.error_hunks and #fc.error_hunks > 0 then
-				for idx, error_hunk in ipairs(fc.error_hunks) do
-					fail_report_content = fail_report_content .. "\n\n## Fail hunk " .. idx
-					if error_hunk.cause and error_hunk.cause ~= "" then
-						fail_report_content = fail_report_content .. "\n\nCause: " .. error_hunk.cause
-					end
-					if error_hunk.hunk_body and error_hunk.hunk_body ~= "" then
-						fail_report_content = fail_report_content .. "\n\n````\n" .. error_hunk.hunk_body .. "\n````"
-					end
+				local hunk_searches_block = build_failed_hunk_searches_block(fc)
+				if hunk_searches_block ~= nil then
+					fail_report_content = fail_report_content .. hunk_searches_block
 				end
 			elseif fc.changes_info and fc.changes_info.failed_changes then
 				for _, fail_change in ipairs(fc.changes_info.failed_changes) do
