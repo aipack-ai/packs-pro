@@ -1,4 +1,10 @@
-# Rules for creating/updating the plan files
+# Rules & Skill for creating and following a dev plan
+
+## When to use this skil
+
+Use this file when the user need to create, follow, implement the development plan. 
+
+## Key Rules
 
 This file defines how to manage the plan files.  
 All three plan files **must always live in the same directory as this `_plan-rules.md` file**:
@@ -110,6 +116,8 @@ Each step must be defined in a way that does not break the code or existing func
 - If available, add `time-created: ...` using the given local time (second precision), and display it like this: `2025-10-26 09:52:21` (no need to show the timezone, and include a space between the date and time).
 
 - After an empty line, provide a concise, complete description of the step.
+
+- Format the step clearly. Often, a paragraph plus a bullet-point list of the task and the files/resources needed is a good way to express what needs to be done.
 
 - When a step will build on a definition or specification from a previous step, include an explicit reference in the body, for example "References: see the definition in plan-2-active-step.md or plan-3-done-steps.md, step 'Step - ...'". This ensures the next step picks up the defined content from active or done.
 
