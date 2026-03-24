@@ -248,7 +248,7 @@ function build_changed_files_report(files_changed)
 	end
 
 	return {
-		header = header .. ":\n",
+		header = header .. "\n",
 		lines = lines
 	}
 end
