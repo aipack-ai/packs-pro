@@ -13,9 +13,7 @@ knowledge_globs:
 
 ## Files the AI will work on (paths & content included in prompt, relative only)
 context_globs:
-  # - package.json  # for Node.js
-  # - Cargo.toml    # for Rust
-  # - README.md 
+  - "*.*"
   - src/**/*.*      
 
 ## File paths to give AI a broader view of the project (paths only in prompt, relative only)
