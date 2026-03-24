@@ -88,40 +88,24 @@ local function build_failed_hunk_report_block(fc)
 		return nil
 	end
 
-	local lines = {
-		"----",
-		"- " .. tostring(fc.path or "")
-	}
-
 	local failed_count = #error_hunks
-	local total_count = tonumber(fc.total_count or nil)
-	local success_count = tonumber(fc.success_count or nil)
-	local summary = tostring(failed_count) .. " hunks failed to applied"
-	if total_count ~= nil and success_count ~= nil and success_count > 0 then
-		summary = summary .. " (" .. tostring(success_count) .. " other hunk got applied)"
-	elseif total_count ~= nil then
-		local other_applied = total_count - failed_count
-		if other_applied > 0 then
-			summary = summary .. " (" .. tostring(other_applied) .. " other hunk got applied)"
-		end
-	end
-	table.insert(lines, summary)
+	local total_count = tonumber(fc.total_count or nil) or failed_count
+	local lines = {
+		"- " .. tostring(fc.path or "") .. ", " .. tostring(failed_count) .. "/" .. tostring(total_count) .. " hunks failed"
+	}
 
 	for idx, error_hunk in ipairs(error_hunks) do
 		table.insert(lines, "")
-		table.insert(lines, "Fail hunk " .. idx .. ":")
-		if error_hunk.cause and error_hunk.cause ~= "" then
-			table.insert(lines, "Cause: " .. error_hunk.cause)
-		end
+		table.insert(lines, "  Failed hunk " .. idx .. ":")
 		if error_hunk.hunk_body and error_hunk.hunk_body ~= "" then
-			table.insert(lines, "Hunk:")
-			table.insert(lines, "````")
+			table.insert(lines, "  ````")
 			table.insert(lines, error_hunk.hunk_body)
-			table.insert(lines, "````")
+			table.insert(lines, "  ````")
+		else
+			table.insert(lines, "  (missing hunk body)")
 		end
 	end
 
-	table.insert(lines, "----")
 	return table.concat(lines, "\n")
 end
 
@@ -136,13 +120,16 @@ local function build_failed_hunk_searches_block(fc)
 	end
 
 	local lines = {}
+	local failed_count = #error_hunks
+	local total_count = tonumber(fc.total_count or nil) or failed_count
+
+	table.insert(lines, "## Failed hunks")
+	table.insert(lines, "")
+	table.insert(lines, tostring(failed_count) .. "/" .. tostring(total_count) .. " hunks failed.")
+
 	for idx, error_hunk in ipairs(error_hunks) do
 		table.insert(lines, "")
 		table.insert(lines, "## Fail hunk " .. idx)
-		if error_hunk.cause and error_hunk.cause ~= "" then
-			table.insert(lines, "")
-			table.insert(lines, "Cause: " .. error_hunk.cause)
-		end
 		if error_hunk.hunk_body and error_hunk.hunk_body ~= "" then
 			table.insert(lines, "")
 			table.insert(lines, "Hunk:")
@@ -150,6 +137,9 @@ local function build_failed_hunk_searches_block(fc)
 			table.insert(lines, "````")
 			table.insert(lines, error_hunk.hunk_body)
 			table.insert(lines, "````")
+		else
+			table.insert(lines, "")
+			table.insert(lines, "(missing hunk body)")
 		end
 	end
 
@@ -385,8 +375,12 @@ function handle_failed_changes(files_changes_failed, data)
 	for _, fc in ipairs(files_changes_failed) do
 		local hunk_block = build_failed_hunk_report_block(fc)
 		if hunk_block then
-			msg = msg .. "\n\n" .. hunk_block
-			fail_report_content = fail_report_content .. "\n\n" .. hunk_block
+			msg = msg .. "\n" .. hunk_block
+			fail_report_content = fail_report_content .. "\n\n# " .. fc.path .. "\n\n"
+			local hunk_searches_block = build_failed_hunk_searches_block(fc)
+			if hunk_searches_block ~= nil then
+				fail_report_content = fail_report_content .. hunk_searches_block
+			end
 		else
 			local cause = fc.error_msg
 			if cause == nil and fc.changes_info and fc.changes_info.failed_changes
@@ -398,20 +392,17 @@ function handle_failed_changes(files_changes_failed, data)
 			if fc.changes_info and fc.changes_info.failed_changes then
 				failed_changes_count = #fc.changes_info.failed_changes
 			end
-			msg = msg .. "\n- " .. fc.path .. " (failed changes: " .. failed_changes_count ..
-					", cause: " .. cause .. ")"
+			msg = msg .. "\n- " .. fc.path .. ", failed changes: " .. failed_changes_count ..
+					", cause: " .. cause
 
 			fail_report_content = fail_report_content .. "\n\n# " .. fc.path .. "\n\nFailed searches:"
-			if fc.error_hunks and #fc.error_hunks > 0 then
-				local hunk_searches_block = build_failed_hunk_searches_block(fc)
-				if hunk_searches_block ~= nil then
-					fail_report_content = fail_report_content .. hunk_searches_block
-				end
-			elseif fc.changes_info and fc.changes_info.failed_changes then
+			if fc.changes_info and fc.changes_info.failed_changes then
 				for _, fail_change in ipairs(fc.changes_info.failed_changes) do
 					local search_text = aip.text.truncate(fail_change.search, 1000, "...")
 					fail_report_content = fail_report_content .. "\n\n````\n" .. search_text .. "\n````"
 				end
+			elseif cause ~= nil then
+				fail_report_content = fail_report_content .. "\n\n" .. cause
 			end
 		end
 	end
