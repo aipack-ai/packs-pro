@@ -1,6 +1,6 @@
 # Rules & Skill for creating and following a dev plan
 
-## When to use this skil
+## When to use this skill
 
 Use this file when the user need to create, follow, implement the development plan. 
 
