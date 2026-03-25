@@ -146,6 +146,77 @@ local function build_failed_hunk_searches_block(fc)
 	return table.concat(lines, "\n")
 end
 
+local function failed_hunk_counts(fc)
+	if type(fc) ~= "table" then
+		return 0, 0
+	end
+
+	local failed_count = 0
+	if type(fc.error_hunks) == "table" then
+		failed_count = #fc.error_hunks
+	end
+
+	local total_count = tonumber(fc.total_count or nil) or failed_count
+	return failed_count, total_count
+end
+
+function format_failed_changes_for_tui(files_changes_failed)
+	if type(files_changes_failed) ~= "table" or #files_changes_failed == 0 then
+		return nil
+	end
+
+	local lines = {}
+	for _, fc in ipairs(files_changes_failed) do
+		local failed_count, total_count = failed_hunk_counts(fc)
+		table.insert(lines, "- " .. tostring(fc.path or ""))
+		table.insert(lines, "  (" .. tostring(failed_count) .. "/" .. tostring(total_count) .. " hunks failed to apply)")
+		table.insert(lines, "")
+	end
+
+	if #lines > 0 and lines[#lines] == "" then
+		table.remove(lines, #lines)
+	end
+
+	return table.concat(lines, "\n")
+end
+
+function format_failed_changes_for_file_report(files_changes_failed)
+	if type(files_changes_failed) ~= "table" or #files_changes_failed == 0 then
+		return nil
+	end
+
+	local lines = {
+		"# Apply Fail Repport",
+		""
+	}
+
+	local file_count = #files_changes_failed
+	local total_file_count = file_count
+	table.insert(lines, tostring(file_count) .. "/" .. tostring(total_file_count) .. " files have hunk apply failures.")
+
+	for _, fc in ipairs(files_changes_failed) do
+		local failed_count, total_count = failed_hunk_counts(fc)
+		table.insert(lines, "")
+		table.insert(lines, "## " .. tostring(fc.path or ""))
+		table.insert(lines, "(" .. tostring(failed_count) .. "/" .. tostring(total_count) .. " hunks failed to apply)")
+
+		if type(fc.error_hunks) == "table" and #fc.error_hunks > 0 then
+			for idx, error_hunk in ipairs(fc.error_hunks) do
+				table.insert(lines, "")
+				table.insert(lines, "### Failed Hunk " .. idx)
+				table.insert(lines, "")
+				table.insert(lines, "````")
+				if error_hunk.hunk_body and error_hunk.hunk_body ~= "" then
+					table.insert(lines, error_hunk.hunk_body)
+				end
+				table.insert(lines, "````")
+			end
+		end
+	end
+
+	return table.concat(lines, "\n")
+end
+
 local function file_change_status_letter(kind)
 	if kind == "New" then return "A" end
 	if kind == "Patch" then return "M" end
@@ -367,44 +438,15 @@ function handle_failed_changes(files_changes_failed, data)
 	local ai_res_path = data.ai_responses_for_raw_path
 	local fail_report_path = data.last_file_change_fails_report_path
 
-
-	local fail_report_content = "❗ Here are the file change search misses.\nSee full AI response at:\n" .. ai_res_path
-	fail_report_content = fail_report_content .. "\n\n" .. "Below are the search misses by file:"
-
 	local msg = "❗❗❗ Failed to apply some changes to file(s) ❗❗❗\n"
-	for _, fc in ipairs(files_changes_failed) do
-		local hunk_block = build_failed_hunk_report_block(fc)
-		if hunk_block then
-			msg = msg .. "\n" .. hunk_block
-			fail_report_content = fail_report_content .. "\n\n# " .. fc.path .. "\n\n"
-			local hunk_searches_block = build_failed_hunk_searches_block(fc)
-			if hunk_searches_block ~= nil then
-				fail_report_content = fail_report_content .. hunk_searches_block
-			end
-		else
-			local cause = fc.error_msg
-			if cause == nil and fc.changes_info and fc.changes_info.failed_changes
-					and fc.changes_info.failed_changes[1] then
-				cause = fc.changes_info.failed_changes[1].reason
-			end
-			cause = aip.text.truncate(cause, 1000, "...")
-			local failed_changes_count = 0
-			if fc.changes_info and fc.changes_info.failed_changes then
-				failed_changes_count = #fc.changes_info.failed_changes
-			end
-			msg = msg .. "\n- " .. fc.path .. ", failed changes: " .. failed_changes_count ..
-					", cause: " .. cause
+	local tui_block = format_failed_changes_for_tui(files_changes_failed)
+	if tui_block ~= nil and tui_block ~= "" then
+		msg = msg .. "\n" .. tui_block
+	end
 
-			fail_report_content = fail_report_content .. "\n\n# " .. fc.path .. "\n\nFailed searches:"
-			if fc.changes_info and fc.changes_info.failed_changes then
-				for _, fail_change in ipairs(fc.changes_info.failed_changes) do
-					local search_text = aip.text.truncate(fail_change.search, 1000, "...")
-					fail_report_content = fail_report_content .. "\n\n````\n" .. search_text .. "\n````"
-				end
-			elseif cause ~= nil then
-				fail_report_content = fail_report_content .. "\n\n" .. cause
-			end
-		end
+	local fail_report_content = format_failed_changes_for_file_report(files_changes_failed) or ""
+	if fail_report_content ~= "" then
+		fail_report_content = fail_report_content .. "\n\nFull raw AI response:\n" .. ai_res_path
 	end
 
 	msg = msg .. "\n\nFor fail report, see file:\n➜ " .. fail_report_path
@@ -417,9 +459,11 @@ end
 -- ==== RETURN
 
 return {
-	process_ui_directives      = process_ui_directives,
-	build_info_lines           = build_info_lines,
-	build_changed_files_report = build_changed_files_report,
-	apply_changes              = apply_changes,
-	handle_failed_changes      = handle_failed_changes
+	process_ui_directives                 = process_ui_directives,
+	build_info_lines                      = build_info_lines,
+	build_changed_files_report            = build_changed_files_report,
+	format_failed_changes_for_tui         = format_failed_changes_for_tui,
+	format_failed_changes_for_file_report = format_failed_changes_for_file_report,
+	apply_changes                         = apply_changes,
+	handle_failed_changes                 = handle_failed_changes
 }
