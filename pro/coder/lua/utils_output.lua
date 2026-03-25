@@ -205,6 +205,10 @@ function format_failed_changes_for_file_report(files_changes_failed)
 				table.insert(lines, "")
 				table.insert(lines, "### Failed Hunk " .. idx)
 				table.insert(lines, "")
+				if error_hunk.cause and error_hunk.cause ~= "" then
+					table.insert(lines, error_hunk.cause)
+					table.insert(lines, "")
+				end
 				table.insert(lines, "````")
 				if error_hunk.hunk_body and error_hunk.hunk_body ~= "" then
 					table.insert(lines, error_hunk.hunk_body)
