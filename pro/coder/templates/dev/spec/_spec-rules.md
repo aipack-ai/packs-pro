@@ -43,6 +43,7 @@ Describe the what:
 - the exposed interface or visible behavior
 - the scope boundaries
 - important inputs, outputs, and interactions when relevant
+- use code blocks when appropriate to express concise pseudo types or visible API, CLI, or command surfaces for clarity
 
 Do not explain broader product motivation here.
 
@@ -55,6 +56,7 @@ Describe the how:
 - the relationships between parts
 - important data flow, control flow, or lifecycle details
 - the code-facing interfaces, contracts, or boundaries implementation should follow
+- use code blocks when appropriate to express concise pseudo types, interfaces, message shapes, or command surfaces when that is clearer than prose
 
 Use subsections only when they improve clarity.
 
@@ -66,6 +68,7 @@ Describe the why of the chosen design:
 - important tradeoffs and constraints
 - assumptions that shaped the structure
 - maintainability, performance, safety, UX, operational, or integration considerations when relevant
+- use short code blocks when appropriate to clarify non-ambiguous pseudo types or API and command examples, while keeping the section concise
 
 This section should explain the design choices, not restate the intent.
 
