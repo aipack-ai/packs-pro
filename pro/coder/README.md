@@ -161,7 +161,7 @@ dev:
   #   dir: .aipack/.prompt/pro@coder/dev/plan
   spec: false                # true uses default path below
   # spec: .aipack/.prompt/pro@coder/dev/spec
-  # spec: .aipack/.prompt/pro@coder/dev/spec/_spec-rules.md
+  # spec: .aipack/.prompt/pro@coder/dev/spec/spec.md
   # spec:
   #   enabled: true
   #   path: .aipack/.prompt/pro@coder/dev/spec/_spec-rules.md
@@ -398,8 +398,8 @@ Shortcut to configure and run the `pro@coder/dev` sub-agent. This agent can enab
 Behavior:
 - `chat` ensures the dev chat markdown file exists, then appends its path to `context_globs_post` (deduped).
 - `plan` ensures `_plan-rules.md` exists in the plan directory, prepends this rules file to `knowledge_globs_pre` (deduped), and appends `plan-*.md` to `context_globs_post` (deduped).
-- `spec` ensures `_spec-rules.md` exists, appends this rules file to `knowledge_globs_post` (deduped), and appends `spec.md` to `context_globs_post` (deduped).
-- The sub-agent returns `agent_result.dev_content_globs` containing enabled dev content globs (chat path and/or plan glob). This lets downstream sub-agents consume helper files without depending on `dev` config internals.
+- `spec` ensures `_spec-rules.md` exists, appends this rules file to `knowledge_globs_post` (deduped), and appends the resolved spec context file path to `context_globs_post` (deduped).
+- The sub-agent returns `agent_result.dev_content_globs` containing enabled dev content globs (chat path, plan glob, and/or spec file path). This lets downstream sub-agents consume helper files without depending on `dev` config internals.
 - If both `chat` and `plan` are disabled, the sub-agent is automatically disabled (no-op).
 
 Current shape:
@@ -461,6 +461,12 @@ Spec path handling details:
 - Trailing slashes are normalized.
 - When `dev.spec.path` is a file path, it is treated as the spec context file, not the rules file.
 - When enabled, `pro@coder/dev` also ensures a blank `spec.md` exists beside `_spec-rules.md`.
+
+Spec file auto-context behavior:
+
+- The resolved spec context file path is appended to `context_globs_post` when missing.
+- The rules file path is appended to `knowledge_globs_post` when missing.
+- The sub-agent returns the spec context file path in `agent_result.dev_content_globs`, so downstream helper-aware sub-agents can consume it without depending on `dev` config internals.
 
 Example:
 
@@ -603,7 +609,7 @@ sub_agents:
       # dir: .aipack/.prompt/pro@coder/dev/plan
     spec:            # or spec: true (default false)
       enabled: true
-      # path: .aipack/.prompt/pro@coder/dev/spec/_spec-rules.md
+      # path: .aipack/.prompt/pro@coder/dev/spec/spec.md
 ```
 
 - Resolves `chat.path` from config, or defaults to `$coder_prompt_dir/dev/chat/dev-chat.md`.
@@ -617,7 +623,7 @@ sub_agents:
 - Prepends the plan rules path to `knowledge_globs_pre` when missing (deduped).
 - Appends the spec rules path to `knowledge_globs_post` when missing (deduped).
 - Appends the resolved spec file path to `context_globs_post` when missing (deduped).
-- Returns `agent_result.dev_content_globs` for downstream helper-context consumption.
+- Returns `agent_result.dev_content_globs` for downstream helper-context consumption, including the spec file path when enabled.
 - If both capabilities are disabled, the agent is effectively disabled and does not modify params.
 
 The same behavior can be configured with the `dev` shortcut in the root config:
@@ -775,7 +781,7 @@ Note that only these four are AI Pack config properties and can be set in the co
 
 `pro@coder` facilitates **Plan-Based Development** by initializing relevant plan files within the prompt's dedicated folder.
 
-- The foundational rules are in `_plan-rules.md`, located in the prompt's `dev/plan/` subfolder (e.g., `.aipack/.prompt/pro@coder/dev/plan/_plan-rules.md`). This folder also contains `plan-todo.md` and `plan-done.md`.
+- The foundational rules are in `_plan-rules.md`, located in the prompt's `dev/plan/` subfolder (e.g., `.aipack/.prompt/pro@coder/dev/plan/_plan-rules.md`). The plan flow uses `plan-1-todo-steps.md`, `plan-2-current-step.md`, and `plan-3-done-steps.md` in the same directory.
 - To enable plan-based interactions, add these files to your `context_globs` parameter, for example:
     - `  - .aipack/.prompt/pro@coder/dev/plan/*.md`
 - When instructing the agent, refer to the plan rules. For example:
@@ -784,3 +790,33 @@ Note that only these four are AI Pack config properties and can be set in the co
         - `Following the plan rules, execute the next step in the plan and update the appropriate files.`
 
 To disable Plan-Based Development, remove the `...plan/*.md` glob pattern from your `context_globs`.
+
+## Spec-Based Development
+
+`pro@coder` also supports **Spec-Based Development** through the `dev.spec` capability.
+
+- The foundational rules live in `_spec-rules.md`, located in the prompt's `dev/spec/` subfolder.
+- The main working spec file is `spec.md`, stored beside `_spec-rules.md`.
+- When `dev.spec` is enabled, `pro@coder/dev` ensures both files exist.
+- The rules file is added to `knowledge_globs_post`, and the `spec.md` file is added to `context_globs_post`.
+- This lets you keep specification guidance in knowledge, while the evolving project spec stays in context.
+
+Typical setup:
+
+```yaml
+dev:
+  spec: true
+```
+
+Or with an explicit path:
+
+```yaml
+dev:
+  spec: .aipack/.prompt/pro@coder/dev/spec/spec.md
+```
+
+You can then prompt the agent with requests such as:
+
+- `Following the spec rules, create or update the project spec for ...`
+- `Following the spec and the current plan, implement the next step`
+
