@@ -64,7 +64,10 @@ local function resolve_dev_spec_path(dev_spec_path, options)
 	local strict_file = options.strict_file == true
 
 	if is_null(dev_spec_path) or dev_spec_path == "" then
-		return coder_prompt_dir .. "/dev/spec/_spec-rules.md"
+		if strict_file then
+			return coder_prompt_dir .. "/dev/spec/spec.md"
+		end
+		return coder_prompt_dir .. "/dev/spec/_spec-rules.md", coder_prompt_dir .. "/dev/spec/spec.md"
 	end
 
 	local normalized_path = dev_spec_path:gsub("/+$", "")

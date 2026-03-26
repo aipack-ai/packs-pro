@@ -437,9 +437,9 @@ Default directory when `dev.plan.dir` is omitted:
 
 `$coder_prompt_dir/dev/plan`
 
-Default path when `dev.spec.path` is omitted:
+Default spec file path when `dev.spec.path` is omitted:
 
-`$coder_prompt_dir/dev/spec/_spec-rules.md`
+`$coder_prompt_dir/dev/spec/spec.md`
 
 For string/table path values, relative paths are passed through unchanged.
 
@@ -460,6 +460,7 @@ Spec path handling details:
 - `dev.spec: "spec.md"` resolves rules to `./_spec-rules.md` and context to `spec.md`.
 - Trailing slashes are normalized.
 - When `dev.spec.path` is a file path, it is treated as the spec context file, not the rules file.
+- When enabled, `pro@coder/dev` also ensures a blank `spec.md` exists beside `_spec-rules.md`.
 
 Example:
 
