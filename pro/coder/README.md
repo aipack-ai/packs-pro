@@ -426,7 +426,7 @@ Supported `dev.spec` values:
 - **A boolean**:
   - `true`: Enable with default path.
   - `false`: Disable spec.
-- **A string**: Path to the spec directory, or to the `_spec-rules.md` file.
+- **A string**: Path to the spec directory, or to the spec file.
 - **A table**: `enabled`, `path`, and future-safe extra keys.
 
 Default path when `dev.chat.path` is omitted:
@@ -453,6 +453,16 @@ Plan path handling details:
 
 Example:
 
+Spec path handling details:
+
+- `dev.spec: "some/dir"` resolves rules to `some/dir/_spec-rules.md` and context to `some/dir/spec.md`.
+- `dev.spec: "some/spec.md"` resolves rules to `some/_spec-rules.md` and context to `some/spec.md`.
+- `dev.spec: "spec.md"` resolves rules to `./_spec-rules.md` and context to `spec.md`.
+- Trailing slashes are normalized.
+- When `dev.spec.path` is a file path, it is treated as the spec context file, not the rules file.
+
+Example:
+
 ```yaml
 dev:
   chat: true
@@ -466,7 +476,7 @@ dev:
 # or
 dev:
   plan: .aipack/.prompt/pro@coder/dev/plan.md   # resolves to .aipack/.prompt/pro@coder/dev
-  spec: .aipack/.prompt/pro@coder/dev/spec/_spec-rules.md
+  spec: .aipack/.prompt/pro@coder/dev/spec/spec.md
 # or
 dev:
   chat:
@@ -477,7 +487,7 @@ dev:
     dir: .aipack/.prompt/pro@coder/dev/plan
   spec:
     enabled: true
-    path: .aipack/.prompt/pro@coder/dev/spec/_spec-rules.md
+    path: .aipack/.prompt/pro@coder/dev/spec/spec.md
 ```
 
 #### sub_agents
@@ -599,12 +609,13 @@ sub_agents:
 - Ensures the chat file exists, if the file is empty, it is initialized with the dev-chat template.
 - Resolves `plan.dir` from config, or defaults to `$coder_prompt_dir/dev/plan`.
 - Ensures the plan rules file exists at `$plan_dir/_plan-rules.md`, if empty, it is initialized from template.
-- Resolves `spec.path` from config, or defaults to `$coder_prompt_dir/dev/spec/_spec-rules.md`.
-- Ensures the spec rules file exists at `spec.path`, if empty, it is initialized from template.
+- Resolves `spec.path` from config as either a spec directory or a spec file path.
+- Ensures the spec rules file exists at `$spec_dir/_spec-rules.md`, if empty, it is initialized from template.
+- Ensures the spec context file exists at the resolved spec file path.
 - Appends the resolved chat path and `plan-*.md` glob to `context_globs_post` when missing (deduped).
 - Prepends the plan rules path to `knowledge_globs_pre` when missing (deduped).
 - Appends the spec rules path to `knowledge_globs_post` when missing (deduped).
-- Appends the sibling `spec.md` path to `context_globs_post` when missing (deduped).
+- Appends the resolved spec file path to `context_globs_post` when missing (deduped).
 - Returns `agent_result.dev_content_globs` for downstream helper-context consumption.
 - If both capabilities are disabled, the agent is effectively disabled and does not modify params.
 
@@ -630,13 +641,13 @@ dev:
     dir: .aipack/.prompt/pro@coder/dev/plan
   spec:
     enabled: true
-    path: .aipack/.prompt/pro@coder/dev/spec/_spec-rules.md
+    path: .aipack/.prompt/pro@coder/dev/spec/spec.md
 ```
 
 - `dev.chat: true` enables chat with the default path.
 - `dev.plan: true` enables plan with the default directory.
 - `dev.spec: true` enables spec with the default path.
-- A string sets the corresponding directory directly, if it is a `.md` path, its parent directory is used.
+- A string sets the corresponding directory directly for plan, while spec strings can be either a directory or the spec file path.
 - A table maps to the chat, plan, or spec config shape.
 - If all are disabled via table config (`enabled: false`), `pro@coder` seeds `pro@coder/dev` as disabled.
 - For table mode, `dev.plan.dir` is strict and must be a directory path.

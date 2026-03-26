@@ -52,16 +52,19 @@ local function normalize_dev_spec_config(dev_spec, options)
 	if dev_spec == true then
 		spec = {
 			enabled = true,
-			path = u_common.resolve_dev_spec_path(nil, options)
+			rules_path = u_common.resolve_dev_spec_path(nil, options),
+			path = u_common.resolve_dev_spec_path(nil, aip.lua.merge({}, options, { strict_file = true }))
 		}
 	elseif type(dev_spec) == "string" then
+		local rules_path, spec_path = u_common.resolve_dev_spec_path(dev_spec, options)
 		spec = {
 			enabled = true,
-			path = u_common.resolve_dev_spec_path(dev_spec, options)
+			rules_path = rules_path,
+			path = spec_path
 		}
 	elseif type(dev_spec) == "table" then
 		spec = aip.lua.merge({ enabled = true }, dev_spec)
-		spec.path = u_common.resolve_dev_spec_path(spec.path, options)
+		spec.rules_path, spec.path = u_common.resolve_dev_spec_path(spec.path, options)
 	end
 	return spec
 end

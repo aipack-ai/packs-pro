@@ -227,7 +227,7 @@ if plan ~= nil then
 end
 
 if spec ~= nil then
-	local spec_path, spec_context_path, ensure_err = u_common.ensure_dev_spec_file(spec.path)
+	local spec_rules_path, spec_context_path, spec_path, ensure_err = u_common.ensure_dev_spec_file(spec.path)
 	if ensure_err then
 		aip.run.pin("dev-spec", 4, {
 			label = " Dev Spec:",
@@ -251,10 +251,11 @@ if spec ~= nil then
 			}
 		})
 	end
+	spec.rules_path = spec_rules_path
 	spec.path = spec_path
 	spec.context_path = spec_context_path
 
-	append_unique(next_knowledge_globs_post, spec_path)
+	append_unique(next_knowledge_globs_post, spec_rules_path)
 	append_unique(next_context_globs_post, spec_context_path)
 end
 

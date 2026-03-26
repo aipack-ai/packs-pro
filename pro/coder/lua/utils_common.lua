@@ -61,6 +61,7 @@ end
 local function resolve_dev_spec_path(dev_spec_path, options)
 	options = options or {}
 	local coder_prompt_dir = options.coder_prompt_dir or "."
+	local strict_file = options.strict_file == true
 
 	if is_null(dev_spec_path) or dev_spec_path == "" then
 		return coder_prompt_dir .. "/dev/spec/_spec-rules.md"
@@ -70,10 +71,21 @@ local function resolve_dev_spec_path(dev_spec_path, options)
 	local _dir, file_name = aip.path.split(normalized_path)
 	local has_extension = file_name and file_name:match("^.+%.[^%.]+$") ~= nil
 	if not has_extension then
-		return normalized_path .. "/_spec-rules.md"
+		if strict_file then
+			return normalized_path .. "/spec.md"
+		end
+		return normalized_path .. "/_spec-rules.md", normalized_path .. "/spec.md"
 	end
 
-	return normalized_path
+	if strict_file then
+		return normalized_path
+	end
+
+	local spec_dir = aip.path.parent(normalized_path)
+	if is_null(spec_dir) or spec_dir == "" then
+		spec_dir = "."
+	end
+	return normalized_path, spec_dir .. "/spec.md"
 end
 
 local function resolve_dev_plan_dir(dev_plan_dir, options)
@@ -182,29 +194,44 @@ end
 
 local function ensure_dev_spec_file(dev_spec_path, options)
 	options = options or {}
-	local resolved_path = resolve_dev_spec_path(dev_spec_path, options)
-	if is_null(resolved_path) or resolved_path == "" then
-		return nil, nil, "Invalid dev.spec.path"
+	local resolved_rules_path, resolved_spec_path = resolve_dev_spec_path(dev_spec_path, options)
+	if is_null(resolved_rules_path) or resolved_rules_path == "" then
+		return nil, nil, nil, "Invalid dev.spec.path"
+	end
+
+	local rules_path = resolved_rules_path
+	local spec_path = resolved_spec_path
+	if is_null(spec_path) or spec_path == "" then
+		local spec_dir = aip.path.parent(rules_path)
+		if is_null(spec_dir) or spec_dir == "" then
+			spec_dir = "."
+		end
+		spec_path = spec_dir .. "/spec.md"
 	end
 
 	local ensure_spec_res
-	if aip.file.exists(resolved_path) then
-		ensure_spec_res = aip.file.info(resolved_path)
+	if aip.file.exists(rules_path) then
+		ensure_spec_res = aip.file.info(rules_path)
 	else
-		ensure_spec_res = aip.file.ensure_exists(resolved_path, load_dev_spec_rules_template_content())
+		ensure_spec_res = aip.file.ensure_exists(rules_path, load_dev_spec_rules_template_content())
 	end
 
 	if type(ensure_spec_res) == "table" and ensure_spec_res.error then
-		return nil, nil, ensure_spec_res.error
+		return nil, nil, nil, ensure_spec_res.error
 	end
 
-	local spec_dir = aip.path.parent(resolved_path)
-	if is_null(spec_dir) or spec_dir == "" then
-		spec_dir = "."
+	local ensure_context_res
+	if aip.file.exists(spec_path) then
+		ensure_context_res = aip.file.info(spec_path)
+	else
+		ensure_context_res = aip.file.ensure_exists(spec_path)
 	end
-	local spec_context_path = spec_dir .. "/spec.md"
 
-	return resolved_path, spec_context_path
+	if type(ensure_context_res) == "table" and ensure_context_res.error then
+		return nil, nil, nil, ensure_context_res.error
+	end
+
+	return rules_path, spec_path, resolved_spec_path
 end
 
 return {
