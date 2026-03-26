@@ -61,12 +61,8 @@ end
 local function resolve_dev_spec_path(dev_spec_path, options)
 	options = options or {}
 	local coder_prompt_dir = options.coder_prompt_dir or "."
-	local strict_file = options.strict_file == true
 
 	if is_null(dev_spec_path) or dev_spec_path == "" then
-		if strict_file then
-			return coder_prompt_dir .. "/dev/spec/spec.md"
-		end
 		return coder_prompt_dir .. "/dev/spec/_spec-rules.md", coder_prompt_dir .. "/dev/spec/spec.md"
 	end
 
@@ -74,21 +70,14 @@ local function resolve_dev_spec_path(dev_spec_path, options)
 	local _dir, file_name = aip.path.split(normalized_path)
 	local has_extension = file_name and file_name:match("^.+%.[^%.]+$") ~= nil
 	if not has_extension then
-		if strict_file then
-			return normalized_path .. "/spec.md"
-		end
 		return normalized_path .. "/_spec-rules.md", normalized_path .. "/spec.md"
-	end
-
-	if strict_file then
-		return normalized_path
 	end
 
 	local spec_dir = aip.path.parent(normalized_path)
 	if is_null(spec_dir) or spec_dir == "" then
 		spec_dir = "."
 	end
-	return normalized_path, spec_dir .. "/spec.md"
+	return spec_dir .. "/_spec-rules.md", normalized_path
 end
 
 local function resolve_dev_plan_dir(dev_plan_dir, options)
@@ -234,7 +223,7 @@ local function ensure_dev_spec_file(dev_spec_path, options)
 		return nil, nil, nil, ensure_context_res.error
 	end
 
-	return rules_path, spec_path, resolved_spec_path
+	return rules_path, spec_path, spec_path
 end
 
 return {

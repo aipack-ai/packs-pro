@@ -53,7 +53,7 @@ local function normalize_dev_spec_config(dev_spec, options)
 		spec = {
 			enabled = true,
 			rules_path = u_common.resolve_dev_spec_path(nil, options),
-			path = u_common.resolve_dev_spec_path(nil, aip.lua.merge({}, options, { strict_file = true }))
+			path = select(2, u_common.resolve_dev_spec_path(nil, options))
 		}
 	elseif type(dev_spec) == "string" then
 		local rules_path, spec_path = u_common.resolve_dev_spec_path(dev_spec, options)
