@@ -47,6 +47,25 @@ local function normalize_dev_plan_config(dev_plan, options)
 	return plan
 end
 
+local function normalize_dev_spec_config(dev_spec, options)
+	local spec = nil
+	if dev_spec == true then
+		spec = {
+			enabled = true,
+			path = u_common.resolve_dev_spec_path(nil, options)
+		}
+	elseif type(dev_spec) == "string" then
+		spec = {
+			enabled = true,
+			path = u_common.resolve_dev_spec_path(dev_spec, options)
+		}
+	elseif type(dev_spec) == "table" then
+		spec = aip.lua.merge({ enabled = true }, dev_spec)
+		spec.path = u_common.resolve_dev_spec_path(spec.path, options)
+	end
+	return spec
+end
+
 local function new_dev_sub_agent_config(dev, options)
 	local dev_config = nil
 
@@ -69,9 +88,11 @@ local function new_dev_sub_agent_config(dev, options)
 		local base = aip.lua.merge({ name = "pro@coder/dev", enabled = true }, dev)
 		base.chat = normalize_dev_chat_config(base.chat, options)
 		base.plan = normalize_dev_plan_config(base.plan, options)
+		base.spec = normalize_dev_spec_config(base.spec, options)
 		local chat_enabled = not is_null(base.chat) and base.chat.enabled ~= false
 		local plan_enabled = not is_null(base.plan) and base.plan.enabled ~= false
-		if not chat_enabled and not plan_enabled then
+		local spec_enabled = not is_null(base.spec) and base.spec.enabled ~= false
+		if not chat_enabled and not plan_enabled and not spec_enabled then
 			base.enabled = false
 		end
 		dev_config = base
@@ -85,5 +106,6 @@ return {
 	normalize_dev_chat_config = normalize_dev_chat_config,
 	resolve_dev_chat_path = resolve_dev_chat_path,
 	normalize_dev_plan_config = normalize_dev_plan_config,
-	resolve_dev_plan_dir = resolve_dev_plan_dir
+	resolve_dev_plan_dir = resolve_dev_plan_dir,
+	normalize_dev_spec_config = normalize_dev_spec_config
 }

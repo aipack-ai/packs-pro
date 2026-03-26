@@ -107,3 +107,4 @@ A good spec should let a reader quickly answer:
 - Why was this design chosen?
 
 If those answers are not easy to find, revise the spec for clarity.
+

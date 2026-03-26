@@ -63,6 +63,10 @@ function M.init_fixed_files(prompt_dir)
 		{
 			src_path  = CTX.AGENT_FILE_DIR .. "/templates/dev/plan/_plan-rules.md",
 			dest_path = prompt_dir .. "/dev/plan/_plan-rules.md"
+		},
+		{
+			src_path  = CTX.AGENT_FILE_DIR .. "/templates/dev/spec/_spec-rules.md",
+			dest_path = prompt_dir .. "/dev/spec/_spec-rules.md"
 		}
 	}
 
@@ -75,6 +79,7 @@ function M.init_fixed_files(prompt_dir)
 
 	u_common.ensure_dev_chat_file(nil, { coder_prompt_dir = prompt_dir })
 	u_common.ensure_dev_plan_file(nil, { coder_prompt_dir = prompt_dir })
+	u_common.ensure_dev_spec_file(nil, { coder_prompt_dir = prompt_dir })
 end
 
 -- Concatenates the prompt parts with the AI response for prompt update.

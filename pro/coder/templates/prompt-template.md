@@ -33,6 +33,7 @@ auto_context:
 dev:
   chat: false   # default path: PATH_TO_PRO_CODER_DIR/dev/chat/dev-chat.md 
   plan: false   # default  dir: PATH_TO_PRO_CODER_DIR/dev/plan/
+  spec: false   # default path: PATH_TO_PRO_CODER_DIR/dev/spec/_spec-rules.md
 
 ## Full model names or aliases (see aliases ~/.aipack-base/config-default.toml)
 ## -high, -medium, or -low suffixes for custom reasoning (e.g., "flash-low", "opus-max", "gpt-high")

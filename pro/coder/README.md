@@ -159,6 +159,12 @@ dev:
   # plan:
   #   enabled: true
   #   dir: .aipack/.prompt/pro@coder/dev/plan
+  spec: false                # true uses default path below
+  # spec: .aipack/.prompt/pro@coder/dev/spec
+  # spec: .aipack/.prompt/pro@coder/dev/spec/_spec-rules.md
+  # spec:
+  #   enabled: true
+  #   path: .aipack/.prompt/pro@coder/dev/spec/_spec-rules.md
 
 ## Specialized agents to pre-process parameters and instructions (Stage: "pre")
 ## Since v0.3.0
@@ -387,11 +393,12 @@ auto_context:
 
 #### dev
 
-Shortcut to configure and run the `pro@coder/dev` sub-agent. This agent can enable dev capabilities under a single namespace. Current capabilities are `chat` and `plan`.
+Shortcut to configure and run the `pro@coder/dev` sub-agent. This agent can enable dev capabilities under a single namespace. Current capabilities are `chat`, `plan`, and `spec`.
 
 Behavior:
 - `chat` ensures the dev chat markdown file exists, then appends its path to `context_globs_post` (deduped).
 - `plan` ensures `_plan-rules.md` exists in the plan directory, prepends this rules file to `knowledge_globs_pre` (deduped), and appends `plan-*.md` to `context_globs_post` (deduped).
+- `spec` ensures `_spec-rules.md` exists, appends this rules file to `knowledge_globs_post` (deduped), and appends `spec.md` to `context_globs_post` (deduped).
 - The sub-agent returns `agent_result.dev_content_globs` containing enabled dev content globs (chat path and/or plan glob). This lets downstream sub-agents consume helper files without depending on `dev` config internals.
 - If both `chat` and `plan` are disabled, the sub-agent is automatically disabled (no-op).
 
@@ -399,6 +406,7 @@ Current shape:
 - **A table**:
   - `dev.chat`
   - `dev.plan`
+  - `dev.spec`
 
 Supported `dev.chat` values:
 - **A boolean**:
@@ -414,6 +422,13 @@ Supported `dev.plan` values:
 - **A string**: Path to the plan directory, or a `.md` file path whose parent directory will be used as the plan directory.
 - **A table**: `enabled`, `dir`, and future-safe extra keys.
 
+Supported `dev.spec` values:
+- **A boolean**:
+  - `true`: Enable with default path.
+  - `false`: Disable spec.
+- **A string**: Path to the spec directory, or to the `_spec-rules.md` file.
+- **A table**: `enabled`, `path`, and future-safe extra keys.
+
 Default path when `dev.chat.path` is omitted:
 
 `$coder_prompt_dir/dev/chat/dev-chat.md`
@@ -421,6 +436,10 @@ Default path when `dev.chat.path` is omitted:
 Default directory when `dev.plan.dir` is omitted:
 
 `$coder_prompt_dir/dev/plan`
+
+Default path when `dev.spec.path` is omitted:
+
+`$coder_prompt_dir/dev/spec/_spec-rules.md`
 
 For string/table path values, relative paths are passed through unchanged.
 
@@ -438,13 +457,16 @@ Example:
 dev:
   chat: true
   plan: true
+  spec: true
 # or
 dev:
   chat: .aipack/.prompt/pro@coder/dev/chat/dev-chat.md
   plan: .aipack/.prompt/pro@coder/dev/plan
+  spec: .aipack/.prompt/pro@coder/dev/spec
 # or
 dev:
   plan: .aipack/.prompt/pro@coder/dev/plan.md   # resolves to .aipack/.prompt/pro@coder/dev
+  spec: .aipack/.prompt/pro@coder/dev/spec/_spec-rules.md
 # or
 dev:
   chat:
@@ -453,6 +475,9 @@ dev:
   plan:
     enabled: true
     dir: .aipack/.prompt/pro@coder/dev/plan
+  spec:
+    enabled: true
+    path: .aipack/.prompt/pro@coder/dev/spec/_spec-rules.md
 ```
 
 #### sub_agents
@@ -553,7 +578,7 @@ This is an advanced feature intended for orchestrating multi-agent flows and sho
 
 ### Sub Agent - pro@coder/dev
 
-The dev sub-agent prepares and wires dev capabilities into context. Current capabilities are `chat` and `plan`.
+The dev sub-agent prepares and wires dev capabilities into context. Current capabilities are `chat`, `plan`, and `spec`.
 
 ```yaml
 sub_agents:
@@ -565,14 +590,21 @@ sub_agents:
     plan:            # or plan: true (default false)
       enabled: true  
       # dir: .aipack/.prompt/pro@coder/dev/plan
+    spec:            # or spec: true (default false)
+      enabled: true
+      # path: .aipack/.prompt/pro@coder/dev/spec/_spec-rules.md
 ```
 
 - Resolves `chat.path` from config, or defaults to `$coder_prompt_dir/dev/chat/dev-chat.md`.
 - Ensures the chat file exists, if the file is empty, it is initialized with the dev-chat template.
 - Resolves `plan.dir` from config, or defaults to `$coder_prompt_dir/dev/plan`.
 - Ensures the plan rules file exists at `$plan_dir/_plan-rules.md`, if empty, it is initialized from template.
+- Resolves `spec.path` from config, or defaults to `$coder_prompt_dir/dev/spec/_spec-rules.md`.
+- Ensures the spec rules file exists at `spec.path`, if empty, it is initialized from template.
 - Appends the resolved chat path and `plan-*.md` glob to `context_globs_post` when missing (deduped).
 - Prepends the plan rules path to `knowledge_globs_pre` when missing (deduped).
+- Appends the spec rules path to `knowledge_globs_post` when missing (deduped).
+- Appends the sibling `spec.md` path to `context_globs_post` when missing (deduped).
 - Returns `agent_result.dev_content_globs` for downstream helper-context consumption.
 - If both capabilities are disabled, the agent is effectively disabled and does not modify params.
 
@@ -582,10 +614,12 @@ The same behavior can be configured with the `dev` shortcut in the root config:
 dev:
   chat: true
   plan: true
+  spec: true
 # or
 dev:
   chat: .aipack/.prompt/pro@coder/dev/chat/dev-chat.md
   plan: .aipack/.prompt/pro@coder/dev/plan
+  spec: .aipack/.prompt/pro@coder/dev/spec
 # or
 dev:
   chat:
@@ -594,13 +628,17 @@ dev:
   plan:
     enabled: true
     dir: .aipack/.prompt/pro@coder/dev/plan
+  spec:
+    enabled: true
+    path: .aipack/.prompt/pro@coder/dev/spec/_spec-rules.md
 ```
 
 - `dev.chat: true` enables chat with the default path.
 - `dev.plan: true` enables plan with the default directory.
+- `dev.spec: true` enables spec with the default path.
 - A string sets the corresponding directory directly, if it is a `.md` path, its parent directory is used.
-- A table maps to the chat or plan config shape.
-- If both are disabled via table config (`enabled: false`), `pro@coder` seeds `pro@coder/dev` as disabled.
+- A table maps to the chat, plan, or spec config shape.
+- If all are disabled via table config (`enabled: false`), `pro@coder` seeds `pro@coder/dev` as disabled.
 - For table mode, `dev.plan.dir` is strict and must be a directory path.
 
 ### Sub Agent - pro@coder/auto-context

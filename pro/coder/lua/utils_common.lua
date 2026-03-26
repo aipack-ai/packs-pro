@@ -58,6 +58,24 @@ local function resolve_dev_chat_path(dev_chat_path, options)
 	return normalized_path
 end
 
+local function resolve_dev_spec_path(dev_spec_path, options)
+	options = options or {}
+	local coder_prompt_dir = options.coder_prompt_dir or "."
+
+	if is_null(dev_spec_path) or dev_spec_path == "" then
+		return coder_prompt_dir .. "/dev/spec/_spec-rules.md"
+	end
+
+	local normalized_path = dev_spec_path:gsub("/+$", "")
+	local _dir, file_name = aip.path.split(normalized_path)
+	local has_extension = file_name and file_name:match("^.+%.[^%.]+$") ~= nil
+	if not has_extension then
+		return normalized_path .. "/_spec-rules.md"
+	end
+
+	return normalized_path
+end
+
 local function resolve_dev_plan_dir(dev_plan_dir, options)
 	options = options or {}
 	local coder_prompt_dir = options.coder_prompt_dir or "."
@@ -153,6 +171,42 @@ local function ensure_dev_plan_file(dev_plan_dir, options)
 	return resolved_dir, rules_path
 end
 
+local function load_dev_spec_rules_template_content()
+	local template_path = CTX.AGENT_FILE_DIR .. "/templates/dev/spec/_spec-rules.md"
+	local template_file = aip.file.load(template_path)
+	if type(template_file) == "table" and type(template_file.content) == "string" and template_file.content ~= "" then
+		return template_file.content
+	end
+	return "# Spec Rules\n\n- Keep specs clear and code-focused.\n"
+end
+
+local function ensure_dev_spec_file(dev_spec_path, options)
+	options = options or {}
+	local resolved_path = resolve_dev_spec_path(dev_spec_path, options)
+	if is_null(resolved_path) or resolved_path == "" then
+		return nil, nil, "Invalid dev.spec.path"
+	end
+
+	local ensure_spec_res
+	if aip.file.exists(resolved_path) then
+		ensure_spec_res = aip.file.info(resolved_path)
+	else
+		ensure_spec_res = aip.file.ensure_exists(resolved_path, load_dev_spec_rules_template_content())
+	end
+
+	if type(ensure_spec_res) == "table" and ensure_spec_res.error then
+		return nil, nil, ensure_spec_res.error
+	end
+
+	local spec_dir = aip.path.parent(resolved_path)
+	if is_null(spec_dir) or spec_dir == "" then
+		spec_dir = "."
+	end
+	local spec_context_path = spec_dir .. "/spec.md"
+
+	return resolved_path, spec_context_path
+end
+
 return {
 	filter_likely_text = filter_likely_text,
 	list_likely_text = list_likely_text,
@@ -160,7 +214,9 @@ return {
 	list_load_likely_text = list_load_likely_text,
 	resolve_dev_chat_path = resolve_dev_chat_path,
 	resolve_dev_plan_dir = resolve_dev_plan_dir,
+	resolve_dev_spec_path = resolve_dev_spec_path,
 	load_dev_chat_template_content = load_dev_chat_template_content,
 	ensure_dev_chat_file = ensure_dev_chat_file,
 	ensure_dev_plan_file = ensure_dev_plan_file,
+	ensure_dev_spec_file = ensure_dev_spec_file,
 }

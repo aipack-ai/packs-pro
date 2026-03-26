@@ -27,7 +27,7 @@ local function merge_unique(target, source)
 	return target
 end
 
-local function pin_dev_status(chat, plan)
+local function pin_dev_status(chat, plan, spec)
 	if is_null(chat) or not chat.path then
 		aip.run.pin("dev-chat", 2, {
 			label = "Dev Chat:",
@@ -69,6 +69,25 @@ local function pin_dev_status(chat, plan)
 		aip.run.pin("dev-plan", 3, {
 			label = " Dev Plan:",
 			content = table.concat(plan_pin_lines, "\n")
+		})
+	end
+
+	if is_null(spec) or not spec.path then
+		aip.run.pin("dev-spec", 4, {
+			label = " Dev Spec:",
+			content = "(not activated)"
+		})
+	else
+		local spec_pin_lines = {}
+		table.insert(spec_pin_lines, "Spec Rules File: " .. spec.path)
+		table.insert(spec_pin_lines, "(Added to knowledge_globs_post)")
+		local spec_context_path = spec.context_path or ((aip.path.parent(spec.path) or ".") .. "/spec.md")
+		table.insert(spec_pin_lines, "")
+		table.insert(spec_pin_lines, "Spec Context File: " .. spec_context_path)
+		table.insert(spec_pin_lines, "(Added to context_globs_post)")
+		aip.run.pin("dev-spec", 4, {
+			label = " Dev Spec:",
+			content = table.concat(spec_pin_lines, "\n")
 		})
 	end
 end
@@ -116,7 +135,14 @@ elseif not is_null(plan._resolve_err) and plan._resolve_err ~= "" then
 	})
 end
 
-if chat == nil and plan == nil then
+local spec = agent_config.spec
+if type(spec) ~= "table" then
+	spec = nil
+elseif spec.enabled == false then
+	spec = nil
+end
+
+if chat == nil and plan == nil and spec == nil then
 	return aip.flow.before_all_response({
 		inputs = {},
 		before_all = {
@@ -133,6 +159,11 @@ end
 local next_knowledge_globs_pre = coder_params.knowledge_globs_pre
 if type(next_knowledge_globs_pre) ~= "table" then
 	next_knowledge_globs_pre = {}
+end
+
+local next_knowledge_globs_post = coder_params.knowledge_globs_post
+if type(next_knowledge_globs_post) ~= "table" then
+	next_knowledge_globs_post = {}
 end
 
 if chat ~= nil then
@@ -195,7 +226,39 @@ if plan ~= nil then
 	local existing_plan_files = aip.file.list({ dir .. "/plan-*.md" })
 end
 
-pin_dev_status(chat, plan)
+if spec ~= nil then
+	local spec_path, spec_context_path, ensure_err = u_common.ensure_dev_spec_file(spec.path)
+	if ensure_err then
+		aip.run.pin("dev-spec", 4, {
+			label = " Dev Spec:",
+			content = "ERROR: " .. ensure_err
+		})
+		return aip.flow.before_all_response({
+			inputs = {},
+			before_all = {
+				success = false,
+				error_msg = "Failed to initialize dev spec rules file",
+				error_details = ensure_err
+			}
+		})
+	end
+	if is_null(spec_path) or spec_path == "" then
+		return aip.flow.before_all_response({
+			inputs = {},
+			before_all = {
+				success = false,
+				error_msg = "Invalid dev.spec.path"
+			}
+		})
+	end
+	spec.path = spec_path
+	spec.context_path = spec_context_path
+
+	append_unique(next_knowledge_globs_post, spec_path)
+	append_unique(next_context_globs_post, spec_context_path)
+end
+
+pin_dev_status(chat, plan, spec)
 
 local updated_coder_params = {}
 if #next_context_globs_post > 0 then
@@ -204,6 +267,9 @@ end
 if #next_knowledge_globs_pre > 0 then
 	updated_coder_params.knowledge_globs_pre = next_knowledge_globs_pre
 end
+if #next_knowledge_globs_post > 0 then
+	updated_coder_params.knowledge_globs_post = next_knowledge_globs_post
+end
 
 local dev_content_globs = {}
 if chat ~= nil and not is_null(chat.path) and chat.path ~= "" then
@@ -211,6 +277,9 @@ if chat ~= nil and not is_null(chat.path) and chat.path ~= "" then
 end
 if plan ~= nil and not is_null(plan.dir) and plan.dir ~= "" then
 	table.insert(dev_content_globs, plan.dir .. "/plan-*.md")
+end
+if spec ~= nil and not is_null(spec.context_path) and spec.context_path ~= "" then
+	table.insert(dev_content_globs, spec.context_path)
 end
 
 return aip.flow.before_all_response({
