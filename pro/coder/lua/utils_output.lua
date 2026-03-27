@@ -156,7 +156,10 @@ local function failed_hunk_counts(fc)
 		failed_count = #fc.error_hunks
 	end
 
-	local total_count = tonumber(fc.total_count or nil) or failed_count
+	local total_count = tonumber(fc.total_count or nil)
+	if total_count == nil or total_count < failed_count then
+		total_count = failed_count
+	end
 	return failed_count, total_count
 end
 
@@ -386,12 +389,15 @@ function apply_changes(ai_content, data)
 					end
 				else
 					local reason = item.error_msg or "Unknown error"
+					local failed_count = 0
+					if type(item.error_hunks) == "table" then
+						failed_count = #item.error_hunks
+					end
 					table.insert(files_changes_failed, {
 						path = f_path,
 						error_msg = reason,
 						error_hunks = item.error_hunks,
-						total_count = changes_status.total_count,
-						success_count = changes_status.success_count,
+						total_count = failed_count,
 						changes_info = {
 							failed_changes = { { reason = reason, search = "UDIFFX Block failed: " .. reason } }
 						}
