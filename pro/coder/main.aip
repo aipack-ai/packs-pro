@@ -193,6 +193,7 @@ Here are some some general language best practices to follow when providing code
 
 - Make sure to have empty line after any heading (with one or more `#` character)
 - Except if told otherwise, use `-` for bullet points (rather than `*`). 
+- When showing code, always put it in a code block with the appropriate language.
 
 ### HTML
 
