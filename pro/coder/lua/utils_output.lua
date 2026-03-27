@@ -172,7 +172,11 @@ function format_failed_changes_for_tui(files_changes_failed)
 	for _, fc in ipairs(files_changes_failed) do
 		local failed_count, total_count = failed_hunk_counts(fc)
 		table.insert(lines, "- " .. tostring(fc.path or ""))
-		table.insert(lines, "  (" .. tostring(failed_count) .. "/" .. tostring(total_count) .. " hunks failed to apply)")
+		if failed_count == 0 and total_count == 0 and fc.error_msg and fc.error_msg ~= "" then
+			table.insert(lines, "  (apply failed, no failed hunk details reported)")
+		else
+			table.insert(lines, "  (" .. tostring(failed_count) .. "/" .. tostring(total_count) .. " hunks failed to apply)")
+		end
 		table.insert(lines, "")
 	end
 
@@ -201,7 +205,15 @@ function format_failed_changes_for_file_report(files_changes_failed)
 		local failed_count, total_count = failed_hunk_counts(fc)
 		table.insert(lines, "")
 		table.insert(lines, "## " .. tostring(fc.path or ""))
-		table.insert(lines, "(" .. tostring(failed_count) .. "/" .. tostring(total_count) .. " hunks failed to apply)")
+		if failed_count == 0 and total_count == 0 and fc.error_msg and fc.error_msg ~= "" then
+			table.insert(lines, "(apply failed, no failed hunk details reported)")
+		else
+			table.insert(lines, "(" .. tostring(failed_count) .. "/" .. tostring(total_count) .. " hunks failed to apply)")
+		end
+		if fc.error_msg and fc.error_msg ~= "" then
+			table.insert(lines, "")
+			table.insert(lines, fc.error_msg)
+		end
 
 		if type(fc.error_hunks) == "table" and #fc.error_hunks > 0 then
 			for idx, error_hunk in ipairs(fc.error_hunks) do
@@ -398,6 +410,7 @@ function apply_changes(ai_content, data)
 						error_msg = reason,
 						error_hunks = item.error_hunks,
 						total_count = failed_count,
+						kind = item.kind,
 						changes_info = {
 							failed_changes = { { reason = reason, search = "UDIFFX Block failed: " .. reason } }
 						}
