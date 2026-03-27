@@ -1,4 +1,13 @@
-## Rust10X test best practices and conventions
+# Rust10X test best practices and conventions
+
+
+## When To Use
+
+Use this file when writing or updating Rust test code. 
+
+
+## Unit Test
+
 
 For Rust unit tests, here is a good template to follow:
 
@@ -91,16 +100,34 @@ mod tests {
 - When you need to create temp data files, for each function, use paths like `tests-data/.tmp/test_function_name/`, where `test_function_name` is the full unit test function name. This way, all tests have their own directory.
 - IMPORTANT: For cleanup, comment out the `..remove..` code so the user has to enable it manually. This ensures we do not remove files automatically.
 
-### For integration tests
+
+### Split unit tests in its file
+
+When the unit tests in a source file become huge, we can split them into their own file by either adding a `_tests.rs` suffix, or putting them in `src/_tests/tests_module_flatten_to_leaf_file.rs`
+
+For example, on the former, if the `applier.rs` test become big, and if user ask for it, we can split it by adding this 
+
+```rs
+// region:    --- Tests
+
+#[cfg(test)]
+#[path = "applier_tests.rs"]
+mod tests;
+
+// endregion: --- Tests
+```
+
+
+## For integration tests
 
 - Follow the best practices above.
 - The file does not need to include the comment section `// region:    --- Tests`.
 - All tests will be in files like `tests/tests_.....rs`, using the same suffix pattern mentioned above.
 - Each integration test will still use `type Result<T> = core::result::Result<T, Box<dyn std::error::Error>>; // For tests.`
 
-### test_support
+## test_support
 
-Unit tests or integration tests can have test support functions.
+Unit tests and integration tests can have test support functions.
 
 - For unit tests, they will be under `src/_test_support/mod.rs` (exported as `test_support`).
 - For integration tests, they will be under `tests/test_support/mod.rs`.
@@ -131,6 +158,6 @@ type TestResult<T> = core::result::Result<T, Box<dyn std::error::Error>>; // For
 
 In `helpers.rs`, one good function to have is `let test_dir = test_support::new_out_dir_path(prefix)?`.
 
-This will create a path like `tests/.out/prefix_unixtime_ms`, which will be unique enough and allows the test to create files as needed.
+This will create a path like `tests/.out/prefix_unixtime_ms`, which will be unique enough and allow the test to create files as needed.
 
-Then you can have `test_support::delete_out_dir(test_dir)`, which will first verify that `test_dir` is below the current directory and contains `tests/.out` in the path, making it safer to remove.
+Then you can use `test_support::delete_out_dir(test_dir)`, which will first verify that `test_dir` is below the current directory and contains `tests/.out` in the path, making it safer to remove.
