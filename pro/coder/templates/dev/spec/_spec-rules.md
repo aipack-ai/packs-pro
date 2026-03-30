@@ -77,6 +77,7 @@ This section should explain the design choices, not restate the intent.
 
 - Favor concise prose and bullets.
 - Use `-` for bullet points.
+- Use the tripple backtics for the code block, and not the `~~~`
 - Leave exactly one empty line after headings.
 - Keep sections in a predictable order.
 - Use short content blocks and concrete wording.
