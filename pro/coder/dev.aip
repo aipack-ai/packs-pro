@@ -79,7 +79,7 @@ local function pin_dev_status(chat, plan, spec)
 		})
 	else
 		local spec_pin_lines = {}
-		table.insert(spec_pin_lines, "Spec Rules File: " .. spec.path)
+		table.insert(spec_pin_lines, "Spec Rules File: " .. spec.rules_path)
 		table.insert(spec_pin_lines, "(Added to knowledge_globs_post)")
 		local spec_context_path = spec.context_path or ((aip.path.parent(spec.path) or ".") .. "/spec.md")
 		table.insert(spec_pin_lines, "")
