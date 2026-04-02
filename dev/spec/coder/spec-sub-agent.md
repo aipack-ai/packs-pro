@@ -1,7 +1,7 @@
 
 # Spec: Sub-agent Support for pro@coder
 
-This document defines the specification for the `sub_agents` feature in `pro@coder`. This feature allows users to chain specialized agents to pre-process parameters, instructions, and task data at various stages of the agent execution.
+This document defines the specification for the `sub_agents` feature in `pro@coder`. This feature allows users to chain specialized agents to pre-process parameters, instructions, and task data at supported stages of the agent execution.
 
 ## Requirements
 
@@ -9,7 +9,7 @@ This document defines the specification for the `sub_agents` feature in `pro@cod
 
 ## Overview
 
-The `sub_agents` feature enables a pipeline where multiple agents can modify the state of the current request. This is particularly useful for context building, automated file selection, instruction refinement, or post-processing AI responses.
+The `sub_agents` feature enables a pipeline where multiple agents can modify or inspect the state of the current request. This is particularly useful for context building, automated file selection, instruction refinement, or post-processing AI responses.
 
 ### Execution Stages
 
@@ -27,14 +27,14 @@ Currently implemented:
 
 ## Configuration
 
-Sub-agents are defined in the TOML metadata block of the coder prompt file.
-They can be defined as a simple string (the agent name) or an object containing the name and additional properties.
+Sub-agents are defined in the metadata block of the coder prompt file.
+They can be defined as a simple string, or an object containing the name and additional properties.
 
-```toml
-sub_agents = [
-  "context-builder",
-  { name = "pro@coder/agent-selector", some_prop = "value" }
-]
+```yaml
+sub_agents:
+  - context-builder
+  - name: pro@coder/agent-selector
+    some_prop: value
 ```
 
 ## Data Structures
@@ -55,6 +55,10 @@ type SubAgentInput = {
   coder_prompt: string,
   // Normalized configuration for the current sub-agent
   agent_config: AgentConfig,
+
+  // Present for all supported stages
+  sub_agents_prev?: SubAgentHistoryItem[],
+  sub_agents_next?: AgentConfig[],
 }
 ```
 
@@ -70,6 +74,8 @@ type SubAgentPostInput = {
   coder_working_file_refs: table | nil,
   coder_prompt: string,
   agent_config: AgentConfig,
+  sub_agents_prev?: SubAgentHistoryItem[],
+  sub_agents_next?: AgentConfig[],
   coder_responses: CoderAgentResponse[],
 }
 
@@ -80,6 +86,34 @@ type CoderAgentResponse = {
 }
 ```
 
+Interpretation notes:
+
+- `coder_params` reflects the final effective coder params after `pre` stage processing.
+- `coder_prompt` reflects the final effective instruction after `pre` stage processing.
+- `coder_context_file_refs`, `coder_knowledge_file_refs`, and `coder_working_file_refs` are the resolved file refs actually used for the main run.
+- `coder_responses` contains one item per output task, in output order.
+- `coder_responses[*].content_extruded` is the AI response body with file change directives removed.
+- `coder_responses[*].file_changes_status` is the final file change apply result exposed by the output layer.
+- `coder_responses[*].content_raw_path` points to the saved raw AI response file for that task.
+
+### Sub-agent History Context
+
+Sub-agents can receive stage-local pipeline history and pending tail information.
+
+```ts
+type SubAgentHistoryItem = {
+  config: AgentConfig,
+  agent_result: any,
+  sub_agent_result: any,
+}
+```
+
+Behavior:
+
+- `sub_agents_prev` contains already executed sub-agents in the current stage run, in execution order.
+- `sub_agents_next` contains not-yet-executed normalized sub-agent configs in execution order.
+- During `post`, `sub_agents_prev` contains only earlier `post` executions from that same stage run, not prior `pre` history.
+
 ### AgentConfig
 
 A normalized version of the sub-agent definition.
@@ -87,23 +121,48 @@ A normalized version of the sub-agent definition.
 ```ts
 type AgentConfig = {
   name: string,
-  [key: string]: any // Any other properties provided in the object definition
+  enabled: boolean,
+  stage_pre: boolean,
+  stage_post: boolean,
+  options?: table,
+  [key: string]: any
 }
 ```
 
+Normalization defaults:
+
+- String form normalizes to:
+
+```ts
+"my-agent"
+// =>
+{ name: "my-agent", enabled: true, stage_pre: true, stage_post: false }
+```
+
+- Table form applies defaults when omitted:
+  - `enabled: true`
+  - `stage_pre: true`
+  - `stage_post: false`
+
 ### Sub-agent Output
 
-Sub-agents must return a table adhering to this format. If the return value is `nil`, it is interpreted as success with no modifications to the state. If `coder_params` or `coder_prompts` are omitted from the returned table, the previous state is preserved. If `success` is omitted, it defaults to `true`. If `error_msg` is present (even if `success` is not `false`), the execution is considered failed.
+Sub-agents must return a table adhering to this format. If the return value is `nil`, it is interpreted as success with no modifications to the state. If `coder_params` or `coder_prompt` are omitted from the returned table, the previous state is preserved. If `success` is omitted, it defaults to `true`. If `error_msg` is present, even if `success` is not explicitly `false`, the execution is considered failed.
 
-**Warning**: When providing `coder_params` or `coder_prompts`, the sub-agent should modify the existing ones. Any keys or segments removed from these structures will be lost for subsequent sub-agents and the parent `pro@coder` agent.
+For `pre`, returned `coder_params` are merged into the current parameters, after clearing top-level config concerns that must not propagate back from sub-agents. Returned `coder_prompt` replaces the current instruction.
+
+For `post`, returned `coder_params` and `coder_prompt` are ignored for now. `agent_result`, `sub_agents_next`, and failure fields still apply.
+
+If a sub-agent returns any non-`nil`, non-table value, the execution fails with a validation error.
 
 ```ts
 type SubAgentOutput = {
-  coder_params?: table,  // Optional: Replaces the current parameters if provided
-  coder_prompt?: string,    // Optional: Replaces the current prompt if provided
-  success?: boolean,     // Optional (defaults to true).
-  error_msg?: string,    // Optional. If present (or success is false), the run fails.
-  error_details?: string // Optional: More context for failure
+  coder_params?: table,      // Optional: Merged into the current parameters during pre
+  coder_prompt?: string,     // Optional: Replaces the current prompt during pre
+  agent_result?: any,        // Optional: Exposed to downstream sub-agents through sub_agents_prev
+  sub_agents_next?: table[], // Optional: Replaces the pending sub-agent tail
+  success?: boolean,         // Optional (defaults to true).
+  error_msg?: string,        // Optional. If present (or success is false), the run fails.
+  error_details?: string     // Optional: More context for failure
 }
 ```
 
@@ -111,61 +170,109 @@ type SubAgentOutput = {
 
 A sub-agent can return its response in two ways:
 
-- **Via `# Output`**: The return value of the `# Output` stage for the processed input.
-- **Via `# After All`**: The return value of the `# After All` stage (which becomes the `after_all` field in `RunAgentResponse`).
+- Via `# Output`, as the return value of the `# Output` stage for the processed input.
+- Via `# After All`, as the return value of the `# After All` stage, which becomes the `after_all` field in the run response.
+
+If both exist, `# After All` takes precedence.
 
 ## Execution Flow
 
-The execution occurs in the `# Before All` stage of `pro@coder/main.aip`.
+The execution occurs through the shared sub-agent runner, with `pre` invoked from the main setup path and `post` invoked once globally in `# After All`.
 
-1.  **Extraction**: The main agent extracts the `meta` and `inst` from the prompt file.
-2.  **Initialization**: 
-    - `raw_params` is set to the extracted metadata.
-    - `agent_configs` is created by normalizing `raw_params.sub_agents` into a list of `AgentConfig` objects using `extract_sub_agent_configs`.
-    - `current_params` is initialized with `raw_params`.
-    - `current_params.context_globs`, `current_params.structure_globs`, and `current_params.knowledge_globs` are initialized as empty tables `{}` if they are `nil`.
-    - `current_coder_prompt` is initialized as `inst`.
-3.  **Iteration**: For each `config` in `agent_configs`:
-    - Prepare `coder_params_for_sub` by deep cloning `current_params` and removing the `sub_agents` key (using `extract_coder_params`).
-    - Prepare sub-input with `agent_config = config`, `coder_params = coder_params_for_sub`, and other state fields.
-    - Invoke `local run_res = aip.agent.run(config.name, { input = sub_input, ... })`.
-    - Let `res = run_res.after_all` (fallback to `run_res.outputs[1]` if `after_all` is nil).
-    - If `res` is nil, continue to the next sub-agent (interpreted as success with no modifications).
-    - If `res.success == false` or `res.error_msg` is present, halt execution and report error (ignore `coder_params` and `coder_prompt`).
-    - If running `pre` and `res.coder_params` is present, `current_params = res.coder_params` (cleaned to ensure no recursive `sub_agents` insertion).
-    - If running `pre` and `res.coder_prompt` is present, `current_coder_prompt = res.coder_prompt`.
-    - If running `post`, returned `coder_params` and `coder_prompt` are ignored for now.
-4.  **Finalization**:
-    - The final parameters used by the main agent are `current_params`.
-    - The final instruction `inst` is `current_coder_prompt`.
+### Pre-stage flow
 
-For the `post` stage, execution occurs once globally in the `# After All` stage of `pro@coder/main.aip`, using the final effective `coder_params`, `coder_prompt`, resolved file refs, and collected `coder_responses`.
+The `pre` stage runs before the main coder task execution.
+
+1. Extract prompt metadata and instruction.
+2. Normalize `sub_agents` into shared `AgentConfig` objects.
+3. Initialize:
+   - `current_params` from prompt metadata
+   - `current_coder_prompt` from the instruction
+   - empty table defaults for:
+     - `context_globs`
+     - `structure_globs`
+     - `knowledge_globs`
+     - `context_globs_pinned`
+     - `knowledge_globs_pinned`
+4. Iterate the normalized sub-agent list.
+5. Skip configs that are disabled for the current stage:
+   - `enabled == false`
+   - `stage_pre == false` when running `pre`
+6. For each executed sub-agent:
+   - prepare `coder_params` without the top-level `sub_agents` key
+   - pass `sub_agents_prev` and `sub_agents_next`
+   - invoke the sub-agent
+   - accept `nil` as success with no modifications
+   - fail on invalid non-table responses
+   - fail when `success == false` or `error_msg` is present
+   - merge returned `coder_params` into current params after clearing config-level properties that must not propagate back
+   - replace `current_coder_prompt` when `coder_prompt` is returned
+   - preserve `agent_result` in execution history
+   - allow `sub_agents_next` to replace the pending pipeline tail
+7. Persist the normalized sub-agent list in final effective params for later `post` reuse.
+
+### Post-stage flow
+
+The `post` stage runs once globally after all task outputs complete.
+
+1. Collect the final effective:
+   - `coder_params`
+   - `coder_prompt`
+   - `coder_prompt_dir`
+2. Collect the resolved file refs used by the main run:
+   - `coder_context_file_refs`
+   - `coder_knowledge_file_refs`
+   - `coder_working_file_refs`
+3. Collect ordered `coder_responses` from task outputs.
+4. Run the shared sub-agent pipeline for stage `post`.
+5. Skip configs that are disabled for the current stage:
+   - `enabled == false`
+   - `stage_post ~= true` when running `post`
+6. Accept the same response validation and failure rules as `pre`.
+7. Ignore returned `coder_params` and `coder_prompt` for now.
 
 ## Module Responsibilities
 
 ### `utils_sub_agent.lua`
 
 This module encapsulates the logic for:
-- Iterating over the sub-agent list.
-- Handling the `aip.agent.run` calls.
-- Validating the return format.
-- Merging/Replacing state.
-- Filtering execution by stage (`pre` or `post`).
-- Passing stage-specific extra input payloads such as `coder_responses`.
+
+- Normalizing sub-agent config into shared `AgentConfig` objects
+- Iterating over the sub-agent list
+- Handling the `aip.agent.run` calls
+- Validating the return format
+- Filtering execution by stage (`pre` or `post`)
+- Merging `pre` stage state updates
+- Preserving `agent_result` in stage-local history
+- Supporting dynamic tail replacement through `sub_agents_next`
+- Passing stage-specific extra input payloads such as resolved file refs and `coder_responses`
 
 ### `utils_before_all.lua`
 
-This module will be updated to:
-- Detect the presence of `sub_agents` in the parameters.
-- Call the `utils_sub_agent` logic.
-- Use the resulting `coder_params` and `inst` for subsequent logic (file listing, mode detection).
-- Preserve the normalized sub-agent list in final effective params for reuse by `post`.
+This module is responsible for:
+
+- Detecting the presence of `sub_agents` in the parameters
+- Running the shared sub-agent logic for the `pre` stage
+- Using the resulting `coder_params` and `inst` for subsequent main-agent setup logic
+- Preserving the normalized sub-agent list in final effective params for reuse by `post`
+
+### `main.aip`
+
+The main agent is responsible for:
+
+- Persisting the final effective coder state and resolved file refs needed by `# After All`
+- Returning structured per-task artifacts from `# Output`, including:
+  - `content_extruded`
+  - `file_changes_status`
+  - `content_raw_path`
+- Running the shared sub-agent logic once globally for the `post` stage in `# After All`
+- Surfacing post-stage failures as fatal run results without implying rollback of already-applied file changes
 
 ## Error Handling
 
 - Sub-agent errors are considered fatal for the current run.
-- Validation errors (e.g., sub-agent not returning a table or missing `success` field) should be reported clearly to the user.
-- `post`-stage failures are fatal for the run result, but they do not imply rollback of already-applied file changes.
+- Validation errors, for example invalid non-table responses, should be reported clearly to the user.
+- `post` stage failures are fatal for the run result, but they do not imply rollback of already-applied file changes.
 
 ```lua
 -- Example Error Return in main agent flow
