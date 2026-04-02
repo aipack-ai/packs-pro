@@ -561,6 +561,44 @@ type CoderAgentResponse = {
 }
 ```
 
+Stage defaults and behavior:
+
+- `stage_pre` defaults to `true`
+- `stage_post` defaults to `false`
+- A sub-agent may therefore run:
+  - only on `pre`
+  - only on `post`
+  - on both `pre` and `post`
+
+Normalized config shape:
+
+```ts
+type AgentConfig = {
+  name: string,
+  enabled: boolean,
+  stage_pre: boolean,
+  stage_post: boolean,
+  options?: table,
+  [key: string]: any
+}
+```
+
+Normalization examples:
+
+```ts
+"my-agent"
+// =>
+{ name: "my-agent", enabled: true, stage_pre: true, stage_post: false }
+
+{ name: "x", stage_pre: false }
+// =>
+{ name: "x", enabled: true, stage_pre: false, stage_post: false }
+
+{ name: "x", stage_post: true }
+// =>
+{ name: "x", enabled: true, stage_pre: true, stage_post: true }
+```
+
 To modify the request state, the sub-agent should return a table. If the return value is `nil`, it is interpreted as success with no modifications.
 
 ```ts
@@ -611,6 +649,7 @@ type SubAgentHistoryItem = {
 
 - `sub_agents_prev` is an array of `SubAgentHistoryItem`.
 - `sub_agents_next` is an array of normalized sub-agent configs (same shape as `sub_agents` entries after normalization).
+- During `post`, `sub_agents_prev` contains only earlier `post` executions from that same stage run, not the prior `pre` history.
 
 Behavior:
 
@@ -847,6 +886,64 @@ This sub-agent will run once globally in `# After All` and receive:
   - `content_raw_path`
 
 If a `post` sub-agent fails, the run fails, but already-applied file changes are not rolled back.
+
+You can also configure a sub-agent to run on both stages:
+
+```yaml
+sub_agents:
+  - name: my-agent
+    stage_pre: true
+    stage_post: true
+```
+
+The `post` input shape is:
+
+```ts
+type SubAgentPostInput = {
+  coder_stage: "post",
+  coder_prompt_dir: string,
+  coder_params: table,
+  coder_context_file_refs: table | nil,
+  coder_knowledge_file_refs: table | nil,
+  coder_working_file_refs: table | nil,
+  coder_prompt: string,
+  agent_config: AgentConfig,
+  sub_agents_prev?: SubAgentHistoryItem[],
+  sub_agents_next?: AgentConfig[],
+  coder_responses: CoderAgentResponse[],
+}
+```
+
+Interpretation notes:
+
+- `coder_params` reflects the final effective coder params after `pre` stage processing.
+- `coder_prompt` reflects the final effective instruction after `pre` stage processing.
+- `coder_context_file_refs`, `coder_knowledge_file_refs`, and `coder_working_file_refs` are the resolved file refs actually used by the main run.
+- `coder_responses` contains one item per output task, in output order.
+- `coder_responses[*].content_extruded` is the AI response body with file change directives removed by the output layer.
+- `coder_responses[*].file_changes_status` is the final file change apply result exposed by the output layer.
+- `coder_responses[*].content_raw_path` points to the saved raw AI response file for that task.
+
+The `post` output contract still accepts the same fields as `pre`, but with restricted effect:
+
+```ts
+type SubAgentPostOutput = {
+  coder_params?: table,
+  coder_prompt?: string,
+  agent_result?: any,
+  sub_agents_next?: AgentConfig[],
+  success?: boolean,
+  error_msg?: string,
+  error_details?: string,
+}
+```
+
+Post-stage output behavior:
+
+- `success`, `error_msg`, and `error_details` are honored.
+- `agent_result` is preserved for downstream `post` pipeline context.
+- `sub_agents_next` may replace the remaining `post` pipeline tail.
+- `coder_params` and `coder_prompt` are currently ignored during `post`.
 
 ## Spec-Based Development
 
