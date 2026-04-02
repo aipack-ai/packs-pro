@@ -369,6 +369,7 @@ end
 
 local function build_non_udiffx_change_status(files_changed, files_changes_failed)
 	local items = {}
+	local fail_count = 0
 
 	if type(files_changed) == "table" then
 		for _, item in ipairs(files_changed) do
@@ -389,6 +390,7 @@ local function build_non_udiffx_change_status(files_changed, files_changes_faile
 			local file_path = type(item) == "table" and item.path or nil
 			local kind = type(item) == "table" and item.kind or "Patch"
 			local error_msg = type(item) == "table" and item.error_msg or nil
+			local error_hunks = type(item) == "table" and item.error_hunks or nil
 			if not error_msg and type(item) == "table" and type(item.changes_info) == "table"
 					and type(item.changes_info.failed_changes) == "table"
 					and #item.changes_info.failed_changes > 0 then
@@ -396,21 +398,23 @@ local function build_non_udiffx_change_status(files_changed, files_changes_faile
 			end
 
 			if file_path then
+				fail_count = fail_count + 1
 				table.insert(items, {
 					file_path = file_path,
 					kind = kind,
 					success = false,
-					error_msg = error_msg
+					error_msg = error_msg,
+					error_hunks = error_hunks
 				})
 			end
 		end
 	end
 
 	return {
-		success = #files_changes_failed == 0,
+		success = fail_count == 0,
 		total_count = #items,
-		success_count = #items - #files_changes_failed,
-		fail_count = #files_changes_failed,
+		success_count = #items - fail_count,
+		fail_count = fail_count,
 		items = items
 	}
 end
@@ -490,10 +494,18 @@ function apply_changes(ai_content, data)
 				if data.file_content_mode.search_replace_auto then
 					local _file_changed, changes_info = aip.file.save_changes(file_path, file_change_content)
 					if changes_info and changes_info.failed_changes then
+						local error_hunks = {}
+						for _, failed_change in ipairs(changes_info.failed_changes) do
+							table.insert(error_hunks, {
+								hunk_body = failed_change.search,
+								cause = failed_change.reason
+							})
+						end
 						table.insert(files_changes_failed, {
 							path = file_path,
 							kind = "Patch",
 							error_msg = "Failed to apply search/replace changes",
+							error_hunks = #error_hunks > 0 and error_hunks or nil,
 							changes_info = changes_info
 						})
 					else
@@ -507,8 +519,8 @@ function apply_changes(ai_content, data)
 					aip.file.save(file_path, file_change_content)
 					table.insert(files_changed, {
 						path = file_path,
-						status = "M",
-						kind = "Patch"
+						status = "A",
+						kind = "New"
 					})
 				end
 			else
