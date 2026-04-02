@@ -43,53 +43,83 @@ sub_agents:
 
 Each sub-agent receives a single `input` table (accessible via the `input` variable in `# Data` and `# Output` stages) containing the current state of the request, the execution stage, the parameters, and the prompt segments.
 
+The current implementation supports distinct `pre` and `post` input shapes.
+
 ```ts
-type SubAgentInput = {
-  // Current execution stage
-  coder_stage: "pre" | "pre_task" | "post_task" | "post",
-  // Absolute path to the directory containing the coder prompt file
+type SubAgentPreInput = {
+  // Current execution stage for the pre pipeline.
+  coder_stage: "pre",
+
+  // Absolute path to the directory containing the coder prompt file.
   coder_prompt_dir: string,
-  // Current parameters (TOML parsed, or modified by previous sub-agents)
+
+  // Current parameters after prompt metadata parsing and any earlier pre-stage sub-agent merges.
   coder_params: table,
-  // Current prompt segment (initially the instruction)
+
+  // Current prompt segment, initially the user instruction, then replaced if an earlier pre-stage sub-agent returned coder_prompt.
   coder_prompt: string,
-  // Normalized configuration for the current sub-agent
+
+  // Normalized configuration for the current sub-agent.
   agent_config: AgentConfig,
 
-  // Present for all supported stages
+  // Already executed pre-stage sub-agents in execution order.
   sub_agents_prev?: SubAgentHistoryItem[],
+
+  // Not-yet-executed normalized sub-agent configs in execution order.
   sub_agents_next?: AgentConfig[],
 }
-```
 
-For `post`, the sub-agent input also includes the resolved file refs used by the main run and the collected per-task coder responses.
-
-```ts
 type SubAgentPostInput = {
+  // Current execution stage for the global after-all pipeline.
   coder_stage: "post",
+
+  // Absolute path to the directory containing the coder prompt file.
   coder_prompt_dir: string,
+
+  // Final effective coder params after pre-stage processing, reused as read-only post context.
   coder_params: table,
+
+  // Resolved context file refs actually used by the main run.
   coder_context_file_refs: table | nil,
+
+  // Resolved knowledge file refs actually used by the main run.
   coder_knowledge_file_refs: table | nil,
+
+  // Aggregate resolved working file refs used across the run.
   coder_working_file_refs: table | nil,
+
+  // Final effective instruction after pre-stage processing, reused as read-only post context.
   coder_prompt: string,
+
+  // Normalized configuration for the current sub-agent.
   agent_config: AgentConfig,
+
+  // Already executed post-stage sub-agents in execution order for this same post run.
   sub_agents_prev?: SubAgentHistoryItem[],
+
+  // Not-yet-executed normalized sub-agent configs in execution order.
   sub_agents_next?: AgentConfig[],
+
+  // Collected main-agent task responses in output order.
   coder_responses: CoderAgentResponse[],
 }
 
 type CoderAgentResponse = {
+  // AI response body with FILE_CHANGES removed by the output layer.
   content_extruded: string,
+
+  // Final file change apply status exposed by the output layer.
   file_changes_status: FileChangesStatus,
+
+  // Saved raw AI response file path for this task output.
   content_raw_path: string,
 }
 ```
 
 Interpretation notes:
 
-- `coder_params` reflects the final effective coder params after `pre` stage processing.
-- `coder_prompt` reflects the final effective instruction after `pre` stage processing.
+- `coder_params` in `SubAgentPostInput` reflects the final effective coder params after `pre` stage processing.
+- `coder_prompt` in `SubAgentPostInput` reflects the final effective instruction after `pre` stage processing.
 - `coder_context_file_refs`, `coder_knowledge_file_refs`, and `coder_working_file_refs` are the resolved file refs actually used for the main run.
 - `coder_responses` contains one item per output task, in output order.
 - `coder_responses[*].content_extruded` is the AI response body with file change directives removed.
@@ -146,7 +176,7 @@ Normalization defaults:
 
 ### Sub-agent Output
 
-Sub-agents must return a table adhering to this format. If the return value is `nil`, it is interpreted as success with no modifications to the state. If `coder_params` or `coder_prompt` are omitted from the returned table, the previous state is preserved. If `success` is omitted, it defaults to `true`. If `error_msg` is present, even if `success` is not explicitly `false`, the execution is considered failed.
+Sub-agents must return a table adhering to one of the stage-specific output shapes below. If the return value is `nil`, it is interpreted as success with no modifications to the state. If `coder_params` or `coder_prompt` are omitted from the returned table, the previous state is preserved. If `success` is omitted, it defaults to `true`. If `error_msg` is present, even if `success` is not explicitly `false`, the execution is considered failed.
 
 For `pre`, returned `coder_params` are merged into the current parameters, after clearing top-level config concerns that must not propagate back from sub-agents. Returned `coder_prompt` replaces the current instruction.
 
@@ -155,14 +185,50 @@ For `post`, returned `coder_params` and `coder_prompt` are ignored for now. `age
 If a sub-agent returns any non-`nil`, non-table value, the execution fails with a validation error.
 
 ```ts
-type SubAgentOutput = {
-  coder_params?: table,      // Optional: Merged into the current parameters during pre
-  coder_prompt?: string,     // Optional: Replaces the current prompt during pre
-  agent_result?: any,        // Optional: Exposed to downstream sub-agents through sub_agents_prev
-  sub_agents_next?: table[], // Optional: Replaces the pending sub-agent tail
-  success?: boolean,         // Optional (defaults to true).
-  error_msg?: string,        // Optional. If present (or success is false), the run fails.
-  error_details?: string     // Optional: More context for failure
+type SubAgentPreOutput = {
+  // Optional params patch merged into the current coder params during pre.
+  coder_params?: table,
+
+  // Optional prompt replacement used for the remainder of the pre pipeline.
+  coder_prompt?: string,
+
+  // Optional payload exposed to downstream sub-agents through sub_agents_prev.
+  agent_result?: any,
+
+  // Optional replacement for the pending pre-stage sub-agent tail.
+  sub_agents_next?: AgentConfig[],
+
+  // Optional success flag, defaults to true when omitted.
+  success?: boolean,
+
+  // Optional error message, run fails when present.
+  error_msg?: string,
+
+  // Optional additional failure details.
+  error_details?: string,
+}
+
+type SubAgentPostOutput = {
+  // Optional params payload accepted by the response contract, but ignored during post for now.
+  coder_params?: table,
+
+  // Optional prompt payload accepted by the response contract, but ignored during post for now.
+  coder_prompt?: string,
+
+  // Optional payload exposed to downstream post-stage sub-agents through sub_agents_prev.
+  agent_result?: any,
+
+  // Optional replacement for the pending post-stage sub-agent tail.
+  sub_agents_next?: AgentConfig[],
+
+  // Optional success flag, defaults to true when omitted.
+  success?: boolean,
+
+  // Optional error message, run fails when present.
+  error_msg?: string,
+
+  // Optional additional failure details.
+  error_details?: string,
 }
 ```
 
