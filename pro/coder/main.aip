@@ -166,9 +166,39 @@ return aip.flow.data_response({
 # After All
 
 ```lua
+local u_sub_agent = require("utils_sub_agent")
+
 local output_base = outputs and outputs[1] and outputs[1].data or nil
 
 if output_base then
+	local post_err = nil
+	local post_has_failure = false
+	local post_error_msg = nil
+
+	if output_base.coder_params and output_base.coder_params.sub_agents and #output_base.coder_params.sub_agents > 0 then
+		local coder_responses = {}
+		for _, output in ipairs(outputs or {}) do
+			if type(output) == "table" and type(output.coder_response) == "table" then
+				table.insert(coder_responses, output.coder_response)
+			end
+		end
+
+		local _, _, err = u_sub_agent.run_sub_agents("post", output_base.coder_params, output_base.coder_prompt, {
+			extra_sub_input = {
+				coder_context_file_refs = output_base.coder_context_file_refs,
+				coder_knowledge_file_refs = output_base.coder_knowledge_file_refs,
+				coder_working_file_refs = output_base.coder_working_file_refs,
+				coder_responses = coder_responses,
+			}
+		}, output_base.coder_prompt_dir)
+
+		if err then
+			post_has_failure = true
+			post_error_msg = err
+			post_err = err
+		end
+	end
+
 	return {
 		coder_params              = output_base.coder_params,
 		coder_prompt              = output_base.coder_prompt,
@@ -176,6 +206,9 @@ if output_base then
 		coder_context_file_refs   = output_base.coder_context_file_refs,
 		coder_knowledge_file_refs = output_base.coder_knowledge_file_refs,
 		coder_working_file_refs   = output_base.coder_working_file_refs,
+		post_has_failure          = post_has_failure,
+		post_error_msg            = post_error_msg,
+		error                     = post_err,
 	}
 end
 
@@ -390,7 +423,8 @@ aip.file.append(data.ai_responses_for_raw_path, ai_content_for_raw)
 -- === Write to the src file
 local files_changed = {}
 local files_changes_failed = {}
-second_part, files_changed, files_changes_failed = u_output.apply_changes(ai_content, data)
+local file_changes_status = nil
+second_part, files_changed, files_changes_failed, file_changes_status = u_output.apply_changes(ai_content, data)
 
 -- === Process files_changes_failed
 u_output.handle_failed_changes(files_changes_failed, data)
@@ -450,5 +484,21 @@ else
   response = response .. "\n→ " .. data.prompt_file_rel_path
 end
 
-return response
+ return {
+	data = {
+		coder_params              = data.coder_params,
+		coder_prompt              = data.coder_prompt,
+		coder_prompt_dir          = data.coder_prompt_dir,
+		coder_context_file_refs   = data.coder_context_file_refs,
+		coder_knowledge_file_refs = data.coder_knowledge_file_refs,
+		coder_working_file_refs   = data.coder_working_file_refs,
+	},
+	coder_response = {
+		content_extruded   = second_part,
+		file_changes_status = file_changes_status,
+		content_raw_path   = data.ai_responses_for_raw_path,
+	},
+	response = response
+ }
 ```
+

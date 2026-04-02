@@ -367,6 +367,54 @@ function build_changed_files_report(files_changed)
 	}
 end
 
+local function build_non_udiffx_change_status(files_changed, files_changes_failed)
+	local items = {}
+
+	if type(files_changed) == "table" then
+		for _, item in ipairs(files_changed) do
+			local file_path = type(item) == "table" and item.path or item
+			local kind = type(item) == "table" and item.kind or "Patch"
+			if file_path then
+				table.insert(items, {
+					file_path = file_path,
+					kind = kind,
+					success = true
+				})
+			end
+		end
+	end
+
+	if type(files_changes_failed) == "table" then
+		for _, item in ipairs(files_changes_failed) do
+			local file_path = type(item) == "table" and item.path or nil
+			local kind = type(item) == "table" and item.kind or "Patch"
+			local error_msg = type(item) == "table" and item.error_msg or nil
+			if not error_msg and type(item) == "table" and type(item.changes_info) == "table"
+					and type(item.changes_info.failed_changes) == "table"
+					and #item.changes_info.failed_changes > 0 then
+				error_msg = item.changes_info.failed_changes[1].reason
+			end
+
+			if file_path then
+				table.insert(items, {
+					file_path = file_path,
+					kind = kind,
+					success = false,
+					error_msg = error_msg
+				})
+			end
+		end
+	end
+
+	return {
+		success = #files_changes_failed == 0,
+		total_count = #items,
+		success_count = #items - #files_changes_failed,
+		fail_count = #files_changes_failed,
+		items = items
+	}
+end
+
 -- ==== RETURN
 
 -- Applies file changes based on the mode defined in data (udiffx or AIP_FILE_CHANGE tags).
@@ -377,14 +425,24 @@ function apply_changes(ai_content, data)
 	local files_changed = {}
 	local files_changes_failed = {}
 	local second_part = ai_content
+	local file_changes_status = {
+		success = true,
+		total_count = 0,
+		success_count = 0,
+		fail_count = 0,
+		items = {}
+	}
 
 	if data.write_mode ~= true then
-		return second_part, files_changed, files_changes_failed
+		return second_part, files_changed, files_changes_failed, file_changes_status
 	end
 
 	if data.file_content_mode.udiffx then
 		local changes_status, other_content = aip.udiffx.apply_file_changes(ai_content, base_dir, { extrude = "content" })
 		second_part = other_content
+		if type(changes_status) == "table" then
+			file_changes_status = changes_status
+		end
 		if changes_status.items then
 			for _, item in ipairs(changes_status.items) do
 				local f_path = aip.path.join(base_dir, item.file_path)
@@ -432,22 +490,37 @@ function apply_changes(ai_content, data)
 				if data.file_content_mode.search_replace_auto then
 					local _file_changed, changes_info = aip.file.save_changes(file_path, file_change_content)
 					if changes_info and changes_info.failed_changes then
-						table.insert(files_changes_failed, { path = file_path, changes_info = changes_info })
+						table.insert(files_changes_failed, {
+							path = file_path,
+							kind = "Patch",
+							error_msg = "Failed to apply search/replace changes",
+							changes_info = changes_info
+						})
 					else
-						table.insert(files_changed, file_path)
+						table.insert(files_changed, {
+							path = file_path,
+							status = "M",
+							kind = "Patch"
+						})
 					end
 				else
 					aip.file.save(file_path, file_change_content)
-					table.insert(files_changed, file_path)
+					table.insert(files_changed, {
+						path = file_path,
+						status = "M",
+						kind = "Patch"
+					})
 				end
 			else
 				-- If no file path, we just append the content back to second_part
 				second_part = second_part .. "\n" .. elem.content
 			end
 		end
+
+		file_changes_status = build_non_udiffx_change_status(files_changed, files_changes_failed)
 	end
 
-	return second_part, files_changed, files_changes_failed
+	return second_part, files_changed, files_changes_failed, file_changes_status
 end
 
 -- Generates and saves a failure report and pins a warning task if any file changes failed.

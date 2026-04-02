@@ -119,8 +119,10 @@ function run_sub_agent(config, stage, current_params, current_coder_prompt, code
 	local opts = coder_options or {}
 	local sub_agents_prev = opts.sub_agents_prev
 	local sub_agents_next = opts.sub_agents_next
+	local extra_sub_input = opts.extra_sub_input
 	opts.sub_agents_prev = nil
 	opts.sub_agents_next = nil
+	opts.extra_sub_input = nil
 
 	if config.enabled == false then
 		return current_params, current_coder_prompt, nil
@@ -137,6 +139,9 @@ function run_sub_agent(config, stage, current_params, current_coder_prompt, code
 		sub_agents_prev  = sub_agents_prev,
 		sub_agents_next  = sub_agents_next,
 	}
+	if type(extra_sub_input) == "table" then
+		sub_input = aip.lua.merge(sub_input, extra_sub_input)
+	end
 
 	-- would be nil if no config.options, which is fine
 	local config_options = aip.agent.extract_options(config.options)
@@ -222,6 +227,7 @@ function run_sub_agents(stage, coder_meta, inst, coder_options, coder_prompt_dir
 	current_params.knowledge_globs_pinned = value_or(current_params.knowledge_globs_pinned, { pre = {}, post = {} })
 
 	local current_coder_prompt = inst
+	local extra_sub_input = coder_options and coder_options.extra_sub_input or nil
 
 	local executed = {}
 	local i = 1
@@ -254,7 +260,8 @@ function run_sub_agents(stage, coder_meta, inst, coder_options, coder_prompt_dir
 			current_coder_prompt,
 			aip.lua.merge_deep({}, coder_options, {
 				sub_agents_prev = sub_agents_prev,
-				sub_agents_next = sub_agents_next
+				sub_agents_next = sub_agents_next,
+				extra_sub_input = extra_sub_input
 			}),
 			coder_prompt_dir
 		)
