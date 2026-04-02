@@ -166,6 +166,7 @@ return aip.flow.data_response({
 # After All
 
 ```lua
+local CONST = require("consts")
 local u_sub_agent = require("utils_sub_agent")
 
 local output_base = outputs and outputs[1] and outputs[1].data or nil
@@ -196,6 +197,14 @@ if output_base then
 			post_has_failure = true
 			post_error_msg = err
 			post_err = err
+			aip.run.pin("completed", 0, {
+				label = CONST.LABEL_COMPLETED,
+				content = "⚠ Post-stage sub-agent failed.\n\n" .. err
+			})
+			aip.run.pin("post_stage_failed", 0, {
+				label = "WARNING",
+				content = "Post-stage sub-agent execution failed after main output processing.\n\n" .. err
+			})
 		end
 	end
 
@@ -208,6 +217,7 @@ if output_base then
 		coder_working_file_refs   = output_base.coder_working_file_refs,
 		post_has_failure          = post_has_failure,
 		post_error_msg            = post_error_msg,
+		response                  = post_error_msg,
 		error                     = post_err,
 	}
 end
