@@ -163,6 +163,25 @@ return aip.flow.data_response({
 })
 ```
 
+# After All
+
+```lua
+local output_base = outputs and outputs[1] and outputs[1].data or nil
+
+if output_base then
+	return {
+		coder_params              = output_base.coder_params,
+		coder_prompt              = output_base.coder_prompt,
+		coder_prompt_dir          = output_base.coder_prompt_dir,
+		coder_context_file_refs   = output_base.coder_context_file_refs,
+		coder_knowledge_file_refs = output_base.coder_knowledge_file_refs,
+		coder_working_file_refs   = output_base.coder_working_file_refs,
+	}
+end
+
+return nil
+```
+
 # System `cache = {{data.cache_pre_prompts}}`
 
 You are a senior developer expert who has deep expertise in many languages and creates production-grade quality code (simple and scalable).

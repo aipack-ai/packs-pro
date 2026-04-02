@@ -7,6 +7,41 @@ local u_dev = require("dev")
 
 -- === Support Functions
 
+local function clone_ref_list(refs)
+	if type(refs) ~= "table" then return nil end
+	local cloned = {}
+	for _, ref in ipairs(refs) do
+		table.insert(cloned, aip.lua.merge({}, ref))
+	end
+	return cloned
+end
+
+local function collect_working_refs(working_refs_list)
+	if type(working_refs_list) ~= "table" or #working_refs_list == 0 then
+		return nil
+	end
+
+	local merged = {}
+	local seen = {}
+	for _, working_refs in ipairs(working_refs_list) do
+		if type(working_refs) == "table" then
+			for _, ref in ipairs(working_refs) do
+				local ref_path = ref and ref.path
+				if ref_path and not seen[ref_path] then
+					seen[ref_path] = true
+					table.insert(merged, aip.lua.merge({}, ref))
+				end
+			end
+		end
+	end
+
+	if #merged == 0 then
+		return nil
+	end
+
+	return merged
+end
+
 -- Checks if the current AIPack version meets the minimum required version for this agent.
 -- Returns true if OK, or false and an error message if an update is needed.
 local function check_version()
@@ -254,6 +289,12 @@ local function build_input_base(params)
 		context_refs                       = params.context_refs,
 		context_refs_pre                   = params.context_refs_pre,
 		context_refs_post                  = params.context_refs_post,
+		coder_params                       = params.coder_params,
+		coder_prompt                       = params.coder_prompt,
+		coder_prompt_dir                   = params.coder_prompt_dir,
+		coder_context_file_refs            = params.coder_context_file_refs,
+		coder_knowledge_file_refs          = params.coder_knowledge_file_refs,
+		coder_working_file_refs            = params.coder_working_file_refs,
 		prompt_file_paths                  = params.prompt_file_paths,
 		-- prompt explicit caching
 		cache_pre_prompts                  = params.cache_pre_prompts,
@@ -496,6 +537,10 @@ function run_before_all(inputs)
 
 	local udiffx_inst_debug = meta.udiffx_inst_debug
 	local instructions = prepare_instructions(file_content_mode, suggest_git_commit, udiffx_inst_debug)
+	local coder_params = aip.lua.merge_deep({}, meta)
+	local coder_context_file_refs = clone_ref_list(context_refs)
+	local coder_knowledge_file_refs = clone_ref_list(knowledge_refs)
+	local coder_working_file_refs = collect_working_refs(working_refs_list)
 
 	-- === Build the input base
 	local input_base = build_input_base({
@@ -518,6 +563,12 @@ function run_before_all(inputs)
 		context_refs                       = context_refs,
 		context_refs_pre                   = context_refs_pre,
 		context_refs_post                  = context_refs_post,
+		coder_params                       = coder_params,
+		coder_prompt                       = inst,
+		coder_prompt_dir                   = coder_prompt_dir,
+		coder_context_file_refs            = coder_context_file_refs,
+		coder_knowledge_file_refs          = coder_knowledge_file_refs,
+		coder_working_file_refs            = coder_working_file_refs,
 		prompt_file_paths                  = paths.prompt_file_paths,
 		cache_pre_prompts                  = cache_pre_prompts,
 		cache_knowledge_files              = cache_knowledge_files,
