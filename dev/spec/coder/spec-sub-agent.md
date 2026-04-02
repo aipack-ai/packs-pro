@@ -20,7 +20,10 @@ Sub-agents can be triggered at different points in the `pro@coder` lifecycle, id
 - `post_task`: Runs during `# Output` (after each AI response).
 - `post`: Runs during `# After All` (final cleanup/aggregation).
 
-**Note**: The first iteration focuses on the `pre` stage.
+Currently implemented:
+
+- `pre`
+- `post`
 
 ## Configuration
 
@@ -55,7 +58,27 @@ type SubAgentInput = {
 }
 ```
 
-> NOTE: For now, only coder_stage `pre` is supported
+For `post`, the sub-agent input also includes the resolved file refs used by the main run and the collected per-task coder responses.
+
+```ts
+type SubAgentPostInput = {
+  coder_stage: "post",
+  coder_prompt_dir: string,
+  coder_params: table,
+  coder_context_file_refs: table | nil,
+  coder_knowledge_file_refs: table | nil,
+  coder_working_file_refs: table | nil,
+  coder_prompt: string,
+  agent_config: AgentConfig,
+  coder_responses: CoderAgentResponse[],
+}
+
+type CoderAgentResponse = {
+  content_extruded: string,
+  file_changes_status: FileChangesStatus,
+  content_raw_path: string,
+}
+```
 
 ### AgentConfig
 
@@ -109,21 +132,26 @@ The execution occurs in the `# Before All` stage of `pro@coder/main.aip`.
     - Let `res = run_res.after_all` (fallback to `run_res.outputs[1]` if `after_all` is nil).
     - If `res` is nil, continue to the next sub-agent (interpreted as success with no modifications).
     - If `res.success == false` or `res.error_msg` is present, halt execution and report error (ignore `coder_params` and `coder_prompt`).
-    - If `res.coder_params` is present, `current_params = res.coder_params` (cleaned to ensure no recursive `sub_agents` insertion).
-    - If `res.coder_prompt` is present, `current_coder_prompt = res.coder_prompt`.
+    - If running `pre` and `res.coder_params` is present, `current_params = res.coder_params` (cleaned to ensure no recursive `sub_agents` insertion).
+    - If running `pre` and `res.coder_prompt` is present, `current_coder_prompt = res.coder_prompt`.
+    - If running `post`, returned `coder_params` and `coder_prompt` are ignored for now.
 4.  **Finalization**:
     - The final parameters used by the main agent are `current_params`.
     - The final instruction `inst` is `current_coder_prompt`.
+
+For the `post` stage, execution occurs once globally in the `# After All` stage of `pro@coder/main.aip`, using the final effective `coder_params`, `coder_prompt`, resolved file refs, and collected `coder_responses`.
 
 ## Module Responsibilities
 
 ### `utils_sub_agent.lua`
 
-This new module will encapsulate the logic for:
+This module encapsulates the logic for:
 - Iterating over the sub-agent list.
 - Handling the `aip.agent.run` calls.
 - Validating the return format.
 - Merging/Replacing state.
+- Filtering execution by stage (`pre` or `post`).
+- Passing stage-specific extra input payloads such as `coder_responses`.
 
 ### `utils_before_all.lua`
 
@@ -131,11 +159,13 @@ This module will be updated to:
 - Detect the presence of `sub_agents` in the parameters.
 - Call the `utils_sub_agent` logic.
 - Use the resulting `coder_params` and `inst` for subsequent logic (file listing, mode detection).
+- Preserve the normalized sub-agent list in final effective params for reuse by `post`.
 
 ## Error Handling
 
 - Sub-agent errors are considered fatal for the current run.
 - Validation errors (e.g., sub-agent not returning a table or missing `success` field) should be reported clearly to the user.
+- `post`-stage failures are fatal for the run result, but they do not imply rollback of already-applied file changes.
 
 ```lua
 -- Example Error Return in main agent flow

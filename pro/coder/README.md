@@ -2,7 +2,7 @@
 
 This is the documentation and usage guide for the `pro@coder` AI Pack.
 
-The `pro@coder` pack provides AI-powered coding assistance through parametric prompts that allow you to configure context, working files, and AI model settings for your coding tasks.
+The `pro@coder` pack provides AI-powered coding assistance through parametric prompts that allow you to configure context, working files, sub-agent pipelines, and AI model settings for your coding tasks.
 
 The key concept of `pro@coder` is to give you full control over the AI context, enabling you to guide the AI to code the way you want, rather than adapting to the AI's default approach. This is done in part by splitting files into `knowledge`, `context`, and `working` (for concurrency) categories.
 
@@ -29,7 +29,7 @@ aip run pro@coder
 5. Review generated code below the `====` separator
 6. Set `write_mode: true` when ready to write files to disk
 
-More: 
+More:
 
 - See [Plan-Based Development](#plan-based-development)
 
@@ -86,12 +86,12 @@ context_globs:
 # - package.json    # e.g., for Node.js
 # - Cargo.toml      # e.g., for Rust
   - src/**/*.*      # Narrow glob when more than 10 files
-  
+
 ## Pinned context globs (always included, not removed by auto_context)
-context_globs_pre:         # Prepended before auto-context selection
+context_globs_pre:         # Prepended after auto-context selection
   - package.json
 context_globs_post:        # Appended after auto-context selection
-  - .aipack/.prompt/pro@coder/dev/plan/*.md  
+  - .aipack/.prompt/pro@coder/dev/plan/*.md
 
 ## Relative to base_dir. Only include paths (not content) in the prompt.
 ## (A good way to give the AI a cheap overview of the overall structure of the project)
@@ -166,12 +166,14 @@ dev:
   #   enabled: true
   #   path: .aipack/.prompt/pro@coder/dev/spec/_spec-rules.md
 
-## Specialized agents to pre-process parameters and instructions (Stage: "pre")
-## Since v0.3.0
+## Specialized agents to pre-process parameters and instructions, or to run once after all task outputs
+## Since v0.3.0 for pre, post-stage support implemented later
 sub_agents:
   - my-agents/prompt-cleaner.aip # simple .aip file (see sub_agent section for input / output)
   - name: pro@coder/code-map     # code-map sub agent is also used in auto-context (but here is a custom example) (since v0.4.0)
     enabled: true # default run
+    stage_pre: true
+    stage_post: false
     named_maps: 
       - name: external-lib-docs  # will create .aipack/.prompt/pro@coder/.cache/code-map/external-lib-docs-code-map.json
         globs: 
@@ -185,7 +187,6 @@ sub_agents:
 
 Base directory for resolving `context_globs`, `working_globs`, and `structure_globs`. Leave empty for workspace root. When not set or empty, the glob parameters won't be evaluated.
 
-
 #### knowledge_globs
 
 Array of glob patterns for knowledge files that will be included as knowledge to the AI. These can be:
@@ -195,7 +196,7 @@ Array of glob patterns for knowledge files that will be included as knowledge to
 - Home directory paths (`~/`)
 - Pack references (`some@pack/path/**/*.md`)
 
-This is a great place to put some relatively fix content, like coding best practices, documentation of some libraries, some relatively fix rules on how to create/maintain plan, spec, requirement type of content. 
+This is a great place to put some relatively fix content, like coding best practices, documentation of some libraries, some relatively fix rules on how to create/maintain plan, spec, requirement type of content.
 
 Example:
 
@@ -207,7 +208,7 @@ knowledge_globs:
   - pro@rust10x/guide/base/**/*.md      # aip install pro@rust10x, and then this will be available
 ```
 
-For advanced users, here we can also put the "rules" of the plan or spec base folder like 
+For advanced users, here we can also put the "rules" of the plan or spec base folder like
 
 ```yaml
 knowledge_globs:
@@ -240,7 +241,8 @@ Final knowledge globs order: `knowledge_globs_pre + auto_context_selected + know
 
 Array of glob patterns (relative to `base_dir`) for files to include as context. These files will be described to the AI as "User's context files". Keep these as narrow as possible for large codebases.
 
-This is a great place to put the code we want to send to the AI for a particular task. 
+This is a great place to put the code we want to send to the AI for a particular task.
+
 For small codebases, we can have relatively wide globs like `src/**/*.ts`, but as the codebase becomes larger (>5k LOC), using narrower globs can be very effective at improving cost, accuracy, and speed, while minimizing costs.
 
 Example:
@@ -254,7 +256,7 @@ context_globs:
 
 #### context_globs_pre & context_globs_post
 
-`context_globs_pre` are prepended (and influence auto-context selection) and `context_globs_post` are appended to the context files selection. They are never removed by auto-context.
+`context_globs_pre` are prepended and influence auto-context selection; `context_globs_post` are appended after auto-context selection. They are never removed by auto-context.
 
 Example:
 
@@ -302,6 +304,7 @@ input_concurrency: 6   # Will override the default input_concurrency
 ```
 
 This will create the following tasks/working groups:
+
 - One workgroup/task for each matched `.js` file
 - One workgroup/task for all `css/*.css` files
 
@@ -311,7 +314,7 @@ Number of concurrent tasks to run when processing `working_globs`. Defaults to t
 
 #### max_files_size_kb
 
-Maximum total size in KB of all included files (safeguard). Default is 1000 (1MB). If over the limit, the data will NOT be sent, and a message will appear in the terminal. 
+Maximum total size in KB of all included files (safeguard). Default is 1000 (1MB). If over the limit, the data will NOT be sent, and a message will appear in the terminal.
 
 #### model_aliases
 
@@ -326,6 +329,7 @@ model_aliases:
   gpro: gemini-pro-latest
   flash: gemini-flash-latest
 ```
+
 _Note: These aliases are already present in the `~/.aipack-base/config-default.toml` (and with the latest models)._
 
 #### file_content_mode
@@ -347,12 +351,11 @@ Boolean flag controlling file writing behavior:
 
 - When `write_mode: false`, the content below the `====` that doesn't start with `>` will be sent back as context to the AI. This allows for controlled conversations.
 - When `write_mode: true`, the content below the `====` is **NOT** sent to the LLM; only the content specified in the parametric prompt is sent. This allows for clean prompts without confusion from previous answers.
-    - To keep historical context, you can use the plan-based prompting technique and put those files in the `context_globs` parameter.
-
+  - To keep historical context, you can use the plan-based prompting technique and put those files in the `context_globs` parameter.
 
 #### model
 
-Specifies which AI model to use for this prompt. 
+Specifies which AI model to use for this prompt.
 
 Can be:
 
@@ -367,8 +370,10 @@ Example:
 ```yaml
 model: gpt-5-mini  # or "gpt-5" for normal coding
 ```
+
 f
 #### auto_context
+
 _since v0.4.0_
 
 Shortcut to configure and run the `pro@coder/auto-context` sub-agent. This agent automatically identifies relevant context and knowledge files for your prompt by analyzing file summaries (via `code-map`). It is a concise alternative to defining it in the `sub_agents` list and supports the same properties.
@@ -417,14 +422,14 @@ Supported `dev.chat` values:
 
 Supported `dev.plan` values:
 - **A boolean**:
-  - `true`: Enable with default directory.
+  - `true`: Enable with the default directory.
   - `false`: Disable plan.
 - **A string**: Path to the plan directory, or a `.md` file path whose parent directory will be used as the plan directory.
 - **A table**: `enabled`, `dir`, and future-safe extra keys.
 
 Supported `dev.spec` values:
 - **A boolean**:
-  - `true`: Enable with default path.
+  - `true`: Enable with the default path.
   - `false`: Disable spec.
 - **A string**: Path to the spec directory, or to the spec file.
 - **A table**: `enabled`, `path`, and future-safe extra keys.
@@ -498,11 +503,15 @@ dev:
 ```
 
 #### sub_agents
+
 _since v0.3.0_
 
-Array of specialized agents to run at different stages of the `pro@coder` execution. Sub-agents allow for a pipeline where multiple agents can modify the state of the current request, which is useful for automated context building, instruction refinement, or project-specific initialization.
+Array of specialized agents to run at different stages of the `pro@coder` execution. Sub-agents allow for a pipeline where multiple agents can modify the state of the current request, which is useful for automated context building, instruction refinement, project-specific initialization, or after-all processing.
 
-Currently, sub-agents run at the `pre` stage, which occurs during initialization (Before All).
+Currently, sub-agents support:
+
+- `pre`, during initialization (`# Before All`)
+- `post`, once globally after all task outputs complete (`# After All`)
 
 Sub-agents can be defined as:
 
@@ -513,6 +522,8 @@ Available properties for the table definition:
 
 - `name` (string): The name or path of the agent.
 - `enabled` (boolean, optional, default `true`): Whether to run this sub-agent.
+- `stage_pre` (boolean, optional, default `true`): Whether to run this sub-agent during the `pre` stage.
+- `stage_post` (boolean, optional, default `false`): Whether to run this sub-agent during the `post` stage.
 - `options` (table): Agent options (like `model`,`input_concurrency`) specifically for this sub-agent run.
 - **Additional properties**: Any other keys provided in the table will be passed to the sub-agent via the `agent_config` field in its input.
 
@@ -522,11 +533,31 @@ Sub-agents are standard `.aip` files. They receive the following structure as th
 
 ```ts
 type SubAgentInput = {
-  coder_stage: "pre",      // Current execution stage
+  coder_stage: "pre" | "post", // Current execution stage
   coder_prompt_dir: string,// Absolute path to the prompt file directory
   coder_params: table,     // Current parameters (from YAML block or previous sub-agents)
   coder_prompt: string,    // Current instruction text
   agent_config: table,     // The configuration object defined in the sub_agents list
+
+  // Present for all stages
+  sub_agents_prev?: SubAgentHistoryItem[],
+  sub_agents_next?: table[],
+
+  // Present for post stage
+  coder_context_file_refs?: table | nil,
+  coder_knowledge_file_refs?: table | nil,
+  coder_working_file_refs?: table | nil,
+  coder_responses?: CoderAgentResponse[],
+}
+```
+
+For `post`, the additional response payload has this shape:
+
+```ts
+type CoderAgentResponse = {
+  content_extruded: string,
+  file_changes_status: FileChangesStatus,
+  content_raw_path: string,
 }
 ```
 
@@ -548,8 +579,8 @@ type SubAgentOutput = {
 
 **Important notes on return values**:
 
-- `coder_params`: If provided, this table is shallow-merged into the current parameters. This means you only need to return the keys you wish to add or change.
-- `coder_prompt`: If provided, this string replaces the current instruction for the remainder of the pipeline.
+- `coder_params`: If provided during `pre`, this table is shallow-merged into the current parameters. This means you only need to return the keys you wish to add or change. During `post`, it is currently ignored.
+- `coder_prompt`: If provided during `pre`, this string replaces the current instruction for the remainder of the pipeline. During `post`, it is currently ignored.
 - `agent_result`: If provided, this payload is exposed to downstream sub-agents through `sub_agents_prev[*].agent_result` (and `sub_agent_result` for compatibility).
 - `sub_agents_next`: If provided, it replaces the pending tail of the pipeline.
 - Errors: If `success` is `false` or `error_msg` is present, the entire `pro@coder` run will halt with the provided error.
@@ -563,9 +594,9 @@ Sub-agents require AIPack 0.8.15 or above.
 
 #### Advanced pipeline context: `sub_agents_prev` and `sub_agents_next`
 
-When a sub-agent runs in the `pre` stage, `pro@coder` also provides pipeline context in the sub-agent input:
+When a sub-agent runs in the `pre` or `post` stage, `pro@coder` also provides pipeline context in the sub-agent input:
 
-- `sub_agents_prev`: already executed sub-agents, in execution order.
+- `sub_agents_prev`: already executed sub-agents in the current stage run, in execution order.
 - `sub_agents_next`: not-yet-executed sub-agents, in execution order.
 
 Shape:
@@ -583,13 +614,15 @@ type SubAgentHistoryItem = {
 
 Behavior:
 
-- A running sub-agent can return `sub_agents_next` to replace the pending tail of the pipeline.
+- A running sub-agent can return `sub_agents_next` to replace the pending tail of the current stage pipeline.
 - This allows dynamically adding, removing, reordering, or re-introducing agents.
 - Duplicates are allowed, no deduplication is applied.
 - Already executed agents are not modified in-place.
 - Safety cap: the dynamic pipeline is limited to 100 total steps to prevent accidental loops.
 
 This is an advanced feature intended for orchestrating multi-agent flows and should generally be used only when standard `sub_agents` chaining is not sufficient.
+
+For `post`, `sub_agents_prev` contains only earlier `post` executions from that same stage run, not the prior `pre` history.
 
 ## Builtin Sub Agents
 
@@ -624,7 +657,7 @@ sub_agents:
 - Appends the spec rules path to `knowledge_globs_post` when missing (deduped).
 - Appends the resolved spec file path to `context_globs_post` when missing (deduped).
 - Returns `agent_result.dev_content_globs` for downstream helper-context consumption, including the spec file path when enabled.
-- If both capabilities are disabled, the agent is effectively disabled and does not modify params.
+- If all capabilities are disabled, the agent is effectively disabled and does not modify params.
 
 The same behavior can be configured with the `dev` shortcut in the root config:
 
@@ -660,6 +693,7 @@ dev:
 - For table mode, `dev.plan.dir` is strict and must be a directory path.
 
 ### Sub Agent - pro@coder/auto-context
+
 _since v0.4.0_
 
 The auto-context agent can be configured via the `sub_agents` list or more concisely using the `auto_context` parameter at the root of the configuration block.
@@ -693,7 +727,7 @@ sub_agents:
 - `enabled`: Toggles the sub-agent execution.
 - `model`: The model used to analyze your instruction and the code map summaries to perform the file selection.
 - `knowledge`: (Optional, default `true`) If `true`, the agent will also analyze and select relevant files from `knowledge_globs`.
-- `mode`: (Optional, default `"reduce"`) 
+- `mode`: (Optional, default `"reduce"`)
   - `"reduce"`: Replaces `context_globs` with the AI selection.
   - `"expand"`: Adds the AI selection to existing `context_globs`.
   - *Note: `knowledge_globs` are always reduced (replaced).*
@@ -702,6 +736,7 @@ sub_agents:
 - `helper_globs`: (Optional) Pattern for files (like development plans or chat logs) that provide additional guidance to help the sub-agent select the correct context files.
 
 ### Sub Agent - pro@coder/code-map
+
 _since v0.4.0_
 
 The code-map agent generates and maintains a JSON file containing summaries, public types, and functions for a set of files. This map is used by the `auto-context` agent to identify relevant files for your prompt, but it can also be used independently to create maps for external libraries or documentation.
@@ -726,7 +761,7 @@ sub_agents:
 - `globs`: Array of glob patterns (relative to the workspace) for files to be summarized in the default `code-map.json`.
 - `named_maps`: Array of named map definitions (`name` and `globs`). Each named map will generate its own `[name]-code-map.json`.
 - `model`: (Optional) The AI model used to generate the summaries and metadata for each file.
-- `input_concurrency`: (Optional) The number of concurrent tasks used when generating or updating file summaries.
+- `input_concurrency`: (Optional) The number of concurrent tasks used to generate or update file summaries.
 
 ## AI Response Utility Tags
 
@@ -766,30 +801,52 @@ aip.task.pin(label, priority, {
 
 ## AIPack config override
 
-As mentioned above, the `pro@coder` parametric prompt `coder-prompt.md` allows you to override the AI Pack workspace and base configurations. 
+As mentioned above, the `pro@coder` parametric prompt `coder-prompt.md` allows you to override the AI Pack workspace and base configurations.
 
-The properties `aliases`, `model`, `input_concurrency`, and `temperature` will be merged, overriding parameters from the following configuration files, in order of precedence: 
-    - the `model_aliases` defined in the prompt
-    - `.aipack/config.toml` (workspace file)
-    - `~/.aipack-base/config-user.toml` (edit to customize global settings)
-    - `~/.aipack-base/config-default.toml` (do not edit)
+The properties `aliases`, `model`, `input_concurrency`, and `temperature` will be merged, overriding parameters from the following configuration files, in order of precedence:
+- the `model_aliases` defined in the prompt
+- `.aipack/config.toml` (workspace file)
+- `~/.aipack-base/config-user.toml` (edit to customize global settings)
+- `~/.aipack-base/config-default.toml` (do not edit)
 
-Note that only these four are AI Pack config properties and can be set in the config TOML files. Other `pro@coder`-only properties, such as `knowledge_globs` and `write_mode`, are not AI Pack properties and therefore should not be set in the AI Pack config TOML files.     
-
+Note that only these four are AI Pack config properties and can be set in the config TOML files. Other `pro@coder`-only properties, such as `knowledge_globs` and `write_mode`, are not AI Pack properties and therefore should not be set in the AI Pack config TOML files.
 
 ## Plan-Based Development
 
 `pro@coder` facilitates **Plan-Based Development** by initializing relevant plan files within the prompt's dedicated folder.
 
-- The foundational rules are in `_plan-rules.md`, located in the prompt's `dev/plan/` subfolder (e.g., `.aipack/.prompt/pro@coder/dev/plan/_plan-rules.md`). The plan flow uses `plan-1-todo-steps.md`, `plan-2-current-step.md`, and `plan-3-done-steps.md` in the same directory.
+- The foundational rules are in `_plan-rules.md`, located in the prompt's `dev/plan/` subfolder (e.g., `.aipack/.prompt/pro@coder/dev/plan/_plan-rules.md`). The plan flow uses `plan-1-todo-steps.md`, `plan-2-active-step.md`, and `plan-3-done-steps.md` in the same directory.
 - To enable plan-based interactions, add these files to your `context_globs` parameter, for example:
-    - `  - .aipack/.prompt/pro@coder/dev/plan/*.md`
+  - `  - .aipack/.prompt/pro@coder/dev/plan/*.md`
 - When instructing the agent, refer to the plan rules. For example:
-    - `Following the plan rules, create a plan to do the following: ....`
-    - Or, to execute a step:
-        - `Following the plan rules, execute the next step in the plan and update the appropriate files.`
+  - `Following the plan rules, create a plan to do the following: ....`
+  - Or, to execute a step:
+    - `Following the plan rules, execute the next step in the plan and update the appropriate files.`
 
 To disable Plan-Based Development, remove the `...plan/*.md` glob pattern from your `context_globs`.
+
+## Post-stage sub-agent example
+
+You can configure a sub-agent to run after the main coder execution by enabling `stage_post`.
+
+```yaml
+sub_agents:
+  - name: my-post-agent
+    stage_pre: false
+    stage_post: true
+```
+
+This sub-agent will run once globally in `# After All` and receive:
+
+- the final effective `coder_params`
+- the final effective `coder_prompt`
+- the resolved request file refs
+- ordered `coder_responses` with:
+  - `content_extruded`
+  - `file_changes_status`
+  - `content_raw_path`
+
+If a `post` sub-agent fails, the run fails, but already-applied file changes are not rolled back.
 
 ## Spec-Based Development
 
