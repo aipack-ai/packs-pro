@@ -18,14 +18,29 @@ local CLEAR_CODER_PARAMS_RESPONSE_PROPERTIES = {
 local function new_sub_agent_config(sub_agent_item, options)
 	local item = sub_agent_item
 	if type(item) == "string" then
-		return { name = item, enabled = true }
+		return { name = item, enabled = true, stage_pre = true, stage_post = false }
 	elseif type(item) == "table" and item.name then
 		if item.enabled == nil then
 			item.enabled = true -- default true
 		end
+		if item.stage_pre == nil then
+			item.stage_pre = true
+		end
+		if item.stage_post == nil then
+			item.stage_post = false
+		end
 		if item.name == "pro@coder/dev" then
 			local dev_config = u_dev.new_dev_sub_agent_config(item, options)
 			if dev_config then
+				if dev_config.enabled == nil then
+					dev_config.enabled = true
+				end
+				if dev_config.stage_pre == nil then
+					dev_config.stage_pre = true
+				end
+				if dev_config.stage_post == nil then
+					dev_config.stage_post = false
+				end
 				return dev_config
 			end
 		end
@@ -78,6 +93,22 @@ local function extract_sub_agent_response(run_res)
 	return nil
 end
 
+local function should_run_stage(config, stage)
+	if config.enabled == false then
+		return false
+	end
+
+	if stage == "pre" then
+		return config.stage_pre ~= false
+	end
+
+	if stage == "post" then
+		return config.stage_post == true
+	end
+
+	return true
+end
+
 -- === /Support Functions
 
 -- === Public Interfaces
@@ -128,34 +159,36 @@ function run_sub_agent(config, stage, current_params, current_coder_prompt, code
 	-- If res is nil, it is considered success with no modifications to the state.
 	if res == nil then return current_params, current_coder_prompt, next_configs end
 
+	if type(res) ~= "table" then
+		return nil, nil, nil, "Sub-agent [" .. config.name .. "] failed: invalid response type, expected table or nil"
+	end
+
 	-- Validate the response structure
-	if type(res) == "table" then
-		-- If success is false or error_msg is present, we stop execution
-		if res.success == false or res.error_msg ~= nil then
-			local err_msg = value_or(res.error_msg, "Unknown error")
-			local full_err = "Sub-agent [" .. config.name .. "] failed: " .. err_msg
-			if res.error_details then
-				full_err = full_err .. "\nDetails: " .. res.error_details
-			end
-			return nil, nil, nil, full_err
+	-- If success is false or error_msg is present, we stop execution
+	if res.success == false or res.error_msg ~= nil then
+		local err_msg = value_or(res.error_msg, "Unknown error")
+		local full_err = "Sub-agent [" .. config.name .. "] failed: " .. err_msg
+		if res.error_details then
+			full_err = full_err .. "\nDetails: " .. res.error_details
 		end
+		return nil, nil, nil, full_err
+	end
 
-		-- Merge or replace state
-		if res.coder_params then
-			-- Clear config-level properties that sub-agents should not propagate
-			for _, key in ipairs(CLEAR_CODER_PARAMS_RESPONSE_PROPERTIES) do
-				res.coder_params[key] = nil
-			end
-			-- we merge here so, that the return value does not have to return unchanged things
-			current_params = aip.lua.merge(current_params, res.coder_params)
+	-- Merge or replace state
+	if res.coder_params then
+		-- Clear config-level properties that sub-agents should not propagate
+		for _, key in ipairs(CLEAR_CODER_PARAMS_RESPONSE_PROPERTIES) do
+			res.coder_params[key] = nil
 		end
-		if res.coder_prompt then
-			current_coder_prompt = res.coder_prompt
-		end
+		-- we merge here so, that the return value does not have to return unchanged things
+		current_params = aip.lua.merge(current_params, res.coder_params)
+	end
+	if res.coder_prompt then
+		current_coder_prompt = res.coder_prompt
+	end
 
-		if res.sub_agents_next ~= nil then
-			next_configs = extract_sub_agent_configs(res.sub_agents_next, { coder_prompt_dir = coder_prompt_dir })
-		end
+	if res.sub_agents_next ~= nil then
+		next_configs = extract_sub_agent_configs(res.sub_agents_next, { coder_prompt_dir = coder_prompt_dir })
 	end
 
 	local agent_result = type(res) == "table" and res.agent_result or nil
@@ -201,6 +234,10 @@ function run_sub_agents(stage, coder_meta, inst, coder_options, coder_prompt_dir
 		end
 
 		local config = agent_configs[i]
+		if not should_run_stage(config, stage) then
+			i = i + 1
+			goto continue
+		end
 		local sub_agents_prev = clone_history(executed)
 		local sub_agents_next = {}
 		for j = i + 1, #agent_configs do
@@ -241,11 +278,12 @@ function run_sub_agents(stage, coder_meta, inst, coder_options, coder_prompt_dir
 		end
 
 		i = i + 1
+		::continue::
 	end
 
 	local new_coder_meta = current_params
 	-- put back the sub_agents
-	new_coder_meta.sub_agents = sub_agents
+	new_coder_meta.sub_agents = agent_configs
 
 	return new_coder_meta, current_coder_prompt
 end
