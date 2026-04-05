@@ -217,7 +217,6 @@ if output_base then
 		coder_working_file_refs   = output_base.coder_working_file_refs,
 		post_has_failure          = post_has_failure,
 		post_error_msg            = post_error_msg,
-		response                  = post_error_msg,
 		error                     = post_err,
 	}
 end
@@ -509,7 +508,6 @@ end
 		file_changes_status = file_changes_status,
 		content_raw_path   = data.ai_responses_for_raw_path,
 	},
-	response = response
  }
 ```
 
