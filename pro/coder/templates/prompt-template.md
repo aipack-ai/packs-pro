@@ -16,11 +16,6 @@ context_globs:
   - "*.*"
   - src/**/*.*      
 
-## File paths to give AI a broader view of the project (paths only in prompt, relative only)
-structure_globs:
-  - "*.*"
-  - src/**/*.*
-  
 ## Set to false to disable file writing (response below this file's prompt)
 write_mode: true
 
@@ -36,7 +31,7 @@ dev:
   spec: false   # default path: PATH_TO_PRO_CODER_DIR/dev/spec/_spec-rules.md
 
 ## Full model names or aliases (see aliases ~/.aipack-base/config-default.toml)
-## -high, -medium, or -low suffixes for custom reasoning (e.g., "flash-low", "opus-max", "gpt-high")
+## -high, -medium, or -low suffixes for reasoning (e.g., "flash-low", "opus-max", "gpt-high")
 model: flash
 
 ## (see PATH_TO_PRO_CODER_DIR/README.md for full pro@coder documentation)
