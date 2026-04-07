@@ -58,6 +58,7 @@ function M.init_fixed_files(prompt_dir)
 		content = rel_dest_path .. addl_msg
 	})
 
+	u_common.dev_legal_file_migrate({ coder_prompt_dir = prompt_dir })
 
 	u_common.ensure_dev_chat_file(nil, { coder_prompt_dir = prompt_dir })
 	u_common.ensure_dev_plan_file(nil, { coder_prompt_dir = prompt_dir })

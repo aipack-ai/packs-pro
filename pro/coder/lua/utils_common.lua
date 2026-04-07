@@ -247,6 +247,28 @@ local function ensure_dev_spec_file(dev_spec_path, options)
 	return rules_path, spec_path, spec_path
 end
 
+local function dev_legal_file_migrate(options)
+	options = options or {}
+	local coder_prompt_dir = options.coder_prompt_dir or "."
+	local legacy_chat_path = coder_prompt_dir .. "/dev/chat/dev-chat.md"
+	local migrated_chat_path = coder_prompt_dir .. "/workbench-default/dev-chat.md"
+
+	if not aip.file.exists(legacy_chat_path) then
+		return nil
+	end
+
+	if aip.file.exists(migrated_chat_path) then
+		return migrated_chat_path
+	end
+
+	local move_res = aip.file.move(legacy_chat_path, migrated_chat_path, { overwrite = false })
+	if type(move_res) == "table" and move_res.error then
+		return nil, move_res.error
+	end
+
+	return migrated_chat_path
+end
+
 return {
 	filter_likely_text = filter_likely_text,
 	list_likely_text = list_likely_text,
@@ -260,4 +282,5 @@ return {
 	ensure_dev_chat_file = ensure_dev_chat_file,
 	ensure_dev_plan_file = ensure_dev_plan_file,
 	ensure_dev_spec_file = ensure_dev_spec_file,
+	dev_legal_file_migrate = dev_legal_file_migrate,
 }
