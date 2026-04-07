@@ -59,10 +59,6 @@ function M.init_fixed_files(prompt_dir)
 	})
 
 	u_common.dev_legal_file_migrate({ coder_prompt_dir = prompt_dir })
-
-	u_common.ensure_dev_chat_file(nil, { coder_prompt_dir = prompt_dir })
-	u_common.ensure_dev_plan_file(nil, { coder_prompt_dir = prompt_dir })
-	u_common.ensure_dev_spec_file(nil, { coder_prompt_dir = prompt_dir })
 end
 
 -- Concatenates the prompt parts with the AI response for prompt update.
