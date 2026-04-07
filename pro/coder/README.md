@@ -434,6 +434,33 @@ Supported `dev.spec` values:
 - **A string**: Path to the spec directory, or to the spec file.
 - **A table**: `enabled`, `path`, and future-safe extra keys.
 
+Shared fallback root when `dev.dir` is set:
+
+`dev.dir` defines a shared workbench-style directory used as the fallback base for dev helper files.
+
+- It is used when `chat`, `plan`, or `spec` are enabled with `true`.
+- It is also used when `chat`, `plan`, or `spec` are configured as tables with `enabled: true` and without their own `path` or `dir`.
+- Explicit child paths still win over `dev.dir`.
+- When `dev.dir` is not set, the legacy nested defaults remain unchanged for backward compatibility.
+
+Examples:
+
+```yaml
+dev:
+  dir: .aipack/.prompt/pro@coder/workbench
+  chat: true
+  plan: true
+  spec: true
+```
+
+This resolves to a flat layout:
+
+- `.aipack/.prompt/pro@coder/workbench/dev-chat.md`
+- `.aipack/.prompt/pro@coder/workbench/_plan-rules.md`
+- `.aipack/.prompt/pro@coder/workbench/plan-*.md`
+- `.aipack/.prompt/pro@coder/workbench/_spec-rules.md`
+- `.aipack/.prompt/pro@coder/workbench/spec.md`
+
 Default path when `dev.chat.path` is omitted:
 
 `$coder_prompt_dir/dev/chat/dev-chat.md`
@@ -455,6 +482,7 @@ Plan path handling details:
 - `dev.plan: "plan.md"` resolves to `.`.
 - Trailing slashes are normalized.
 - For table mode, `dev.plan.dir` must be a directory path, `.md` file paths are rejected with a validation error.
+- When `dev.dir` is set and `dev.plan` is `true`, the plan directory resolves directly to `dev.dir`, so `_plan-rules.md` and `plan-*.md` live flat in that directory.
 
 Example:
 
@@ -466,6 +494,7 @@ Spec path handling details:
 - Trailing slashes are normalized.
 - When `dev.spec.path` is a file path, it is treated as the spec context file, not the rules file.
 - When enabled, `pro@coder/dev` also ensures a blank `spec.md` exists beside `_spec-rules.md`.
+- When `dev.dir` is set and `dev.spec` is `true`, spec resolves to `dev.dir/_spec-rules.md` and `dev.dir/spec.md`.
 
 Spec file auto-context behavior:
 
@@ -477,6 +506,7 @@ Example:
 
 ```yaml
 dev:
+  dir: .aipack/.prompt/pro@coder/workbench
   chat: true
   plan: true
   spec: true
@@ -702,6 +732,7 @@ The same behavior can be configured with the `dev` shortcut in the root config:
 
 ```yaml
 dev:
+  dir: .aipack/.prompt/pro@coder/workbench
   chat: true
   plan: true
   spec: true
@@ -726,6 +757,7 @@ dev:
 - `dev.chat: true` enables chat with the default path.
 - `dev.plan: true` enables plan with the default directory.
 - `dev.spec: true` enables spec with the default path.
+- `dev.dir` sets a shared fallback directory for boolean `true` usage and table configs that omit their own path or dir.
 - A string sets the corresponding directory directly for plan, while spec strings can be either a directory or the spec file path.
 - A table maps to the chat, plan, or spec config shape.
 - If all are disabled via table config (`enabled: false`), `pro@coder` seeds `pro@coder/dev` as disabled.

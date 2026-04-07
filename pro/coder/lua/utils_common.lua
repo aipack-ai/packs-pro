@@ -40,12 +40,24 @@ local function list_load_likely_text(globs, options)
 	return filter_likely_text(files)
 end
 
-local function resolve_dev_chat_path(dev_chat_path, options)
+local function resolve_dev_root_dir(options)
 	options = options or {}
 	local coder_prompt_dir = options.coder_prompt_dir or "."
+	local workbench_dir = options.workbench_dir
+
+	if not is_null(workbench_dir) and workbench_dir ~= "" then
+		return workbench_dir:gsub("/+$", "")
+	end
+
+	return coder_prompt_dir .. "/dev"
+end
+
+local function resolve_dev_chat_path(dev_chat_path, options)
+	options = options or {}
+	local dev_root_dir = resolve_dev_root_dir(options)
 
 	if is_null(dev_chat_path) or dev_chat_path == "" then
-		return coder_prompt_dir .. "/dev/chat/dev-chat.md"
+		return dev_root_dir .. "/chat/dev-chat.md"
 	end
 
 	local normalized_path = dev_chat_path:gsub("/+$", "")
@@ -60,10 +72,13 @@ end
 
 local function resolve_dev_spec_path(dev_spec_path, options)
 	options = options or {}
-	local coder_prompt_dir = options.coder_prompt_dir or "."
+	local dev_root_dir = resolve_dev_root_dir(options)
 
 	if is_null(dev_spec_path) or dev_spec_path == "" then
-		return coder_prompt_dir .. "/dev/spec/_spec-rules.md", coder_prompt_dir .. "/dev/spec/spec.md"
+		if not is_null(options.workbench_dir) and options.workbench_dir ~= "" then
+			return dev_root_dir .. "/_spec-rules.md", dev_root_dir .. "/spec.md"
+		end
+		return dev_root_dir .. "/spec/_spec-rules.md", dev_root_dir .. "/spec/spec.md"
 	end
 
 	local normalized_path = dev_spec_path:gsub("/+$", "")
@@ -82,11 +97,14 @@ end
 
 local function resolve_dev_plan_dir(dev_plan_dir, options)
 	options = options or {}
-	local coder_prompt_dir = options.coder_prompt_dir or "."
 	local strict_dir = options.strict_dir == true
+	local dev_root_dir = resolve_dev_root_dir(options)
 
 	if is_null(dev_plan_dir) or dev_plan_dir == "" then
-		return coder_prompt_dir .. "/dev/plan"
+		if not is_null(options.workbench_dir) and options.workbench_dir ~= "" then
+			return dev_root_dir
+		end
+		return dev_root_dir .. "/plan"
 	end
 
 	local normalized_path = dev_plan_dir:gsub("/+$", "")
@@ -231,6 +249,7 @@ return {
 	list_likely_text = list_likely_text,
 	list_likely_text_with_stats = list_likely_text_with_stats,
 	list_load_likely_text = list_load_likely_text,
+	resolve_dev_root_dir = resolve_dev_root_dir,
 	resolve_dev_chat_path = resolve_dev_chat_path,
 	resolve_dev_plan_dir = resolve_dev_plan_dir,
 	resolve_dev_spec_path = resolve_dev_spec_path,

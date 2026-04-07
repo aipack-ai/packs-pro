@@ -26,9 +26,10 @@ auto_context:
   enabled: false         # (Default true) Comment or set to true to enable.
 
 dev:
-  chat: false   # default path: PATH_TO_PRO_CODER_DIR/dev/chat/dev-chat.md 
-  plan: false   # default  dir: PATH_TO_PRO_CODER_DIR/dev/plan/
-  spec: false   # default path: PATH_TO_PRO_CODER_DIR/dev/spec/_spec-rules.md
+  dir:  PATH_TO_PRO_CODER_DIR
+  chat: false   # default path: PATH_TO_PRO_CODER_DIR/workbench/ev-chat.md 
+  plan: false   # default  dir: PATH_TO_PRO_CODER_DIR/workbench/plan-1-todo.md
+  spec: false   # default path: PATH_TO_PRO_CODER_DIR/workbench/spec.md
 
 ## Full model names or aliases (see aliases ~/.aipack-base/config-default.toml)
 ## -high, -medium, or -low suffixes for reasoning (e.g., "flash-low", "opus-max", "gpt-high")

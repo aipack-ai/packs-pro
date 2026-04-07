@@ -9,6 +9,17 @@ local function resolve_dev_plan_dir(dev_plan_dir, options)
 	return u_common.resolve_dev_plan_dir(dev_plan_dir, options)
 end
 
+local function normalize_dev_dir(dev_dir)
+	if type(dev_dir) ~= "string" then
+		return nil
+	end
+	local normalized = dev_dir:gsub("/+$", "")
+	if normalized == "" then
+		return nil
+	end
+	return normalized
+end
+
 local function normalize_dev_chat_config(dev_chat, options)
 	local chat = nil
 	if dev_chat == true then
@@ -89,9 +100,11 @@ local function new_dev_sub_agent_config(dev, options)
 		}
 	elseif type(dev) == "table" then
 		local base = aip.lua.merge({ name = "pro@coder/dev", enabled = true }, dev)
-		base.chat = normalize_dev_chat_config(base.chat, options)
-		base.plan = normalize_dev_plan_config(base.plan, options)
-		base.spec = normalize_dev_spec_config(base.spec, options)
+		base.dir = normalize_dev_dir(base.dir)
+		local resolve_options = aip.lua.merge({}, options, { workbench_dir = base.dir })
+		base.chat = normalize_dev_chat_config(base.chat, resolve_options)
+		base.plan = normalize_dev_plan_config(base.plan, resolve_options)
+		base.spec = normalize_dev_spec_config(base.spec, resolve_options)
 		local chat_enabled = not is_null(base.chat) and base.chat.enabled ~= false
 		local plan_enabled = not is_null(base.plan) and base.plan.enabled ~= false
 		local spec_enabled = not is_null(base.spec) and base.spec.enabled ~= false
