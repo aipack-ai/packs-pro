@@ -150,21 +150,20 @@ auto_context:
 ## Dev helpers (shortcut for pro@coder/dev sub-agent)
 dev:
   chat: true                 # true uses default path below
-  # chat: .aipack/.prompt/pro@coder/dev/chat/dev-chat.md
+  # chat: .aipack/.prompt/pro@coder/workbench-default/dev-chat.md
   # chat:
   #   enabled: true
-  #   path: .aipack/.prompt/pro@coder/dev/chat/dev-chat.md
+  #   path: .aipack/.prompt/pro@coder/workbench-default/dev-chat.md
   plan: true                 # true uses default dir below
-  # plan: .aipack/.prompt/pro@coder/dev/plan
+  # plan: .aipack/.prompt/pro@coder/workbench-default
   # plan:
   #   enabled: true
-  #   dir: .aipack/.prompt/pro@coder/dev/plan
+  #   dir: .aipack/.prompt/pro@coder/workbench-default
   spec: false                # true uses default path below
-  # spec: .aipack/.prompt/pro@coder/dev/spec
-  # spec: .aipack/.prompt/pro@coder/dev/spec/spec.md
+  # spec: .aipack/.prompt/pro@coder/workbench-default/spec.md
   # spec:
   #   enabled: true
-  #   path: .aipack/.prompt/pro@coder/dev/spec/_spec-rules.md
+  #   path: .aipack/.prompt/pro@coder/workbench-default/spec.md
 
 ## Specialized agents to pre-process parameters and instructions, or to run once after all task outputs
 ## Since v0.3.0 for pre, post-stage support implemented later
@@ -371,7 +370,6 @@ Example:
 model: gpt-5-mini  # or "gpt-5" for normal coding
 ```
 
-f
 #### auto_context
 
 _since v0.4.0_
@@ -398,7 +396,7 @@ auto_context:
 
 #### dev
 
-Shortcut to configure and run the `pro@coder/dev` sub-agent. This agent can enable dev capabilities under a single namespace. Current capabilities are `chat`, `plan`, and `spec`.
+Shortcut to configure and run the `pro@coder/dev` sub-agent. This agent enables a "dev workbench" with integrated capabilities for `chat`, `plan`, and `spec`. It automatically manages these files and wires them into the prompt context (no need to manually add them to `context_globs`).
 
 Behavior:
 - `chat` ensures the dev chat markdown file exists, then appends its path to `context_globs_post` (deduped).
@@ -434,21 +432,18 @@ Supported `dev.spec` values:
 - **A string**: Path to the spec directory, or to the spec file.
 - **A table**: `enabled`, `path`, and future-safe extra keys.
 
-Shared fallback root and default dev workbench:
+### Default Workbench Behavior
 
-`dev.dir` defines a shared workbench-style directory used as the fallback base for dev helper files.
+`pro@coder` provides an out-of-the-box development workbench. By default, helper files are organized in a `workbench-default/` directory located in the same folder as your `coder-prompt.md` (the prompt's directory).
 
-- It is used when `chat`, `plan`, or `spec` are enabled with `true`.
-- It is also used when `chat`, `plan`, or `spec` are configured as tables with `enabled: true` and without their own `path` or `dir`.
-- Explicit child paths still win over `dev.dir`.
-- When `dev.dir` is not set, the default fallback root is now `$coder_prompt_dir/workbench-default`.
-- The `workbench-default` directory and its files are only created for helpers that are actually enabled. Disabled helpers do not create default workbench files.
+- **`dev.dir`**: Defines a custom shared workbench directory. If omitted, it defaults to `workbench-default/` relative to the prompt file.
+- **Explicit Paths**: If `path` or `dir` is provided for a specific capability (chat, plan, or spec), it takes precedence over the shared `dev.dir`.
+- **Auto-Creation**: Files and directories are created only for enabled capabilities. For example, if `dev.plan` is `false`, no plan files are created in the workbench.
 
 Examples:
 
 ```yaml
 dev:
-  dir: .aipack/.prompt/pro@coder/workbench-default
   chat: true
   plan: true
   spec: true
@@ -503,35 +498,7 @@ Spec file auto-context behavior:
 - The rules file path is appended to `knowledge_globs_post` when missing.
 - The sub-agent returns the spec context file path in `agent_result.dev_content_globs`, so downstream helper-aware sub-agents can consume it without depending on `dev` config internals.
 
-Example:
-
-```yaml
-dev:
-  dir: .aipack/.prompt/pro@coder/workbench-default
-  chat: true
-  plan: true
-  spec: true
-# or
-dev:
-  chat: .aipack/.prompt/pro@coder/dev/chat/dev-chat.md
-  plan: .aipack/.prompt/pro@coder/dev/plan
-  spec: .aipack/.prompt/pro@coder/dev/spec
-# or
-dev:
-  plan: .aipack/.prompt/pro@coder/dev/plan.md   # resolves to .aipack/.prompt/pro@coder/dev
-  spec: .aipack/.prompt/pro@coder/dev/spec/spec.md
-# or
-dev:
-  chat:
-    enabled: true
-    path: .aipack/.prompt/pro@coder/dev/chat/dev-chat.md
-  plan:
-    enabled: true
-    dir: .aipack/.prompt/pro@coder/dev/plan
-  spec:
-    enabled: true
-    path: .aipack/.prompt/pro@coder/dev/spec/spec.md
-```
+For string or table values, relative paths are resolved relative to the workspace root unless they are absolute or use pack references.
 
 #### sub_agents
 
@@ -706,13 +673,13 @@ sub_agents:
     enabled: true
     chat:            # or chat: true (default false)
       enabled: true  
-      # path: .aipack/.prompt/pro@coder/dev/chat/dev-chat.md
+      # path: .aipack/.prompt/pro@coder/workbench-default/dev-chat.md
     plan:            # or plan: true (default false)
       enabled: true  
-      # dir: .aipack/.prompt/pro@coder/dev/plan
+      # dir:  .aipack/.prompt/pro@coder/workbench-default
     spec:            # or spec: true (default false)
       enabled: true
-      # path: .aipack/.prompt/pro@coder/dev/spec/spec.md
+      # path: .aipack/.prompt/pro@coder/workbench-default/spec.md
 ```
 
 - Resolves `chat.path` from config, or defaults to `$coder_prompt_dir/workbench-default/dev-chat.md`.
@@ -734,26 +701,33 @@ The same behavior can be configured with the `dev` shortcut in the root config:
 
 ```yaml
 dev:
-  dir: .aipack/.prompt/pro@coder/workbench
+  dir: .aipack/.prompt/pro@coder/workbench-default
+  chat: true
+  plan: true
+  spec: true
+
+# or use a custom directory for all workbench files
+dev:
+  dir: _workbench/my-feature-a
   chat: true
   plan: true
   spec: true
 # or
 dev:
-  chat: .aipack/.prompt/pro@coder/dev/chat/dev-chat.md
-  plan: .aipack/.prompt/pro@coder/dev/plan
-  spec: .aipack/.prompt/pro@coder/dev/spec
+  chat: .aipack/.prompt/pro@coder/workbench-default/dev-chat.md
+  plan: .aipack/.prompt/pro@coder/workbench-default
+  spec: .aipack/.prompt/pro@coder/workbench-default/spec.md
 # or
 dev:
   chat:
     enabled: true
-    path: .aipack/.prompt/pro@coder/dev/chat/dev-chat.md
+    path: .aipack/.prompt/pro@coder/workbench-default/dev-chat.md
   plan:
     enabled: true
-    dir: .aipack/.prompt/pro@coder/dev/plan
+    dir:  .aipack/.prompt/pro@coder/workbench-default
   spec:
     enabled: true
-    path: .aipack/.prompt/pro@coder/dev/spec/spec.md
+    path: .aipack/.prompt/pro@coder/workbench-default/spec.md
 ```
 
 - `dev.chat: true` enables chat with the default path.
@@ -887,11 +861,12 @@ Note that only these four are AI Pack config properties and can be set in the co
 
 ## Plan-Based Development
 
-`pro@coder` facilitates **Plan-Based Development** by initializing relevant plan files within the prompt's dedicated folder.
+`pro@coder` facilitates **Plan-Based Development** by initializing relevant plan files within the prompt's workbench folder.
 
-- The foundational rules are in `_plan-rules.md`, located in the prompt's `dev/plan/` subfolder (e.g., `.aipack/.prompt/pro@coder/dev/plan/_plan-rules.md`). The plan flow uses `plan-1-todo-steps.md`, `plan-2-active-step.md`, and `plan-3-done-steps.md` in the same directory.
-- To enable plan-based interactions, add these files to your `context_globs` parameter, for example:
-  - `  - .aipack/.prompt/pro@coder/dev/plan/*.md`
+- The foundational rules are in `_plan-rules.md`, located in the `workbench-default/` folder beside your `coder-prompt.md`. The plan flow uses `plan-1-todo-steps.md`, `plan-2-active-step.md`, and `plan-3-done-steps.md` in the same directory.
+- By default, setting `dev: { plan: true }` in your meta block automatically initializes these files and includes them in the prompt context.
+- To manually include them or use a custom folder, you can use `context_globs_post`:
+  - `.aipack/.prompt/pro@coder/workbench-default/plan-*.md`
 - When instructing the agent, refer to the plan rules. For example:
   - `Following the plan rules, create a plan to do the following: ....`
   - Or, to execute a step:
@@ -984,8 +959,8 @@ Post-stage output behavior:
 
 `pro@coder` also supports **Spec-Based Development** through the `dev.spec` capability.
 
-- The foundational rules live in `_spec-rules.md`, located in the prompt's `dev/spec/` subfolder.
-- The main working spec file is `spec.md`, stored beside `_spec-rules.md`.
+- The foundational rules live in `_spec-rules.md`, located in the `workbench-default/` folder beside your `coder-prompt.md`.
+- The main working spec file is `spec.md`, stored beside `_spec-rules.md` by default.
 - When `dev.spec` is enabled, `pro@coder/dev` ensures both files exist.
 - The rules file is added to `knowledge_globs_post`, and the `spec.md` file is added to `context_globs_post`.
 - This lets you keep specification guidance in knowledge, while the evolving project spec stays in context.
@@ -1001,7 +976,7 @@ Or with an explicit path:
 
 ```yaml
 dev:
-  spec: .aipack/.prompt/pro@coder/dev/spec/spec.md
+  spec: .aipack/.prompt/pro@coder/workbench-default/spec.md
 ```
 
 You can then prompt the agent with requests such as:
