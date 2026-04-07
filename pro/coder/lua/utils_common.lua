@@ -70,6 +70,15 @@ local function resolve_dev_chat_path(dev_chat_path, options)
 	return normalized_path
 end
 
+local function is_same_path(path_a, path_b)
+	if is_null(path_a) or is_null(path_b) then
+		return false
+	end
+	local normalized_a = tostring(path_a):gsub("/+$", "")
+	local normalized_b = tostring(path_b):gsub("/+$", "")
+	return normalized_a == normalized_b
+end
+
 local function resolve_dev_spec_path(dev_spec_path, options)
 	options = options or {}
 	local dev_root_dir = resolve_dev_root_dir(options)
@@ -119,7 +128,7 @@ local function resolve_dev_plan_dir(dev_plan_dir, options)
 end
 
 local function load_dev_chat_template_content()
-	local template_path = CTX.AGENT_FILE_DIR .. "/templates/dev/chat/dev-chat.md"
+	local template_path = CTX.AGENT_FILE_DIR .. "/workbench-templates/dev-chat.md"
 	local template_file = aip.file.load(template_path)
 	if type(template_file) == "table" and type(template_file.content) == "string" and template_file.content ~= "" then
 		return template_file.content
@@ -157,7 +166,7 @@ local function ensure_dev_chat_file(dev_chat_path, options)
 end
 
 local function load_dev_plan_rules_template_content()
-	local template_path = CTX.AGENT_FILE_DIR .. "/templates/dev/plan/_plan-rules.md"
+	local template_path = CTX.AGENT_FILE_DIR .. "/workbench-templates/_plan-rules.md"
 	local template_file = aip.file.load(template_path)
 	if type(template_file) == "table" and type(template_file.content) == "string" and template_file.content ~= "" then
 		return template_file.content
@@ -188,7 +197,7 @@ local function ensure_dev_plan_file(dev_plan_dir, options)
 end
 
 local function load_dev_spec_rules_template_content()
-	local template_path = CTX.AGENT_FILE_DIR .. "/templates/dev/spec/_spec-rules.md"
+	local template_path = CTX.AGENT_FILE_DIR .. "/workbench-templates/_spec-rules.md"
 	local template_file = aip.file.load(template_path)
 	if type(template_file) == "table" and type(template_file.content) == "string" and template_file.content ~= "" then
 		return template_file.content

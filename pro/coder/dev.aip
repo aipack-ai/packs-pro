@@ -97,7 +97,7 @@ local function default_dev_chat_content()
 end
 
 local function load_plan_rules_from_template()
-	local template_path = CTX.AGENT_FILE_DIR .. "/templates/dev/plan/_plan-rules.md"
+	local template_path = CTX.AGENT_FILE_DIR .. "/workbench-templates/_plan-rules.md"
 	local template_file = aip.file.load(template_path)
 	if type(template_file) == "table" and type(template_file.content) == "string" and template_file.content ~= "" then
 		return template_file.content
