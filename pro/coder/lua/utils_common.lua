@@ -49,7 +49,7 @@ local function resolve_dev_root_dir(options)
 		return workbench_dir:gsub("/+$", "")
 	end
 
-	return coder_prompt_dir .. "/dev"
+	return coder_prompt_dir .. "/workbench"
 end
 
 local function resolve_dev_chat_path(dev_chat_path, options)
@@ -57,10 +57,7 @@ local function resolve_dev_chat_path(dev_chat_path, options)
 	local dev_root_dir = resolve_dev_root_dir(options)
 
 	if is_null(dev_chat_path) or dev_chat_path == "" then
-		if not is_null(options.workbench_dir) and options.workbench_dir ~= "" then
-			return dev_root_dir .. "/dev-chat.md"
-		end
-		return dev_root_dir .. "/chat/dev-chat.md"
+		return dev_root_dir .. "/dev-chat.md"
 	end
 
 	local normalized_path = dev_chat_path:gsub("/+$", "")
@@ -78,10 +75,7 @@ local function resolve_dev_spec_path(dev_spec_path, options)
 	local dev_root_dir = resolve_dev_root_dir(options)
 
 	if is_null(dev_spec_path) or dev_spec_path == "" then
-		if not is_null(options.workbench_dir) and options.workbench_dir ~= "" then
-			return dev_root_dir .. "/_spec-rules.md", dev_root_dir .. "/spec.md"
-		end
-		return dev_root_dir .. "/spec/_spec-rules.md", dev_root_dir .. "/spec/spec.md"
+		return dev_root_dir .. "/_spec-rules.md", dev_root_dir .. "/spec.md"
 	end
 
 	local normalized_path = dev_spec_path:gsub("/+$", "")
@@ -104,10 +98,7 @@ local function resolve_dev_plan_dir(dev_plan_dir, options)
 	local dev_root_dir = resolve_dev_root_dir(options)
 
 	if is_null(dev_plan_dir) or dev_plan_dir == "" then
-		if not is_null(options.workbench_dir) and options.workbench_dir ~= "" then
-			return dev_root_dir
-		end
-		return dev_root_dir .. "/plan"
+		return dev_root_dir
 	end
 
 	local normalized_path = dev_plan_dir:gsub("/+$", "")
