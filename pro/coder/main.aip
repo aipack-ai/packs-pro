@@ -176,36 +176,34 @@ if output_base then
 	local post_has_failure = false
 	local post_error_msg = nil
 
-	if output_base.coder_params and output_base.coder_params.sub_agents and #output_base.coder_params.sub_agents > 0 then
-		local coder_responses = {}
-		for _, output in ipairs(outputs or {}) do
-			if type(output) == "table" and type(output.coder_response) == "table" then
-				table.insert(coder_responses, output.coder_response)
-			end
+	local coder_responses = {}
+	for _, output in ipairs(outputs or {}) do
+		if type(output) == "table" and type(output.coder_response) == "table" then
+			table.insert(coder_responses, output.coder_response)
 		end
+	end
 
-		local _, _, err = u_sub_agent.run_sub_agents("post", output_base.coder_params, output_base.coder_prompt, {
-			extra_sub_input = {
-				coder_context_file_refs = output_base.coder_context_file_refs,
-				coder_knowledge_file_refs = output_base.coder_knowledge_file_refs,
-				coder_working_file_refs = output_base.coder_working_file_refs,
-				coder_responses = coder_responses,
-			}
-		}, output_base.coder_prompt_dir)
+	local _, _, err = u_sub_agent.run_sub_agents("post", output_base.coder_params or {}, output_base.coder_prompt, {
+		extra_sub_input = {
+			coder_context_file_refs = output_base.coder_context_file_refs,
+			coder_knowledge_file_refs = output_base.coder_knowledge_file_refs,
+			coder_working_file_refs = output_base.coder_working_file_refs,
+			coder_responses = coder_responses,
+		}
+	}, output_base.coder_prompt_dir)
 
-		if err then
-			post_has_failure = true
-			post_error_msg = err
-			post_err = err
-			aip.run.pin("completed", 0, {
-				label = CONST.LABEL_COMPLETED,
-				content = "⚠ Post-stage sub-agent failed.\n\n" .. err
-			})
-			aip.run.pin("post_stage_failed", 0, {
-				label = "WARNING",
-				content = "Post-stage sub-agent execution failed after main output processing.\n\n" .. err
-			})
-		end
+	if err then
+		post_has_failure = true
+		post_error_msg = err
+		post_err = err
+		aip.run.pin("completed", 0, {
+			label = CONST.LABEL_COMPLETED,
+			content = "⚠ Post-stage sub-agent failed.\n\n" .. err
+		})
+		aip.run.pin("post_stage_failed", 0, {
+			label = "WARNING",
+			content = "Post-stage sub-agent execution failed after main output processing.\n\n" .. err
+		})
 	end
 
 	return {

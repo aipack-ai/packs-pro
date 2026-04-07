@@ -216,7 +216,7 @@ function run_sub_agents(stage, coder_meta, inst, coder_options, coder_prompt_dir
 		return coder_meta, inst
 	end
 
-	local current_params = coder_meta
+	local current_params = aip.lua.merge_deep({}, coder_meta)
 	current_params.sub_agents = nil -- for now remove this list (we might put the agent_configs later)
 
 	-- Ensure glob parameters are tables if nil
