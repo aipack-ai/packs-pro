@@ -92,19 +92,6 @@ local function pin_dev_status(chat, plan, spec)
 	end
 end
 
-local function default_dev_chat_content()
-	return u_common.load_dev_chat_template_content()
-end
-
-local function load_plan_rules_from_template()
-	local template_path = CTX.AGENT_FILE_DIR .. "/workbench-templates/_plan-rules.md"
-	local template_file = aip.file.load(template_path)
-	if type(template_file) == "table" and type(template_file.content) == "string" and template_file.content ~= "" then
-		return template_file.content
-	end
-	return "# Plan Rules\n\n- Keep plans concise and actionable.\n"
-end
-
 local sub_input = inputs and inputs[1] or {}
 local agent_config = sub_input.agent_config or {}
 local coder_params = sub_input.coder_params or {}
@@ -167,7 +154,7 @@ if type(next_knowledge_globs_post) ~= "table" then
 end
 
 if chat ~= nil then
-	local path, ensure_err = u_common.ensure_dev_chat_file(chat.path, { seed_content = default_dev_chat_content() })
+	local path, ensure_err = u_common.ensure_dev_chat_file(chat.path)
 	if is_null(path) or path == "" then
 		return aip.flow.before_all_response({
 			inputs = {},

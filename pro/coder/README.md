@@ -442,6 +442,7 @@ Shared fallback root and default dev workbench:
 - It is also used when `chat`, `plan`, or `spec` are configured as tables with `enabled: true` and without their own `path` or `dir`.
 - Explicit child paths still win over `dev.dir`.
 - When `dev.dir` is not set, the default fallback root is now `$coder_prompt_dir/workbench-default`.
+- The `workbench-default` directory and its files are only created for helpers that are actually enabled. Disabled helpers do not create default workbench files.
 
 Examples:
 
@@ -721,6 +722,7 @@ sub_agents:
 - Resolves `spec.path` from config as either a spec directory or a spec file path.
 - Ensures the spec rules file exists at `$spec_dir/_spec-rules.md`, if empty, it is initialized from template.
 - Ensures the spec context file exists at the resolved spec file path.
+- When using the default shared fallback root, only the enabled helper files are created, matching the behavior of custom workbench paths.
 - Appends the resolved chat path and `plan-*.md` glob to `context_globs_post` when missing (deduped).
 - Prepends the plan rules path to `knowledge_globs_pre` when missing (deduped).
 - Appends the spec rules path to `knowledge_globs_post` when missing (deduped).

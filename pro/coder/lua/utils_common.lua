@@ -151,6 +151,18 @@ local function ensure_dev_chat_file(dev_chat_path, options)
 		seed_content = load_dev_chat_template_content()
 	end
 
+	local parent_dir = aip.path.parent(resolved_path)
+	if not is_null(parent_dir) and parent_dir ~= "" and not aip.path.exists(parent_dir) then
+		local tmp_file = parent_dir .. "/.gitkeep" -- since now ensure_dir for now
+		local ensure_dir_res = aip.file.ensure_exists(tmp_file, "")
+		if type(ensure_dir_res) == "table" and ensure_dir_res.error then
+			return nil, ensure_dir_res.error
+		end
+		if aip.path.exists(tmp_file) then
+			aip.file.delete(tmp_file)
+		end
+	end
+
 	local ensure_res = nil
 	if not is_null(seed_content) then
 		ensure_res = aip.file.ensure_exists(resolved_path, seed_content)
@@ -182,6 +194,13 @@ local function ensure_dev_plan_file(dev_plan_dir, options)
 	end
 
 	local rules_path = resolved_dir .. "/_plan-rules.md"
+	if not aip.path.exists(resolved_dir) then
+		local ensure_dir_res = aip.file.ensure_exists(resolved_dir .. "/.gitkeep", "")
+		if type(ensure_dir_res) == "table" and ensure_dir_res.error then
+			return nil, nil, ensure_dir_res.error
+		end
+		aip.file.delete(resolved_dir .. "/.gitkeep")
+	end
 	local ensure_res
 	if aip.file.exists(rules_path) then
 		ensure_res = aip.file.info(rules_path)
@@ -220,6 +239,18 @@ local function ensure_dev_spec_file(dev_spec_path, options)
 			spec_dir = "."
 		end
 		spec_path = spec_dir .. "/spec.md"
+	end
+
+	local spec_dir = aip.path.parent(spec_path)
+	if is_null(spec_dir) or spec_dir == "" then
+		spec_dir = "."
+	end
+	if not aip.path.exists(spec_dir) then
+		local ensure_dir_res = aip.file.ensure_exists(spec_dir .. "/.gitkeep", "")
+		if type(ensure_dir_res) == "table" and ensure_dir_res.error then
+			return nil, nil, nil, ensure_dir_res.error
+		end
+		aip.file.delete(spec_dir .. "/.gitkeep")
 	end
 
 	local ensure_spec_res
