@@ -49,7 +49,7 @@ local function resolve_dev_root_dir(options)
 		return workbench_dir:gsub("/+$", "")
 	end
 
-	return coder_prompt_dir .. "/workbench"
+	return coder_prompt_dir .. "/workbench-default"
 end
 
 local function resolve_dev_chat_path(dev_chat_path, options)

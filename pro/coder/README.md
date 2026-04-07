@@ -441,13 +441,13 @@ Shared fallback root and default dev workbench:
 - It is used when `chat`, `plan`, or `spec` are enabled with `true`.
 - It is also used when `chat`, `plan`, or `spec` are configured as tables with `enabled: true` and without their own `path` or `dir`.
 - Explicit child paths still win over `dev.dir`.
-- When `dev.dir` is not set, the default fallback root is now `$coder_prompt_dir/workbench`.
+- When `dev.dir` is not set, the default fallback root is now `$coder_prompt_dir/workbench-default`.
 
 Examples:
 
 ```yaml
 dev:
-  dir: .aipack/.prompt/pro@coder/workbench
+  dir: .aipack/.prompt/pro@coder/workbench-default
   chat: true
   plan: true
   spec: true
@@ -455,23 +455,23 @@ dev:
 
 This resolves to a flat layout:
 
-- `.aipack/.prompt/pro@coder/workbench/dev-chat.md`
-- `.aipack/.prompt/pro@coder/workbench/_plan-rules.md`
-- `.aipack/.prompt/pro@coder/workbench/plan-*.md`
-- `.aipack/.prompt/pro@coder/workbench/_spec-rules.md`
-- `.aipack/.prompt/pro@coder/workbench/spec.md`
+- `.aipack/.prompt/pro@coder/workbench-default/dev-chat.md`
+- `.aipack/.prompt/pro@coder/workbench-default/_plan-rules.md`
+- `.aipack/.prompt/pro@coder/workbench-default/plan-*.md`
+- `.aipack/.prompt/pro@coder/workbench-default/_spec-rules.md`
+- `.aipack/.prompt/pro@coder/workbench-default/spec.md`
 
 Default path when `dev.chat.path` is omitted:
 
-`$coder_prompt_dir/workbench/dev-chat.md`
+`$coder_prompt_dir/workbench-default/dev-chat.md`
 
 Default directory when `dev.plan.dir` is omitted:
 
-`$coder_prompt_dir/workbench`
+`$coder_prompt_dir/workbench-default`
 
 Default spec file path when `dev.spec.path` is omitted:
 
-`$coder_prompt_dir/workbench/spec.md`
+`$coder_prompt_dir/workbench-default/spec.md`
 
 For string/table path values, relative paths are passed through unchanged.
 
@@ -506,7 +506,7 @@ Example:
 
 ```yaml
 dev:
-  dir: .aipack/.prompt/pro@coder/workbench
+  dir: .aipack/.prompt/pro@coder/workbench-default
   chat: true
   plan: true
   spec: true
@@ -714,9 +714,9 @@ sub_agents:
       # path: .aipack/.prompt/pro@coder/dev/spec/spec.md
 ```
 
-- Resolves `chat.path` from config, or defaults to `$coder_prompt_dir/workbench/dev-chat.md`.
+- Resolves `chat.path` from config, or defaults to `$coder_prompt_dir/workbench-default/dev-chat.md`.
 - Ensures the chat file exists, if the file is empty, it is initialized with the dev-chat template.
-- Resolves `plan.dir` from config, or defaults to `$coder_prompt_dir/workbench`.
+- Resolves `plan.dir` from config, or defaults to `$coder_prompt_dir/workbench-default`.
 - Ensures the plan rules file exists at `$plan_dir/_plan-rules.md`, if empty, it is initialized from template.
 - Resolves `spec.path` from config as either a spec directory or a spec file path.
 - Ensures the spec rules file exists at `$spec_dir/_spec-rules.md`, if empty, it is initialized from template.
@@ -758,7 +758,7 @@ dev:
 - `dev.plan: true` enables plan with the default directory.
 - `dev.spec: true` enables spec with the default path.
 - `dev.dir` sets a shared fallback directory for boolean `true` usage and table configs that omit their own path or dir.
-- When `dev.dir` is omitted, the shared fallback directory defaults to `$coder_prompt_dir/workbench`.
+- When `dev.dir` is omitted, the shared fallback directory defaults to `$coder_prompt_dir/workbench-default`.
 - A string sets the corresponding directory directly for plan, while spec strings can be either a directory or the spec file path.
 - A table maps to the chat, plan, or spec config shape.
 - If all are disabled via table config (`enabled: false`), `pro@coder` seeds `pro@coder/dev` as disabled.
