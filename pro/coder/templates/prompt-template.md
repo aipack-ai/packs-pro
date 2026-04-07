@@ -26,7 +26,7 @@ auto_context:
   enabled: false         # (Default true) Comment or set to true to enable.
 
 dev:
-  dir:  PATH_TO_PRO_CODER_DIR
+  dir:  PATH_TO_PRO_CODER_DIR/workbench
   chat: false   # default path: PATH_TO_PRO_CODER_DIR/workbench/ev-chat.md 
   plan: false   # default  dir: PATH_TO_PRO_CODER_DIR/workbench/plan-1-todo.md
   spec: false   # default path: PATH_TO_PRO_CODER_DIR/workbench/spec.md

@@ -57,6 +57,9 @@ local function resolve_dev_chat_path(dev_chat_path, options)
 	local dev_root_dir = resolve_dev_root_dir(options)
 
 	if is_null(dev_chat_path) or dev_chat_path == "" then
+		if not is_null(options.workbench_dir) and options.workbench_dir ~= "" then
+			return dev_root_dir .. "/dev-chat.md"
+		end
 		return dev_root_dir .. "/chat/dev-chat.md"
 	end
 
