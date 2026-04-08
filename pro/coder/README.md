@@ -537,13 +537,15 @@ Available properties for the table definition:
 
 ### Developing Sub-agents
 
-Sub-agents are standard `.aip` files. They receive the following structure as their `input` (accessible in `# Data` or `# Output` stages):
+Sub-agents are standard `.aip` files. They receive stage-specific input structures as their `input` (accessible in `# Data` or `# Output` stages).
 
 ```ts
-type SubAgentInput = {
-  event: string,            // Current event being handled, e.g. "start", "end", "auto-context::end"
-  stage: "pre" | "post",    // Runtime contract marker
-  coder_stage: "pre" | "post", // Compatibility alias of stage
+type SubAgentPreInput = {
+  event: string,            // Current event being handled, e.g. "start", "auto-context::end"
+  stage: "pre",             // Runtime contract marker
+  
+  coder_stage: "pre",       // Compatibility alias of stage
+  
   coder_prompt_dir: string, // Absolute path to the prompt file directory
   coder_params: table,      // Current parameters (from YAML block or previous sub-agents)
   coder_prompt: string,     // Current instruction text
@@ -552,16 +554,34 @@ type SubAgentInput = {
   // Present for all stages
   sub_agents_prev?: SubAgentHistoryItem[],
   sub_agents_next?: AgentConfig[],
-
-  // Present for post stage
-  coder_context_file_refs?: table | nil,
-  coder_knowledge_file_refs?: table | nil,
-  coder_working_file_refs?: table | nil,
-  coder_responses?: CoderAgentResponse[],
 }
 ```
 
-For `post`, the additional response payload has this shape:
+For `post`, the runtime input shape is:
+
+```ts
+type SubAgentPostInput = {
+  event: string,
+  stage: "post",
+  
+  coder_stage: "post",
+  
+  coder_prompt_dir: string,
+  coder_params: table,
+  coder_prompt: string,
+  agent_config: AgentConfig,
+  
+  sub_agents_prev?: SubAgentHistoryItem[],
+  sub_agents_next?: AgentConfig[],
+  
+  coder_context_file_refs?: table | nil,
+  coder_knowledge_file_refs?: table | nil,
+  coder_working_file_refs?: table | nil,
+  coder_responses: CoderAgentResponse[],
+}
+```
+
+The post-stage additional response payload has this shape:
 
 ```ts
 type CoderAgentResponse = {
@@ -612,10 +632,10 @@ Normalization examples:
 { name: "x", enabled: true, stage_pre: true, stage_post: true }
 ```
 
-To modify the request state, the sub-agent should return a table. If the return value is `nil`, it is interpreted as success with no modifications.
+To modify the request state, the sub-agent should return a stage-specific table. If the return value is `nil`, it is interpreted as success with no modifications.
 
 ```ts
-type SubAgentOutput = {
+type SubAgentPreOutput = {
   coder_params?: table,          // Optional: Merged into the current parameters during pre
   coder_prompt?: string,         // Optional: Replaces the current instruction during pre
   agent_result?: any,            // Optional: Pipeline payload exposed in sub_agents_prev
@@ -629,10 +649,23 @@ type SubAgentOutput = {
 }
 ```
 
+```ts
+type SubAgentPostOutput = {
+  agent_result?: any,            // Optional: Pipeline payload exposed in sub_agents_prev
+
+  sub_agents_next?: AgentConfig[], // Optional: Replaces the pending sub-agent tail
+  emit_events?: string[],        // Optional: Queues follow-up events in FIFO order for the current stage
+
+  success?: boolean,             // Optional (defaults to true). Set to false to fail.
+  error_msg?: string,            // Optional. If present, the run fails with this message.
+  error_details?: string,        // Optional. More context for the failure.
+}
+```
+
 **Important notes on return values**:
 
-- `coder_params`: If provided during `pre`, this table is shallow-merged into the current parameters. This means you only need to return the keys you wish to add or change. During `post`, it is currently ignored.
-- `coder_prompt`: If provided during `pre`, this string replaces the current instruction for the remainder of the pipeline. During `post`, it is currently ignored.
+- `coder_params`: If provided in `SubAgentPreOutput`, this table is shallow-merged into the current parameters. This means you only need to return the keys you wish to add or change.
+- `coder_prompt`: If provided in `SubAgentPreOutput`, this string replaces the current instruction for the remainder of the pipeline.
 - `agent_result`: If provided, this payload is exposed to downstream sub-agents through `sub_agents_prev[*].agent_result` (and `sub_agent_result` for compatibility).
 - `sub_agents_next`: If provided, it replaces the pending tail of the pipeline for future dispatch only.
 - `emit_events`: If provided, the listed events are appended to the current stage event queue in order.
@@ -955,7 +988,7 @@ Interpretation notes:
 - `coder_responses[*].file_changes_status` is the final file change apply result exposed by the output layer.
 - `coder_responses[*].content_raw_path` points to the saved raw AI response file for that task.
 
-The `post` output contract still accepts the same fields as `pre`, but with restricted effect:
+The `post` output contract is:
 
 ```ts
 type SubAgentPostOutput = {
