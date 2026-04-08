@@ -412,6 +412,7 @@ function run_before_all(inputs)
 	if not is_null(meta.dev) then
 		local dev_config = u_dev.new_dev_sub_agent_config(meta.dev, { coder_prompt_dir = coder_prompt_dir })
 		if dev_config then
+			dev_config.on = value_or(dev_config.on, "start")
 			table.insert(builtin_sub_agents, dev_config)
 		end
 		meta.dev = nil
@@ -421,6 +422,7 @@ function run_before_all(inputs)
 	if not is_null(meta.auto_context) then
 		local ac_config = u_auto_context.new_auto_context_sub_agent_config(meta.auto_context)
 		if ac_config then
+			ac_config.on = value_or(ac_config.on, "start")
 			table.insert(builtin_sub_agents, ac_config)
 		end
 		meta.auto_context = nil
