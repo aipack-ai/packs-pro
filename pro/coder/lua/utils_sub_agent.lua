@@ -12,6 +12,11 @@ local CLEAR_CODER_PARAMS_RESPONSE_PROPERTIES = {
 	"sub_agents",
 }
 
+local ROOT_STAGE_EVENT = {
+	pre = "start",
+	post = "end",
+}
+
 -- Create a new sub_agent_config
 -- NOTE: when item is a table, not realy validation for now, just make sure .enabled is default to true
 -- TODO: when table should validate at lest that name is define
@@ -125,6 +130,47 @@ local function clone_history(history)
 	return aip.lua.merge_deep({}, history)
 end
 
+local function clone_agent_configs(configs)
+	local cloned = {}
+	if type(configs) ~= "table" then
+		return cloned
+	end
+
+	for _, config in ipairs(configs) do
+		table.insert(cloned, clone_shallow(config))
+	end
+
+	return cloned
+end
+
+local function normalize_emit_events(emit_events)
+	if type(emit_events) ~= "table" then
+		return nil
+	end
+
+	local normalized = {}
+	for _, event_name in ipairs(emit_events) do
+		if type(event_name) == "string" and event_name ~= "" then
+			table.insert(normalized, event_name)
+		end
+	end
+
+	if #normalized == 0 then
+		return nil
+	end
+
+	return normalized
+end
+
+local function new_dispatch_item(event_name, stage_name, agent_configs, history)
+	return {
+		event = event_name,
+		stage = stage_name,
+		agent_configs = clone_agent_configs(agent_configs),
+		history = clone_history(history or {}),
+	}
+end
+
 local function new_dev_sub_agent_config(dev, options)
 	return u_dev.new_dev_sub_agent_config(dev, options)
 end
@@ -175,17 +221,21 @@ function run_sub_agent(config, stage, current_params, current_coder_prompt, code
 	local sub_agents_prev = opts.sub_agents_prev
 	local sub_agents_next = opts.sub_agents_next
 	local extra_sub_input = opts.extra_sub_input
+	local event_name = opts.event
 	opts.sub_agents_prev = nil
 	opts.sub_agents_next = nil
 	opts.extra_sub_input = nil
+	opts.event = nil
 
 	if config.enabled == false then
-		return current_params, current_coder_prompt, nil
+		return current_params, current_coder_prompt, nil, nil, nil
 	end
 
 	local coder_params_for_sub = extract_coder_params(current_params)
 	local sub_input = {
-		_display         = "sub agent input {coder_stage, coder_params, coder_prompt, agent_config, coder_prompt_dir, sub_agents_prev, sub_agents_next}",
+		_display         = "sub agent input {event, stage, coder_stage, coder_params, coder_prompt, agent_config, coder_prompt_dir, sub_agents_prev, sub_agents_next}",
+		event            = event_name,
+		stage            = stage,
 		coder_stage      = stage,
 		coder_params     = coder_params_for_sub,
 		coder_prompt     = current_coder_prompt,
@@ -215,9 +265,10 @@ function run_sub_agent(config, stage, current_params, current_coder_prompt, code
 
 	local res = extract_sub_agent_response(run_res)
 	local next_configs = nil
+	local emit_events = nil
 
 	-- If res is nil, it is considered success with no modifications to the state.
-	if res == nil then return current_params, current_coder_prompt, next_configs end
+	if res == nil then return current_params, current_coder_prompt, next_configs, nil, emit_events end
 
 	if type(res) ~= "table" then
 		return nil, nil, nil, "Sub-agent [" .. config.name .. "] failed: invalid response type, expected table or nil"
@@ -251,9 +302,10 @@ function run_sub_agent(config, stage, current_params, current_coder_prompt, code
 		next_configs = extract_sub_agent_configs(res.sub_agents_next, { coder_prompt_dir = coder_prompt_dir })
 	end
 
+	emit_events = normalize_emit_events(res.emit_events)
 	local agent_result = type(res) == "table" and res.agent_result or nil
 
-	return current_params, current_coder_prompt, next_configs, agent_result
+	return current_params, current_coder_prompt, next_configs, agent_result, emit_events
 end
 
 -- Executes a list of sub-agents for a specific stage.
@@ -286,63 +338,87 @@ function run_sub_agents(stage, coder_meta, inst, coder_options, coder_prompt_dir
 	local current_coder_prompt = inst
 	local extra_sub_input = coder_options and coder_options.extra_sub_input or nil
 
-	local executed = {}
-	local i = 1
+	local initial_event = ROOT_STAGE_EVENT[stage]
+	if not initial_event then
+		return nil, nil, "Unsupported sub-agent stage: " .. tostring(stage)
+	end
+
+	local event_queue = {
+		new_dispatch_item(initial_event, stage, agent_configs, {})
+	}
+
 	local steps = 0
 
-	while i <= #agent_configs do
+	while #event_queue > 0 do
 		steps = steps + 1
 		if steps > MAX_SUB_AGENT_STEPS then
 			return nil, nil, "Sub-agent pipeline exceeded max steps (" .. MAX_SUB_AGENT_STEPS .. ")."
 		end
 
-		local config = agent_configs[i]
-		if not should_run_stage(config, stage) then
+		local dispatch = table.remove(event_queue, 1)
+		local dispatch_event = dispatch.event
+		local dispatch_stage = dispatch.stage
+		local dispatch_agent_configs = dispatch.agent_configs
+		local executed = dispatch.history or {}
+		local subscriber_configs = clone_agent_configs(dispatch_agent_configs)
+		local i = 1
+
+		while i <= #subscriber_configs do
+			local config = subscriber_configs[i]
+			if should_run_stage(config, dispatch_stage) and config_matches_event(config, dispatch_event) then
+				local sub_agents_prev = clone_history(executed)
+				local sub_agents_next = {}
+				for j = i + 1, #subscriber_configs do
+					table.insert(sub_agents_next, clone_shallow(subscriber_configs[j]))
+				end
+
+				local err
+				local returned_next
+				local agent_result
+				local emit_events
+				current_params, current_coder_prompt, returned_next, agent_result, emit_events, err = run_sub_agent(
+					config,
+					dispatch_stage,
+					current_params,
+					current_coder_prompt,
+					aip.lua.merge_deep({}, coder_options, {
+						event = dispatch_event,
+						sub_agents_prev = sub_agents_prev,
+						sub_agents_next = sub_agents_next,
+						extra_sub_input = extra_sub_input
+					}),
+					coder_prompt_dir
+				)
+				if err then return nil, nil, err end
+
+				table.insert(executed, {
+					config = clone_shallow(config),
+					sub_agent_result = agent_result,
+					agent_result = agent_result
+				})
+
+				if returned_next ~= nil then
+					local rebuilt = {}
+					for k = 1, i do
+						table.insert(rebuilt, subscriber_configs[k])
+					end
+					for _, cfg in ipairs(returned_next) do
+						table.insert(rebuilt, cfg)
+					end
+					subscriber_configs = rebuilt
+				end
+
+				if emit_events ~= nil then
+					for _, emitted_event in ipairs(emit_events) do
+						table.insert(event_queue, new_dispatch_item(emitted_event, dispatch_stage, subscriber_configs, executed))
+					end
+				end
+			end
+
 			i = i + 1
-			goto continue
-		end
-		local sub_agents_prev = clone_history(executed)
-		local sub_agents_next = {}
-		for j = i + 1, #agent_configs do
-			table.insert(sub_agents_next, clone_shallow(agent_configs[j]))
 		end
 
-		local err
-		local returned_next
-		local agent_result
-		current_params, current_coder_prompt, returned_next, agent_result, err = run_sub_agent(
-			config,
-			stage,
-			current_params,
-			current_coder_prompt,
-			aip.lua.merge_deep({}, coder_options, {
-				sub_agents_prev = sub_agents_prev,
-				sub_agents_next = sub_agents_next,
-				extra_sub_input = extra_sub_input
-			}),
-			coder_prompt_dir
-		)
-		if err then return nil, nil, err end
-
-		table.insert(executed, {
-			config = clone_shallow(config),
-			sub_agent_result = agent_result,
-			agent_result = agent_result
-		})
-
-		if returned_next ~= nil then
-			local rebuilt = {}
-			for k = 1, i do
-				table.insert(rebuilt, agent_configs[k])
-			end
-			for _, cfg in ipairs(returned_next) do
-				table.insert(rebuilt, cfg)
-			end
-			agent_configs = rebuilt
-		end
-
-		i = i + 1
-		::continue::
+		agent_configs = subscriber_configs
 	end
 
 	local new_coder_meta = current_params
