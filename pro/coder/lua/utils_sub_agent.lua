@@ -236,7 +236,6 @@ function run_sub_agent(config, stage, current_params, current_coder_prompt, code
 		_display         = "sub agent input {event, stage, coder_stage, coder_params, coder_prompt, agent_config, coder_prompt_dir, sub_agents_prev, sub_agents_next}",
 		event            = event_name,
 		stage            = stage,
-		coder_stage      = stage,
 		coder_params     = coder_params_for_sub,
 		coder_prompt     = current_coder_prompt,
 		coder_prompt_dir = coder_prompt_dir,

@@ -543,9 +543,6 @@ Sub-agents are standard `.aip` files. They receive stage-specific input structur
 type SubAgentPreInput = {
   event: string,            // Current event being handled, e.g. "start", "auto-context::end"
   stage: "pre",             // Runtime contract marker
-  
-  coder_stage: "pre",       // Compatibility alias of stage
-  
   coder_prompt_dir: string, // Absolute path to the prompt file directory
   coder_params: table,      // Current parameters (from YAML block or previous sub-agents)
   coder_prompt: string,     // Current instruction text
@@ -563,9 +560,6 @@ For `post`, the runtime input shape is:
 type SubAgentPostInput = {
   event: string,
   stage: "post",
-  
-  coder_stage: "post",
-  
   coder_prompt_dir: string,
   coder_params: table,
   coder_prompt: string,
@@ -964,7 +958,6 @@ The `post` input shape is:
 type SubAgentPostInput = {
   event: string,
   stage: "post",
-  coder_stage: "post",
   coder_prompt_dir: string,
   coder_params: table,
   coder_context_file_refs: table | nil,
