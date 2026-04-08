@@ -171,8 +171,7 @@ sub_agents:
   - my-agents/prompt-cleaner.aip # simple .aip file (see sub_agent section for input / output)
   - name: pro@coder/code-map     # code-map sub agent is also used in auto-context (but here is a custom example) (since v0.4.0)
     enabled: true # default run
-    stage_pre: true
-    stage_post: false
+    on: start
     named_maps: 
       - name: external-lib-docs  # will create .aipack/.prompt/pro@coder/.cache/code-map/external-lib-docs-code-map.json
         globs: 
@@ -403,7 +402,7 @@ Behavior:
 - `plan` ensures `_plan-rules.md` exists in the plan directory, prepends this rules file to `knowledge_globs_pre` (deduped), and appends `plan-*.md` to `context_globs_post` (deduped).
 - `spec` ensures `_spec-rules.md` exists, appends this rules file to `knowledge_globs_post` (deduped), and appends the resolved spec context file path to `context_globs_post` (deduped).
 - The sub-agent returns `agent_result.dev_content_globs` containing enabled dev content globs (chat path, plan glob, and/or spec file path). This lets downstream sub-agents consume helper files without depending on `dev` config internals.
-- If both `chat` and `plan` are disabled, the sub-agent is automatically disabled (no-op).
+- If all capabilities are disabled, the sub-agent is effectively disabled and does not modify params.
 
 Current shape:
 - **A table**:
@@ -594,8 +593,6 @@ Event defaults and behavior:
   - both `start` and `end`
   - emitted namespaced events
 
-The dispatcher still uses `stage_pre` and `stage_post` as runtime gating flags on normalized configs for backward-compatible internal execution, but event subscription is now the public configuration model.
-
 Normalized config shape:
 
 ```ts
@@ -603,8 +600,6 @@ type AgentConfig = {
   name: string,
   enabled: boolean,
   on: string | string[],
-  stage_pre: boolean,
-  stage_post: boolean,
   options?: table,
   [key: string]: any
 }
@@ -614,16 +609,16 @@ Normalization examples:
 
 ```ts
 "my-agent"
-// =>
-{ name: "my-agent", enabled: true, stage_pre: true, stage_post: false }
+// => normalized to
+{ name: "my-agent", enabled: true, on: "start"}
 
-{ name: "x", stage_pre: false }
-// =>
-{ name: "x", enabled: true, stage_pre: false, stage_post: false }
+{ name: "x", on: ["start"] }
+// => normalized to
+{ name: "x", enabled: true, on: ["start", "end"]}
 
-{ name: "x", stage_post: true }
-// =>
-{ name: "x", enabled: true, stage_pre: true, stage_post: true }
+{ name: "x", on: "end" }
+// => normalized to
+{ name: "x", enabled: true, on: ["end"]}
 ```
 
 To modify the request state, the sub-agent should return a stage-specific table. If the return value is `nil`, it is interpreted as success with no modifications.
@@ -665,12 +660,10 @@ type SubAgentPostOutput = {
 - `emit_events`: If provided, the listed events are appended to the current stage event queue in order.
 - Errors: If `success` is `false` or `error_msg` is present, the entire `pro@coder` run will halt with the provided error.
 
-A sub-agent can return this data either from:
+- A sub-agent can return this data either from:
 
 - The `# Output` stage (as the return value for the task).
 - The `# After All` stage (as the final return value).
-
-Sub-agents require AIPack 0.8.15 or above.
 
 #### Advanced pipeline context: `sub_agents_prev` and `sub_agents_next`
 
@@ -692,6 +685,8 @@ type SubAgentHistoryItem = {
 - `sub_agents_prev` is an array of `SubAgentHistoryItem`.
 - `sub_agents_next` is an array of normalized sub-agent configs (same shape as `sub_agents` entries after normalization).
 - During `post`, `sub_agents_prev` contains only earlier `post` executions from that same stage run, not the prior `pre` history.
+
+Sub-agents require AIPack 0.8.15 or above.
 
 Behavior:
 
@@ -924,7 +919,7 @@ To disable Plan-Based Development, remove the `...plan/*.md` glob pattern from y
 
 ## Post-stage sub-agent example
 
-You can configure a sub-agent to run after the main coder execution by enabling `stage_post`.
+You can configure a sub-agent to run after the main coder execution by subscribing to `end`.
 
 ```yaml
 sub_agents:
@@ -945,6 +940,14 @@ This sub-agent will run once globally in `# After All` and receive:
 If a `post` sub-agent fails, the run fails, but already-applied file changes are not rolled back.
 
 You can also configure a sub-agent to run on both stages:
+
+```yaml
+sub_agents:
+  - name: my-agent
+    on: ["start", "end"]
+```
+
+For example, a sub-agent can register to both root lifecycle events:
 
 ```yaml
 sub_agents:
