@@ -506,10 +506,21 @@ _since v0.3.0_
 
 Array of specialized agents to run at different stages of the `pro@coder` execution. Sub-agents allow for a pipeline where multiple agents can modify the state of the current request, which is useful for automated context building, instruction refinement, project-specific initialization, or after-all processing.
 
-Currently, sub-agents support:
+Currently, `pro@coder` seeds two canonical root events:
 
-- `pre`, during initialization (`# Before All`)
-- `post`, once globally after all task outputs complete (`# After All`)
+- `start`, during initialization (`# Before All`)
+- `end`, once globally after all task outputs complete (`# After All`)
+
+The root event-to-stage mapping is:
+
+- `start` -> `stage: "pre"`
+- `end` -> `stage: "post"`
+
+Sub-agents may also emit and subscribe to additional namespaced events, for example:
+
+- `auto-context::end`
+- `dev::end`
+- `code-map::updated`
 
 Sub-agents can be defined as:
 
@@ -520,8 +531,7 @@ Available properties for the table definition:
 
 - `name` (string): The name or path of the agent.
 - `enabled` (boolean, optional, default `true`): Whether to run this sub-agent.
-- `stage_pre` (boolean, optional, default `true`): Whether to run this sub-agent during the `pre` stage.
-- `stage_post` (boolean, optional, default `false`): Whether to run this sub-agent during the `post` stage.
+- `on` (string or string[], optional, default `start`): The event or events this sub-agent subscribes to.
 - `options` (table): Agent options (like `model`,`input_concurrency`) specifically for this sub-agent run.
 - **Additional properties**: Any other keys provided in the table will be passed to the sub-agent via the `agent_config` field in its input.
 
@@ -531,7 +541,9 @@ Sub-agents are standard `.aip` files. They receive the following structure as th
 
 ```ts
 type SubAgentInput = {
-  coder_stage: "pre" | "post", // Current execution stage
+  event: string,            // Current event being handled, e.g. "start", "end", "auto-context::end"
+  stage: "pre" | "post",    // Runtime contract marker
+  coder_stage: "pre" | "post", // Compatibility alias of stage
   coder_prompt_dir: string,// Absolute path to the prompt file directory
   coder_params: table,     // Current parameters (from YAML block or previous sub-agents)
   coder_prompt: string,    // Current instruction text
@@ -559,14 +571,14 @@ type CoderAgentResponse = {
 }
 ```
 
-Stage defaults and behavior:
+Event defaults and behavior:
 
-- `stage_pre` defaults to `true`
-- `stage_post` defaults to `false`
-- A sub-agent may therefore run:
-  - only on `pre`
-  - only on `post`
-  - on both `pre` and `post`
+- `on` defaults to `start`
+- A sub-agent may therefore run on:
+  - only `start`
+  - only `end`
+  - both `start` and `end`
+  - emitted namespaced events
 
 Normalized config shape:
 
@@ -606,6 +618,7 @@ type SubAgentOutput = {
   agent_result?: any,        // Optional: Pipeline payload exposed in sub_agents_prev
 
   sub_agents_next?: table[], // Optional: Replaces the pending sub-agent tail
+  emit_events?: string[],    // Optional: Queues follow-up events in FIFO order for the current stage
 
   success?: boolean,         // Optional (defaults to true). Set to false to fail.
   error_msg?: string,        // Optional. If present, the run fails with this message.
@@ -618,7 +631,8 @@ type SubAgentOutput = {
 - `coder_params`: If provided during `pre`, this table is shallow-merged into the current parameters. This means you only need to return the keys you wish to add or change. During `post`, it is currently ignored.
 - `coder_prompt`: If provided during `pre`, this string replaces the current instruction for the remainder of the pipeline. During `post`, it is currently ignored.
 - `agent_result`: If provided, this payload is exposed to downstream sub-agents through `sub_agents_prev[*].agent_result` (and `sub_agent_result` for compatibility).
-- `sub_agents_next`: If provided, it replaces the pending tail of the pipeline.
+- `sub_agents_next`: If provided, it replaces the pending tail of the pipeline for future dispatch only.
+- `emit_events`: If provided, the listed events are appended to the current stage event queue in order.
 - Errors: If `success` is `false` or `error_msg` is present, the entire `pro@coder` run will halt with the provided error.
 
 A sub-agent can return this data either from:
@@ -652,9 +666,11 @@ type SubAgentHistoryItem = {
 Behavior:
 
 - A running sub-agent can return `sub_agents_next` to replace the pending tail of the current stage pipeline.
+- A running sub-agent can return `emit_events` to append additional events to the current stage queue.
 - This allows dynamically adding, removing, reordering, or re-introducing agents.
 - Duplicates are allowed, no deduplication is applied.
 - Already executed agents are not modified in-place.
+- Event dispatch is FIFO and non-recursive. Emitted events are handled after the current event pass finishes.
 - Safety cap: the dynamic pipeline is limited to 100 total steps to prevent accidental loops.
 
 This is an advanced feature intended for orchestrating multi-agent flows and should generally be used only when standard `sub_agents` chaining is not sufficient.
@@ -671,6 +687,7 @@ The dev sub-agent prepares and wires dev capabilities into context. Current capa
 sub_agents:
   - name: pro@coder/dev
     enabled: true
+    on: start
     chat:            # or chat: true (default false)
       enabled: true  
       # path: .aipack/.prompt/pro@coder/workbench-default/dev-chat.md
@@ -763,6 +780,7 @@ sub_agents:
   # Automatic context file selector (based on context-globs, using code-map)
   - name: pro@coder/auto-context
     enabled: false              # comment or set to true (default true)
+    on: start
     knowledge: true             # automatically select knowledge files (default true)
     mode: reduce                # "reduce" (default) or "expand"
     model: flash                # small/cheap model to optimize which files are selected
@@ -881,8 +899,7 @@ You can configure a sub-agent to run after the main coder execution by enabling 
 ```yaml
 sub_agents:
   - name: my-post-agent
-    stage_pre: false
-    stage_post: true
+    on: end
 ```
 
 This sub-agent will run once globally in `# After All` and receive:
@@ -902,14 +919,15 @@ You can also configure a sub-agent to run on both stages:
 ```yaml
 sub_agents:
   - name: my-agent
-    stage_pre: true
-    stage_post: true
+    on: ["start", "end"]
 ```
 
 The `post` input shape is:
 
 ```ts
 type SubAgentPostInput = {
+  event: string,
+  stage: "post",
   coder_stage: "post",
   coder_prompt_dir: string,
   coder_params: table,
@@ -938,10 +956,9 @@ The `post` output contract still accepts the same fields as `pre`, but with rest
 
 ```ts
 type SubAgentPostOutput = {
-  coder_params?: table,
-  coder_prompt?: string,
   agent_result?: any,
   sub_agents_next?: AgentConfig[],
+  emit_events?: string[],
   success?: boolean,
   error_msg?: string,
   error_details?: string,
@@ -953,7 +970,8 @@ Post-stage output behavior:
 - `success`, `error_msg`, and `error_details` are honored.
 - `agent_result` is preserved for downstream `post` pipeline context.
 - `sub_agents_next` may replace the remaining `post` pipeline tail.
-- `coder_params` and `coder_prompt` are currently ignored during `post`.
+- `emit_events` appends follow-up post-stage events to the queue in order.
+- `coder_params` and `coder_prompt` are not part of the documented post-stage output contract.
 
 ## Spec-Based Development
 
