@@ -401,37 +401,38 @@ function run_before_all(inputs)
 
 	local coder_prompt_dir = paths.prompt_dir
 
-	local seed_agents = {}
+	local user_sub_agents = meta.sub_agents
+	if type(user_sub_agents) ~= "table" then
+		user_sub_agents = {}
+	end
 
-	-- === Seed dev into seed_agents if present
+	local builtin_sub_agents = {}
+
+	-- === Build dev sub agent if present
 	if not is_null(meta.dev) then
 		local dev_config = u_dev.new_dev_sub_agent_config(meta.dev, { coder_prompt_dir = coder_prompt_dir })
 		if dev_config then
-			table.insert(seed_agents, dev_config)
+			table.insert(builtin_sub_agents, dev_config)
 		end
 		meta.dev = nil
 	end
 
-	-- === Seed auto_context into seed_agents if present
+	-- === Build auto_context sub agent if present
 	if not is_null(meta.auto_context) then
 		local ac_config = u_auto_context.new_auto_context_sub_agent_config(meta.auto_context)
 		if ac_config then
-			table.insert(seed_agents, ac_config)
+			table.insert(builtin_sub_agents, ac_config)
 		end
 		meta.auto_context = nil
 	end
 
-	-- === Prepend seed_agents to eventual sub_agents
-	if #seed_agents > 0 then
-		local current_sub_agents = meta.sub_agents
-		if type(current_sub_agents) ~= "table" then
-			current_sub_agents = {}
-		end
+	-- === Merge user and builtin agents (user-defined first)
+	if #builtin_sub_agents > 0 then
 		local merged_sub_agents = {}
-		for _, sa in ipairs(seed_agents) do
+		for _, sa in ipairs(user_sub_agents) do
 			table.insert(merged_sub_agents, sa)
 		end
-		for _, sa in ipairs(current_sub_agents) do
+		for _, sa in ipairs(builtin_sub_agents) do
 			table.insert(merged_sub_agents, sa)
 		end
 		meta.sub_agents = merged_sub_agents
