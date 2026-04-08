@@ -25,11 +25,12 @@ auto_context:
   input_concurrency: 16  # (default 8)
   enabled: false         # (Default true) Comment or set to true to enable.
 
+# Uncomment dev artifact you want to activate
 dev:
-  # dir:  PATH_TO_PRO_CODER_DIR/workbench-default  # Shared fallback root
-  chat: false   # path: PATH_TO_PRO_CODER_DIR/workbench-default/dev-chat.md 
-  plan: false   # dir:  PATH_TO_PRO_CODER_DIR/workbench-default/ (rules and steps)
-  spec: false   # path: PATH_TO_PRO_CODER_DIR/workbench-default/spec.md
+  # dir:  PATH_TO_PRO_CODER_DIR/workbench-default  # default workbench directory
+  # chat: true   # default path: PATH_TO_PRO_CODER_DIR/workbench-default/dev-chat.md 
+  # plan: true   # default todo:  PATH_TO_PRO_CODER_DIR/workbench-default/plan-1-todo.md
+  # spec: true   # default path: PATH_TO_PRO_CODER_DIR/workbench-default/spec.md
 
 ## Full model names or aliases (see aliases ~/.aipack-base/config-default.toml)
 ## -high, -medium, or -low suffixes for reasoning (e.g., "flash-low", "opus-max", "gpt-high")
