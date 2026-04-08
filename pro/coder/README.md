@@ -544,14 +544,14 @@ type SubAgentInput = {
   event: string,            // Current event being handled, e.g. "start", "end", "auto-context::end"
   stage: "pre" | "post",    // Runtime contract marker
   coder_stage: "pre" | "post", // Compatibility alias of stage
-  coder_prompt_dir: string,// Absolute path to the prompt file directory
-  coder_params: table,     // Current parameters (from YAML block or previous sub-agents)
-  coder_prompt: string,    // Current instruction text
-  agent_config: table,     // The configuration object defined in the sub_agents list
+  coder_prompt_dir: string, // Absolute path to the prompt file directory
+  coder_params: table,      // Current parameters (from YAML block or previous sub-agents)
+  coder_prompt: string,     // Current instruction text
+  agent_config: AgentConfig,// The configuration object defined in the sub_agents list
 
   // Present for all stages
   sub_agents_prev?: SubAgentHistoryItem[],
-  sub_agents_next?: table[],
+  sub_agents_next?: AgentConfig[],
 
   // Present for post stage
   coder_context_file_refs?: table | nil,
@@ -580,12 +580,15 @@ Event defaults and behavior:
   - both `start` and `end`
   - emitted namespaced events
 
+The dispatcher still uses `stage_pre` and `stage_post` as runtime gating flags on normalized configs for backward-compatible internal execution, but event subscription is now the public configuration model.
+
 Normalized config shape:
 
 ```ts
 type AgentConfig = {
   name: string,
   enabled: boolean,
+  on: string | string[],
   stage_pre: boolean,
   stage_post: boolean,
   options?: table,
@@ -613,16 +616,16 @@ To modify the request state, the sub-agent should return a table. If the return 
 
 ```ts
 type SubAgentOutput = {
-  coder_params?: table,      // Optional: Merged into the current parameters
-  coder_prompt?: string,     // Optional: Replaces the current instruction
-  agent_result?: any,        // Optional: Pipeline payload exposed in sub_agents_prev
+  coder_params?: table,          // Optional: Merged into the current parameters during pre
+  coder_prompt?: string,         // Optional: Replaces the current instruction during pre
+  agent_result?: any,            // Optional: Pipeline payload exposed in sub_agents_prev
 
-  sub_agents_next?: table[], // Optional: Replaces the pending sub-agent tail
-  emit_events?: string[],    // Optional: Queues follow-up events in FIFO order for the current stage
+  sub_agents_next?: AgentConfig[], // Optional: Replaces the pending sub-agent tail
+  emit_events?: string[],        // Optional: Queues follow-up events in FIFO order for the current stage
 
-  success?: boolean,         // Optional (defaults to true). Set to false to fail.
-  error_msg?: string,        // Optional. If present, the run fails with this message.
-  error_details?: string,    // Optional. More context for the failure.
+  success?: boolean,             // Optional (defaults to true). Set to false to fail.
+  error_msg?: string,            // Optional. If present, the run fails with this message.
+  error_details?: string,        // Optional. More context for the failure.
 }
 ```
 
