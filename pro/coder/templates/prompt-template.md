@@ -7,9 +7,9 @@
 ## Static knowledge (relative & absolute)
 knowledge_globs:
   # - /abs/or/rel/path/to/**/*.md      # Relative or absolute path/glob for Markdown files
+  # - pro@rust10x/guide/base/**/*.md   # Rust best practices (requires `aip install pro@rust10x`)
   # - pro@coder/README.md              # Pack path supported (ask question about pro@coder)
   # - core@doc/for-llm/**/*.md         # For help building .aip AIPack agents
-  # - pro@rust10x/guide/base/**/*.md   # Rust best practices (requires `aip install pro@rust10x`)
 
 ## Files the AI will work on (paths & content included in prompt, relative only)
 context_globs:
