@@ -25,7 +25,7 @@ auto_context:
   input_concurrency: 16  # (default 8)
   enabled: false         # (Default true) Comment or set to true to enable.
 
-# Uncomment workbench artifact you want to activate
+# Default dir: PATH_TO_PRO_CODER_DIR/workbench-default 
 workbench:
   # dir:  PATH_TO_PRO_CODER_DIR/workbench-default  # default workbench directory
   # chat: true   # default path: PATH_TO_PRO_CODER_DIR/workbench-default/chat.md 
