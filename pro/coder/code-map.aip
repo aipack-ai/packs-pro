@@ -22,6 +22,7 @@ local recovered_count = 0
 if aip.path.exists(tmp_in_progress_path) then
 	local ok, recovered_entries = pcall(aip.file.load_ndjson, tmp_in_progress_path)
 	if ok then
+		local recovered_map_paths = {}
 		if recovered_entries and #recovered_entries > 0 then
 			for _, entry in ipairs(recovered_entries) do
 				local fpath = entry.file_path
@@ -40,6 +41,7 @@ if aip.path.exists(tmp_in_progress_path) then
 						for _, map_path in ipairs(entry.maps_to_process_for) do
 							if loaded_maps[map_path] then
 								loaded_maps[map_path].file_map[fpath] = record
+								recovered_map_paths[map_path] = true
 							end
 						end
 					end
@@ -47,12 +49,17 @@ if aip.path.exists(tmp_in_progress_path) then
 						for _, map_path in ipairs(entry.maps_up_to_date_for) do
 							if loaded_maps[map_path] then
 								loaded_maps[map_path].file_map[fpath] = record
+								recovered_map_paths[map_path] = true
 							end
 						end
 					end
 					recovered_count = recovered_count + 1
 				end
 			end
+		end
+		for map_path, _ in pairs(recovered_map_paths) do
+			local content = aip.json.stringify_pretty(loaded_maps[map_path])
+			aip.file.save(map_path, content)
 		end
 	else
 		-- Truncate the invalid file so this run starts fresh and next run can recover cleanly
