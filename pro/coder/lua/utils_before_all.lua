@@ -375,6 +375,11 @@ function run_before_all(inputs)
 	-- === Extract the meta and instruction
 	local meta, inst = extract_meta_and_inst(first_part)
 
+	aip.run.pin("pfile", 4, {
+		label = CONST.LABEL_PROMPT_FILE,
+		content = paths.prompt_file_rel_path
+	})
+
 	-- === Normalize pinned globs
 	local context_globs_pre, err_cp = u_pinned.validate_string_list(meta.context_globs_pre, "context_globs_pre")
 	if not context_globs_pre then return nil, nil, err_cp end
@@ -483,11 +488,6 @@ function run_before_all(inputs)
 	local final_ctx_post = meta.context_globs_post or {}
 	local final_knl_pre = meta.knowledge_globs_pre or {}
 	local final_knl_post = meta.knowledge_globs_post or {}
-
-	aip.run.pin("pfile", 6, {
-		label = CONST.LABEL_PROMPT_FILE,
-		content = paths.prompt_file_rel_path
-	})
 
 	-- === Determine if we should skip
 	if inst == "" then
