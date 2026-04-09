@@ -128,7 +128,7 @@ local function resolve_workbench_plan_dir(workbench_plan_dir, options)
 end
 
 local function load_workbench_chat_template_content()
-	local template_path = CTX.AGENT_FILE_DIR .. "/workbench-templates/dev-chat.md"
+	local template_path = CTX.AGENT_FILE_DIR .. "/workbench-templates/chat.md"
 	local template_file = aip.file.load(template_path)
 	if type(template_file) == "table" and type(template_file.content) == "string" and template_file.content ~= "" then
 		return template_file.content
