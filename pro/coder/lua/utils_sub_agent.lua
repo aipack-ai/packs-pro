@@ -12,18 +12,13 @@ local CLEAR_CODER_PARAMS_RESPONSE_PROPERTIES = {
 	"sub_agents",
 }
 
-local ROOT_STAGE_EVENT = {
-	pre = "start",
-	post = "end",
-}
-
 -- Create a new sub_agent_config
 -- NOTE: when item is a table, not realy validation for now, just make sure .enabled is default to true
 -- TODO: when table should validate at lest that name is define
 local function new_sub_agent_config(sub_agent_item, options)
 	local item = sub_agent_item
 	if type(item) == "string" then
-		return { name = item, enabled = true, on = "start", stage_pre = true, stage_post = false }
+		return { name = item, enabled = true, on = "start" }
 	elseif type(item) == "table" and item.name then
 		if item.enabled == nil then
 			item.enabled = true -- default true
@@ -31,23 +26,14 @@ local function new_sub_agent_config(sub_agent_item, options)
 		if item.on == nil then
 			item.on = "start"
 		end
-		if item.stage_pre == nil then
-			item.stage_pre = true
-		end
-		if item.stage_post == nil then
-			item.stage_post = false
-		end
 		if item.name == "pro@coder/dev" then
 			local dev_config = u_dev.new_dev_sub_agent_config(item, options)
 			if dev_config then
 				if dev_config.enabled == nil then
 					dev_config.enabled = true
 				end
-				if dev_config.stage_pre == nil then
-					dev_config.stage_pre = true
-				end
-				if dev_config.stage_post == nil then
-					dev_config.stage_post = false
+				if dev_config.on == nil then
+					dev_config.on = "start"
 				end
 				return dev_config
 			end
@@ -194,20 +180,109 @@ local function extract_sub_agent_response(run_res)
 	return nil
 end
 
-local function should_run_stage(config, stage)
-	if config.enabled == false then
-		return false
+local function run_sub_agents_dispatch(dispatch_item, coder_meta, inst, coder_options, coder_prompt_dir)
+	local agent_configs = extract_sub_agent_configs(coder_meta.sub_agents, { coder_prompt_dir = coder_prompt_dir })
+	if #agent_configs == 0 then
+		return coder_meta, inst
 	end
 
-	if stage == "pre" then
-		return config.stage_pre ~= false
+	local current_params = aip.lua.merge_deep({}, coder_meta)
+	current_params.sub_agents = nil -- for now remove this list (we might put the agent_configs later)
+
+	-- Ensure glob parameters are tables if nil
+	current_params.context_globs = value_or(current_params.context_globs, {})
+	current_params.structure_globs = value_or(current_params.structure_globs, {})
+	current_params.knowledge_globs = value_or(current_params.knowledge_globs, {})
+	current_params.context_globs_pre = value_or(current_params.context_globs_pre, {})
+	current_params.context_globs_post = value_or(current_params.context_globs_post, {})
+	current_params.knowledge_globs_pre = value_or(current_params.knowledge_globs_pre, {})
+	current_params.knowledge_globs_post = value_or(current_params.knowledge_globs_post, {})
+
+	local current_coder_prompt = inst
+	local extra_sub_input = coder_options and coder_options.extra_sub_input or nil
+	local event_queue = {
+		new_dispatch_item(dispatch_item.event, dispatch_item.stage, agent_configs, dispatch_item.history or {})
+	}
+
+	local steps = 0
+
+	while #event_queue > 0 do
+		steps = steps + 1
+		if steps > MAX_SUB_AGENT_STEPS then
+			return nil, nil, "Sub-agent pipeline exceeded max steps (" .. MAX_SUB_AGENT_STEPS .. ")."
+		end
+
+		local dispatch = table.remove(event_queue, 1)
+		local dispatch_event = dispatch.event
+		local dispatch_stage = dispatch.stage
+		local dispatch_agent_configs = dispatch.agent_configs
+		local executed = dispatch.history or {}
+		local subscriber_configs = clone_agent_configs(dispatch_agent_configs)
+		local i = 1
+
+		while i <= #subscriber_configs do
+			local config = subscriber_configs[i]
+			if config_matches_event(config, dispatch_event) then
+				local sub_agents_prev = clone_history(executed)
+				local sub_agents_next = {}
+				for j = i + 1, #subscriber_configs do
+					table.insert(sub_agents_next, clone_shallow(subscriber_configs[j]))
+				end
+
+				local err
+				local returned_next
+				local agent_result
+				local emit_events
+				current_params, current_coder_prompt, returned_next, agent_result, emit_events, err = run_sub_agent(
+					config,
+					dispatch_stage,
+					current_params,
+					current_coder_prompt,
+					aip.lua.merge_deep({}, coder_options, {
+						event = dispatch_event,
+						sub_agents_prev = sub_agents_prev,
+						sub_agents_next = sub_agents_next,
+						extra_sub_input = extra_sub_input
+					}),
+					coder_prompt_dir
+				)
+				if err then return nil, nil, err end
+
+				table.insert(executed, {
+					config = clone_shallow(config),
+					sub_agent_result = agent_result,
+					agent_result = agent_result
+				})
+
+				if returned_next ~= nil then
+					local rebuilt = {}
+					for k = 1, i do
+						table.insert(rebuilt, subscriber_configs[k])
+					end
+					for _, cfg in ipairs(returned_next) do
+						table.insert(rebuilt, cfg)
+					end
+					subscriber_configs = rebuilt
+				end
+
+				if emit_events ~= nil then
+					for _, emitted_event in ipairs(emit_events) do
+						table.insert(event_queue, new_dispatch_item(emitted_event, dispatch_stage, subscriber_configs, executed))
+					end
+				end
+			end
+
+			i = i + 1
+		end
+
+		agent_configs = subscriber_configs
 	end
 
-	if stage == "post" then
-		return config.stage_post == true
-	end
+	local new_coder_meta = current_params
+	-- put back the sub_agents
+	new_coder_meta.sub_agents = agent_configs
 
-	return true
+	return new_coder_meta, current_coder_prompt
 end
 
 -- === /Support Functions
@@ -308,124 +383,34 @@ function run_sub_agent(config, stage, current_params, current_coder_prompt, code
 	return current_params, current_coder_prompt, next_configs, agent_result, emit_events
 end
 
--- Executes a list of sub-agents for a specific stage.
+-- Executes pre-stage sub-agents with the explicit root start event.
 -- Returns the modified meta and instruction string (derived from concatenated prompts).
-function run_sub_agents(stage, coder_meta, inst, coder_options, coder_prompt_dir)
+function run_sub_agents_pre(coder_meta, inst, coder_options, coder_prompt_dir)
 	-- Check AIPack version for sub-agent support
 	if not aip.semver.compare(CTX.AIPACK_VERSION, ">", "0.8.14") then
 		return nil, nil, "Sub-agents require AIPack 0.8.15 or above (current: " .. CTX.AIPACK_VERSION .. ")"
 	end
 
-	local sub_agents = coder_meta.sub_agents
+	return run_sub_agents_dispatch({
+		event = "start",
+		stage = "pre",
+		history = {},
+	}, coder_meta, inst, coder_options, coder_prompt_dir)
+end
 
-	local agent_configs = extract_sub_agent_configs(sub_agents, { coder_prompt_dir = coder_prompt_dir })
-	if #agent_configs == 0 then
-		return coder_meta, inst
+-- Executes post-stage sub-agents with the explicit root end event.
+-- Returns the modified meta and instruction string (derived from concatenated prompts).
+function run_sub_agents_post(coder_meta, inst, coder_options, coder_prompt_dir)
+	-- Check AIPack version for sub-agent support
+	if not aip.semver.compare(CTX.AIPACK_VERSION, ">", "0.8.14") then
+		return nil, nil, "Sub-agents require AIPack 0.8.15 or above (current: " .. CTX.AIPACK_VERSION .. ")"
 	end
 
-	local current_params = aip.lua.merge_deep({}, coder_meta)
-	current_params.sub_agents = nil -- for now remove this list (we might put the agent_configs later)
-
-	-- Ensure glob parameters are tables if nil
-	current_params.context_globs = value_or(current_params.context_globs, {})
-	current_params.structure_globs = value_or(current_params.structure_globs, {})
-	current_params.knowledge_globs = value_or(current_params.knowledge_globs, {})
-	current_params.context_globs_pre = value_or(current_params.context_globs_pre, {})
-	current_params.context_globs_post = value_or(current_params.context_globs_post, {})
-	current_params.knowledge_globs_pre = value_or(current_params.knowledge_globs_pre, {})
-	current_params.knowledge_globs_post = value_or(current_params.knowledge_globs_post, {})
-
-	local current_coder_prompt = inst
-	local extra_sub_input = coder_options and coder_options.extra_sub_input or nil
-
-	local initial_event = ROOT_STAGE_EVENT[stage]
-	if not initial_event then
-		return nil, nil, "Unsupported sub-agent stage: " .. tostring(stage)
-	end
-
-	local event_queue = {
-		new_dispatch_item(initial_event, stage, agent_configs, {})
-	}
-
-	local steps = 0
-
-	while #event_queue > 0 do
-		steps = steps + 1
-		if steps > MAX_SUB_AGENT_STEPS then
-			return nil, nil, "Sub-agent pipeline exceeded max steps (" .. MAX_SUB_AGENT_STEPS .. ")."
-		end
-
-		local dispatch = table.remove(event_queue, 1)
-		local dispatch_event = dispatch.event
-		local dispatch_stage = dispatch.stage
-		local dispatch_agent_configs = dispatch.agent_configs
-		local executed = dispatch.history or {}
-		local subscriber_configs = clone_agent_configs(dispatch_agent_configs)
-		local i = 1
-
-		while i <= #subscriber_configs do
-			local config = subscriber_configs[i]
-			if should_run_stage(config, dispatch_stage) and config_matches_event(config, dispatch_event) then
-				local sub_agents_prev = clone_history(executed)
-				local sub_agents_next = {}
-				for j = i + 1, #subscriber_configs do
-					table.insert(sub_agents_next, clone_shallow(subscriber_configs[j]))
-				end
-
-				local err
-				local returned_next
-				local agent_result
-				local emit_events
-				current_params, current_coder_prompt, returned_next, agent_result, emit_events, err = run_sub_agent(
-					config,
-					dispatch_stage,
-					current_params,
-					current_coder_prompt,
-					aip.lua.merge_deep({}, coder_options, {
-						event = dispatch_event,
-						sub_agents_prev = sub_agents_prev,
-						sub_agents_next = sub_agents_next,
-						extra_sub_input = extra_sub_input
-					}),
-					coder_prompt_dir
-				)
-				if err then return nil, nil, err end
-
-				table.insert(executed, {
-					config = clone_shallow(config),
-					sub_agent_result = agent_result,
-					agent_result = agent_result
-				})
-
-				if returned_next ~= nil then
-					local rebuilt = {}
-					for k = 1, i do
-						table.insert(rebuilt, subscriber_configs[k])
-					end
-					for _, cfg in ipairs(returned_next) do
-						table.insert(rebuilt, cfg)
-					end
-					subscriber_configs = rebuilt
-				end
-
-				if emit_events ~= nil then
-					for _, emitted_event in ipairs(emit_events) do
-						table.insert(event_queue, new_dispatch_item(emitted_event, dispatch_stage, subscriber_configs, executed))
-					end
-				end
-			end
-
-			i = i + 1
-		end
-
-		agent_configs = subscriber_configs
-	end
-
-	local new_coder_meta = current_params
-	-- put back the sub_agents
-	new_coder_meta.sub_agents = agent_configs
-
-	return new_coder_meta, current_coder_prompt
+	return run_sub_agents_dispatch({
+		event = "end",
+		stage = "post",
+		history = {},
+	}, coder_meta, inst, coder_options, coder_prompt_dir)
 end
 
 -- === /Public Interfaces
@@ -435,5 +420,6 @@ return {
 	new_dev_sub_agent_config   = new_dev_sub_agent_config,
 	normalize_sub_agent_events = normalize_sub_agent_events,
 	run_sub_agent              = run_sub_agent,
-	run_sub_agents             = run_sub_agents
+	run_sub_agents_post        = run_sub_agents_post,
+	run_sub_agents_pre         = run_sub_agents_pre
 }
