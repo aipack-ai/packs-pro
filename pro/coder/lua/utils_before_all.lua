@@ -422,7 +422,8 @@ function run_before_all(inputs)
 			})
 		end
 
-		local workbench_config = u_workbench.new_workbench_sub_agent_config(selected_workbench, { coder_prompt_dir = coder_prompt_dir })
+		local workbench_config = u_workbench.new_workbench_sub_agent_config(selected_workbench,
+			{ coder_prompt_dir = coder_prompt_dir })
 		if workbench_config then
 			workbench_config.on = value_or(workbench_config.on, "start")
 			table.insert(builtin_sub_agents, workbench_config)
@@ -483,7 +484,7 @@ function run_before_all(inputs)
 	local final_knl_pre = meta.knowledge_globs_pre or {}
 	local final_knl_post = meta.knowledge_globs_post or {}
 
-	aip.run.pin("pfile", 0, {
+	aip.run.pin("pfile", 6, {
 		label = CONST.LABEL_PROMPT_FILE,
 		content = paths.prompt_file_rel_path
 	})
@@ -505,23 +506,33 @@ function run_before_all(inputs)
 
 	-- Resolve pinned pre/post separately (aip.file.list, not list_likely_text),
 	-- then do a single ordered merge per ref type.
-	local ctx_pre_refs  = #final_ctx_pre > 0  and aip.file.list(final_ctx_pre, { base_dir = base_dir }) or {}
-	local ctx_post_refs = #final_ctx_post > 0 and aip.file.list(final_ctx_post, { base_dir = base_dir }) or {}
-	local knl_pre_refs  = #final_knl_pre > 0  and aip.file.list(final_knl_pre, { base_dir = CTX.WORKSPACE_DIR }) or {}
-	local knl_post_refs = #final_knl_post > 0 and aip.file.list(final_knl_post, { base_dir = CTX.WORKSPACE_DIR }) or {}
+	local ctx_pre_refs                                                              = #final_ctx_pre > 0 and
+			aip.file.list(final_ctx_pre, { base_dir = base_dir }) or {}
+	local ctx_post_refs                                                             = #final_ctx_post > 0 and
+			aip.file.list(final_ctx_post, { base_dir = base_dir }) or {}
+	local knl_pre_refs                                                              = #final_knl_pre > 0 and
+			aip.file.list(final_knl_pre, { base_dir = CTX.WORKSPACE_DIR }) or {}
+	local knl_post_refs                                                             = #final_knl_post > 0 and
+			aip.file.list(final_knl_post, { base_dir = CTX.WORKSPACE_DIR }) or {}
 
-	context_refs   = u_pinned.merge_pinned(ctx_pre_refs, context_refs or {}, ctx_post_refs)
-	knowledge_refs = u_pinned.merge_pinned(knl_pre_refs, knowledge_refs or {}, knl_post_refs)
+	context_refs                                                                    = u_pinned.merge_pinned(ctx_pre_refs,
+		context_refs or {}, ctx_post_refs)
+	knowledge_refs                                                                  = u_pinned.merge_pinned(knl_pre_refs,
+		knowledge_refs or {}, knl_post_refs)
 
 	-- For the report, keep pre/post as separate lists (nil if empty).
-	local context_refs_pre   = #ctx_pre_refs > 0  and ctx_pre_refs  or nil
-	local context_refs_post  = #ctx_post_refs > 0 and ctx_post_refs or nil
-	local knowledge_refs_pre = #knl_pre_refs > 0  and knl_pre_refs  or nil
-	local knowledge_refs_post = #knl_post_refs > 0 and knl_post_refs or nil
+	local context_refs_pre                                                          = #ctx_pre_refs > 0 and ctx_pre_refs or
+			nil
+	local context_refs_post                                                         = #ctx_post_refs > 0 and ctx_post_refs or
+			nil
+	local knowledge_refs_pre                                                        = #knl_pre_refs > 0 and knl_pre_refs or
+			nil
+	local knowledge_refs_post                                                       = #knl_post_refs > 0 and knl_post_refs or
+			nil
 
-	local write_mode = meta.write_mode or false
+	local write_mode                                                                = meta.write_mode or false
 	-- === Compute include_second_partby default we include second part if not nil
-	local include_second_part = second_part ~= nil
+	local include_second_part                                                       = second_part ~= nil
 	if write_mode == true then
 		-- if write_mode, we do not include second part
 		include_second_part = false

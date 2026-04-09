@@ -29,7 +29,7 @@ function build_info_lines(ai_response, data)
 	return content
 end
 
-function process_ui_directives(content)
+function process_ui_directives(content, single_task)
 	-- if API not here, then do nothing
 	if aip.tag == nil or aip.tag.extract == nil
 			or aip.task == nil or aip.task.pin == nil
@@ -47,6 +47,12 @@ function process_ui_directives(content)
 				label   = CONST.LABEL_GIT_COMMIT,
 				content = aip.text.trim(elem.content)
 			})
+			if single_task then
+				aip.run.pin("gitc_run", 1, {
+					label   = CONST.LABEL_GIT_COMMIT,
+					content = aip.text.trim(elem.content)
+				})
+			end
 		elseif elem.tag == "AIP_TO_PIN" then
 			local body = aip.text.trim(elem.content)
 			if body ~= nil and body ~= "" then

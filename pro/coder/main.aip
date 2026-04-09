@@ -5,6 +5,10 @@ local u_before_all   = require("utils_before_all")
 
 local new_inputs, options, err = u_before_all.run_before_all(inputs)
 if err then return aip.flow.skip(err) end
+	
+if new_inputs and #new_inputs == 1 then
+	new_inputs[1].single_task = true
+end
 
 return aip.flow.before_all_response({
     inputs  = new_inputs,
@@ -196,11 +200,11 @@ if output_base then
 		post_has_failure = true
 		post_error_msg = err
 		post_err = err
-		aip.run.pin("completed", 0, {
+		aip.run.pin("completed", 10, {
 			label = CONST.LABEL_COMPLETED,
 			content = "⚠ Post-stage sub-agent failed.\n\n" .. err
 		})
-		aip.run.pin("post_stage_failed", 0, {
+		aip.run.pin("post_stage_failed", 10, {
 			label = "WARNING",
 			content = "Post-stage sub-agent execution failed after main output processing.\n\n" .. err
 		})
@@ -434,10 +438,10 @@ local file_changes_status = nil
 second_part, files_changed, files_changes_failed, file_changes_status = u_output.apply_changes(ai_content, data)
 
 -- === Process files_changes_failed
-u_output.handle_failed_changes(files_changes_failed, data)
+u_output.handle_failed_changes(files_changes_failed, data,  input.single_task)
 
 -- === Process the eventual content to pin/print
-u_output.process_ui_directives(second_part)
+u_output.process_ui_directives(second_part, input.single_task)
 
 -- === Append to the second_part to ai_content_for_prompt file
 second_part = aip.text.trim_start(second_part)
@@ -482,6 +486,13 @@ aip.task.pin("completed", 0, {
 	label   = CONST.LABEL_COMPLETED,
 	content = response
 })
+
+if input.single_task then
+	aip.run.pin("completed_run", 0, {
+		label   = CONST.LABEL_COMPLETED,
+		content = response
+	})	
+end
 
 if data.write_mode then 
  	response = response .. "\n\nCheck prompt file for more AI answer. Prompt file:"

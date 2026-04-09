@@ -53,7 +53,7 @@ function M.init_fixed_files(prompt_dir)
 		end
 	end
 
-	aip.run.pin("rfile", 1, {
+	aip.run.pin("rfile", 5, {
 		label   = CONST.LABEL_README_FILE,
 		content = rel_dest_path .. addl_msg
 	})
