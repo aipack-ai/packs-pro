@@ -146,6 +146,32 @@ local function ensure_workbench_chat_file(workbench_chat_path, options)
 		return resolved_path
 	end
 
+	-- FOR LEGACY SUPPORT
+	local resolved_dir = aip.path.parent(resolved_path)
+	if is_null(resolved_dir) or resolved_dir == "" then
+		resolved_dir = "."
+	end
+	local legacy_same_dir_chat_path = resolved_dir .. "/dev-chat.md"
+	if aip.file.exists(legacy_same_dir_chat_path) then
+		local move_same_dir_res = aip.file.move(legacy_same_dir_chat_path, resolved_path, { overwrite = false })
+		if type(move_same_dir_res) == "table" and move_same_dir_res.error then
+			return nil, move_same_dir_res.error
+		end
+		return resolved_path
+	end
+
+	-- FOR LEGACY SUPPORT
+	local coder_prompt_dir = options.coder_prompt_dir or "."
+	local legacy_default_chat_path = coder_prompt_dir .. "/dev/chat/dev-chat.md"
+	local workspace_default_chat_path = coder_prompt_dir .. "/workspace-default/chat.md"
+	if is_same_path(resolved_path, workspace_default_chat_path) and aip.file.exists(legacy_default_chat_path) then
+		local move_default_res = aip.file.move(legacy_default_chat_path, resolved_path, { overwrite = false })
+		if type(move_default_res) == "table" and move_default_res.error then
+			return nil, move_default_res.error
+		end
+		return resolved_path
+	end
+
 	local seed_content = options.seed_content
 	if is_null(seed_content) and resolved_path:lower():match("%.md$") then
 		seed_content = load_workbench_chat_template_content()
