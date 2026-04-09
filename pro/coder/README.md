@@ -612,7 +612,7 @@ Normalization examples:
 // => normalized to
 { name: "my-agent", enabled: true, on: "start"}
 
-{ name: "x", on: ["start"] }
+{ name: "x", on: ["start", "end"] }
 // => normalized to
 { name: "x", enabled: true, on: ["start", "end"]}
 
