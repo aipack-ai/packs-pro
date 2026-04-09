@@ -3,7 +3,7 @@ local CONST = require("consts")
 local u_pinned = require("utils_pinned")
 local u_auto_context = require("auto_context")
 local u_common = require("utils_common")
-local u_dev = require("dev")
+local u_workbench = require("workbench")
 
 -- === Support Functions
 
@@ -408,13 +408,33 @@ function run_before_all(inputs)
 
 	local builtin_sub_agents = {}
 
-	-- === Build dev sub agent if present
-	if not is_null(meta.dev) then
-		local dev_config = u_dev.new_dev_sub_agent_config(meta.dev, { coder_prompt_dir = coder_prompt_dir })
-		if dev_config then
-			dev_config.on = value_or(dev_config.on, "start")
-			table.insert(builtin_sub_agents, dev_config)
+	-- === Build workbench sub agent if present
+	local legacy_dev = meta.dev
+	local canonical_workbench = meta.workbench
+	if not is_null(canonical_workbench) or not is_null(legacy_dev) then
+		local selected_workbench = canonical_workbench
+		if is_null(selected_workbench) then
+			selected_workbench = legacy_dev
+		elseif not is_null(legacy_dev) then
+			aip.run.pin("workbench-legacy-config-ignored", 1, {
+				label = CONST.LABEL_WORKBENCH,
+				content = "Both `workbench` and legacy `dev` config are set.\nUsing `workbench` and ignoring `dev`."
+			})
 		end
+
+		local workbench_config = u_workbench.new_workbench_sub_agent_config(selected_workbench, { coder_prompt_dir = coder_prompt_dir })
+		if workbench_config then
+			workbench_config.on = value_or(workbench_config.on, "start")
+			table.insert(builtin_sub_agents, workbench_config)
+		end
+
+		if is_null(canonical_workbench) and not is_null(legacy_dev) then
+			aip.run.pin("workbench-legacy-config", 1, {
+				label = CONST.LABEL_WORKBENCH,
+				content = "Legacy `dev` config detected.\nNormalized to `workbench` in coder params."
+			})
+		end
+		meta.workbench = selected_workbench
 		meta.dev = nil
 	end
 
@@ -527,6 +547,7 @@ function run_before_all(inputs)
 	meta.context_globs_post = nil
 	meta.knowledge_globs_pre = nil
 	meta.knowledge_globs_post = nil
+	meta.dev = nil
 
 	-- === Suggest Commit
 	local suggest_git_commit = false

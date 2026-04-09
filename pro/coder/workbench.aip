@@ -1,7 +1,8 @@
 # Before All
 
 ```lua
-aip.run.set_label("dev")
+aip.run.set_label("workbench")
+local CONST = require("consts")
 local u_common = require("utils_common")
 
 local function append_unique(list, value)
@@ -27,23 +28,23 @@ local function merge_unique(target, source)
 	return target
 end
 
-local function pin_dev_status(chat, plan, spec)
+local function pin_workbench_status(chat, plan, spec)
 	if is_null(chat) or not chat.path then
-		aip.run.pin("dev-chat", 2, {
-			label = "Dev Chat:",
+		aip.run.pin("workbench-chat", 2, {
+			label = CONST.LABEL_CHAT,
 			content = "(not activated)"
 		})	
 	else
 		local content = chat.path .. "\n(Added to context_globs_post)"
-		aip.run.pin("dev-chat", 2, {
-			label = "Dev Chat:",
+		aip.run.pin("workbench-chat", 2, {
+			label = CONST.LABEL_CHAT,
 			content = content
 		})
 	end
 
 	if is_null(plan) or not plan.dir then
-		aip.run.pin("dev-plan", 3, {
-			label = " Dev Plan:",
+		aip.run.pin("workbench-plan", 3, {
+			label = CONST.LABEL_PLAN,
 			content = "(not activated)"
 		})
 	else
@@ -66,15 +67,15 @@ local function pin_dev_status(chat, plan, spec)
 		table.insert(plan_pin_lines, "(Added to knowledge_globs_pre)")
 				
 		-- do the pin
-		aip.run.pin("dev-plan", 3, {
-			label = " Dev Plan:",
+		aip.run.pin("workbench-plan", 3, {
+			label = CONST.LABEL_PLAN,
 			content = table.concat(plan_pin_lines, "\n")
 		})
 	end
 
 	if is_null(spec) or not spec.path then
-		aip.run.pin("dev-spec", 4, {
-			label = " Dev Spec:",
+		aip.run.pin("workbench-spec", 4, {
+			label = CONST.LABEL_SPEC,
 			content = "(not activated)"
 		})
 	else
@@ -85,8 +86,8 @@ local function pin_dev_status(chat, plan, spec)
 		table.insert(spec_pin_lines, "")
 		table.insert(spec_pin_lines, "Spec Context File: " .. spec_context_path)
 		table.insert(spec_pin_lines, "(Added to context_globs_post)")
-		aip.run.pin("dev-spec", 4, {
-			label = " Dev Spec:",
+		aip.run.pin("workbench-spec", 4, {
+			label = CONST.LABEL_SPEC,
 			content = table.concat(spec_pin_lines, "\n")
 		})
 	end
@@ -109,8 +110,8 @@ if type(plan) ~= "table" then
 elseif plan.enabled == false then
 	plan = nil
 elseif not is_null(plan._resolve_err) and plan._resolve_err ~= "" then
-	aip.run.pin("dev-plan", 3, {
-		label = " Dev Plan:",
+	aip.run.pin("workbench-plan", 3, {
+		label = CONST.LABEL_PLAN,
 		content = "ERROR: " .. plan._resolve_err
 	})
 	return aip.flow.before_all_response({
@@ -154,13 +155,13 @@ if type(next_knowledge_globs_post) ~= "table" then
 end
 
 if chat ~= nil then
-	local path, ensure_err = u_common.ensure_dev_chat_file(chat.path)
+	local path, ensure_err = u_common.ensure_workbench_chat_file(chat.path)
 	if is_null(path) or path == "" then
 		return aip.flow.before_all_response({
 			inputs = {},
 			before_all = {
 				success = false,
-				error_msg = "Invalid dev.chat.path"
+				error_msg = "Invalid workbench.chat.path"
 			}
 		})
 	end
@@ -181,17 +182,17 @@ if chat ~= nil then
 end
 
 if plan ~= nil then
-	local dir, _rules_path, ensure_err = u_common.ensure_dev_plan_file(plan.dir)
+	local dir, _rules_path, ensure_err = u_common.ensure_workbench_plan_file(plan.dir)
 	if ensure_err then
-		aip.run.pin("dev-plan", 3, {
-			label = " Dev Plan:",
+		aip.run.pin("workbench-plan", 3, {
+			label = CONST.LABEL_PLAN,
 			content = "ERROR: " .. ensure_err
 		})
 		return aip.flow.before_all_response({
 			inputs = {},
 			before_all = {
 				success = false,
-				error_msg = "Failed to initialize dev plan rules file",
+				error_msg = "Failed to initialize workbench plan rules file",
 				error_details = ensure_err
 			}
 		})
@@ -201,7 +202,7 @@ if plan ~= nil then
 			inputs = {},
 			before_all = {
 				success = false,
-				error_msg = "Invalid dev.plan.dir"
+				error_msg = "Invalid workbench.plan.dir"
 			}
 		})
 	end
@@ -214,17 +215,17 @@ if plan ~= nil then
 end
 
 if spec ~= nil then
-	local spec_rules_path, spec_context_path, spec_path, ensure_err = u_common.ensure_dev_spec_file(spec.path)
+	local spec_rules_path, spec_context_path, spec_path, ensure_err = u_common.ensure_workbench_spec_file(spec.path)
 	if ensure_err then
-		aip.run.pin("dev-spec", 4, {
-			label = " Dev Spec:",
+		aip.run.pin("workbench-spec", 4, {
+			label = CONST.LABEL_SPEC,
 			content = "ERROR: " .. ensure_err
 		})
 		return aip.flow.before_all_response({
 			inputs = {},
 			before_all = {
 				success = false,
-				error_msg = "Failed to initialize dev spec rules file",
+				error_msg = "Failed to initialize workbench spec rules file",
 				error_details = ensure_err
 			}
 		})
@@ -234,7 +235,7 @@ if spec ~= nil then
 			inputs = {},
 			before_all = {
 				success = false,
-				error_msg = "Invalid dev.spec.path"
+				error_msg = "Invalid workbench.spec.path"
 			}
 		})
 	end
@@ -246,7 +247,7 @@ if spec ~= nil then
 	append_unique(next_context_globs_post, spec_context_path)
 end
 
-pin_dev_status(chat, plan, spec)
+pin_workbench_status(chat, plan, spec)
 
 local updated_coder_params = {}
 if #next_context_globs_post > 0 then
@@ -275,6 +276,7 @@ return aip.flow.before_all_response({
 	before_all = {
 		coder_params = updated_coder_params,
 		agent_result = {
+			workbench_content_globs = dev_content_globs,
 			dev_content_globs = dev_content_globs
 		}
 	}

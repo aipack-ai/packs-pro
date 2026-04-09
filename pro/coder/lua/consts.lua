@@ -8,4 +8,8 @@ return {
 	LABEL_README_FILE         = "Readme File:",
 	LABEL_GIT_COMMIT          = " Git Commit:",
 	LABEL_COMPLETED           = "Coding Done:",
+	LABEL_CHAT                = "Chat:",
+	LABEL_PLAN                = " Plan:",
+	LABEL_SPEC                = " Spec:",
+	LABEL_WORKBENCH           = "Workbench:",
 }

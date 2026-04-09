@@ -1,4 +1,5 @@
-local u_dev = require("dev")
+local CONST = require("consts")
+local u_workbench = require("workbench")
 
 -- === Support Functions
 local MAX_SUB_AGENT_STEPS = 100
@@ -8,6 +9,7 @@ local MAX_SUB_AGENT_STEPS = 100
 local CLEAR_CODER_PARAMS_RESPONSE_PROPERTIES = {
 	"auto_context",
 	"chat",
+	"workbench",
 	"dev",
 	"sub_agents",
 }
@@ -26,16 +28,22 @@ local function new_sub_agent_config(sub_agent_item, options)
 		if item.on == nil then
 			item.on = "start"
 		end
-		if item.name == "pro@coder/dev" then
-			local dev_config = u_dev.new_dev_sub_agent_config(item, options)
-			if dev_config then
-				if dev_config.enabled == nil then
-					dev_config.enabled = true
+		if item.name == "pro@coder/dev" or item.name == "pro@coder/workbench" then
+			local workbench_config = u_workbench.new_workbench_sub_agent_config(item, options)
+			if workbench_config then
+				if item.name == "pro@coder/dev" then
+					aip.run.pin("workbench-legacy-sub-agent", 1, {
+						label = CONST.LABEL_WORKBENCH,
+						content = "Legacy sub-agent name `pro@coder/dev` detected.\nNormalized to `pro@coder/workbench`."
+					})
 				end
-				if dev_config.on == nil then
-					dev_config.on = "start"
+				if workbench_config.enabled == nil then
+					workbench_config.enabled = true
 				end
-				return dev_config
+				if workbench_config.on == nil then
+					workbench_config.on = "start"
+				end
+				return workbench_config
 			end
 		end
 		return item
@@ -157,8 +165,8 @@ local function new_dispatch_item(event_name, stage_name, agent_configs, history)
 	}
 end
 
-local function new_dev_sub_agent_config(dev, options)
-	return u_dev.new_dev_sub_agent_config(dev, options)
+local function new_workbench_sub_agent_config(workbench, options)
+	return u_workbench.new_workbench_sub_agent_config(workbench, options)
 end
 
 local function extract_coder_params(coder_meta)
@@ -417,7 +425,8 @@ end
 
 return {
 	config_matches_event       = config_matches_event,
-	new_dev_sub_agent_config   = new_dev_sub_agent_config,
+	new_workbench_sub_agent_config = new_workbench_sub_agent_config,
+	new_dev_sub_agent_config   = new_workbench_sub_agent_config,
 	normalize_sub_agent_events = normalize_sub_agent_events,
 	run_sub_agent              = run_sub_agent,
 	run_sub_agents_post        = run_sub_agents_post,

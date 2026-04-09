@@ -6,7 +6,7 @@ The `pro@coder` pack provides AI-powered coding assistance through parametric pr
 
 The key concept of `pro@coder` is to give you full control over the AI context, enabling you to guide the AI to code the way you want, rather than adapting to the AI's default approach. This is done in part by splitting files into `knowledge`, `context`, and `working` (for concurrency) categories.
 
-[Coder Parameters](#coder-parameters) | [Auto Context](#auto_context) | [Dev](#dev) | [Workflow](#setup--workflow) | [Coder Intro](#coder-promptmd) | [Coder Parameters](#parametric-block-format) | [AIPack config override](#aipack-config-override) | [Plan Development](#plan-based-development)
+[Coder Parameters](#coder-parameters) | [Auto Context](#auto_context) | [Workbench](#workbench) | [Workflow](#setup--workflow) | [Coder Intro](#coder-promptmd) | [Coder Parameters](#parametric-block-format) | [AIPack config override](#aipack-config-override) | [Plan Development](#plan-based-development)
 
 ---
 
@@ -147,13 +147,13 @@ auto_context:
   helper_globs:               # Files to help select relevant context files
     - .aipack/.prompt/pro@coder/dev/plan/*.md
 
-## Dev helpers (shortcut for pro@coder/dev sub-agent)
-dev:
+## Workbench helpers (shortcut for pro@coder/workbench sub-agent)
+workbench:
   chat: true                 # true uses default path below
-  # chat: .aipack/.prompt/pro@coder/workbench-default/dev-chat.md
+  # chat: .aipack/.prompt/pro@coder/workbench-default/chat.md
   # chat:
   #   enabled: true
-  #   path: .aipack/.prompt/pro@coder/workbench-default/dev-chat.md
+  #   path: .aipack/.prompt/pro@coder/workbench-default/chat.md
   plan: true                 # true uses default dir below
   # plan: .aipack/.prompt/pro@coder/workbench-default
   # plan:
@@ -164,6 +164,10 @@ dev:
   # spec:
   #   enabled: true
   #   path: .aipack/.prompt/pro@coder/workbench-default/spec.md
+
+## Legacy alias still supported:
+dev:
+  chat: true
 
 ## Specialized agents to pre-process parameters and instructions, or to run once after all task outputs
 ## Since v0.3.0 for pre, post-stage support implemented later
@@ -393,9 +397,9 @@ auto_context:
     - .aipack/.prompt/pro@coder/dev/plan/*.md
 ```
 
-#### dev
+#### workbench
 
-Shortcut to configure and run the `pro@coder/dev` sub-agent. This agent enables a "dev workbench" with integrated capabilities for `chat`, `plan`, and `spec`. It automatically manages these files and wires them into the prompt context (no need to manually add them to `context_globs`).
+Shortcut to configure and run the `pro@coder/workbench` sub-agent. This agent enables a workbench with integrated capabilities for `chat`, `plan`, and `spec`. It automatically manages these files and wires them into the prompt context (no need to manually add them to `context_globs`).
 
 Behavior:
 - `chat` ensures the dev chat markdown file exists, then appends its path to `context_globs_post` (deduped).
@@ -403,28 +407,29 @@ Behavior:
 - `spec` ensures `_spec-rules.md` exists, appends this rules file to `knowledge_globs_post` (deduped), and appends the resolved spec context file path to `context_globs_post` (deduped).
 - The sub-agent returns `agent_result.dev_content_globs` containing enabled dev content globs (chat path, plan glob, and/or spec file path). This lets downstream sub-agents consume helper files without depending on `dev` config internals.
 - If all capabilities are disabled, the sub-agent is effectively disabled and does not modify params.
+- Legacy `dev` is still accepted and normalized to `workbench`. If both are present, `workbench` wins.
 
 Current shape:
 - **A table**:
-  - `dev.chat`
-  - `dev.plan`
-  - `dev.spec`
+  - `workbench.chat`
+  - `workbench.plan`
+  - `workbench.spec`
 
-Supported `dev.chat` values:
+Supported `workbench.chat` values:
 - **A boolean**:
   - `true`: Enable with default path.
   - `false`: Disable chat.
 - **A string**: Path to the dev chat file.
 - **A table**: `enabled`, `path`, and future-safe extra keys.
 
-Supported `dev.plan` values:
+Supported `workbench.plan` values:
 - **A boolean**:
   - `true`: Enable with the default directory.
   - `false`: Disable plan.
 - **A string**: Path to the plan directory, or a `.md` file path whose parent directory will be used as the plan directory.
 - **A table**: `enabled`, `dir`, and future-safe extra keys.
 
-Supported `dev.spec` values:
+Supported `workbench.spec` values:
 - **A boolean**:
   - `true`: Enable with the default path.
   - `false`: Disable spec.
@@ -433,16 +438,16 @@ Supported `dev.spec` values:
 
 ### Default Workbench Behavior
 
-`pro@coder` provides an out-of-the-box development workbench. By default, helper files are organized in a `workbench-default/` directory located in the same folder as your `coder-prompt.md` (the prompt's directory).
+`pro@coder` provides an out-of-the-box workbench. By default, helper files are organized in a `workbench-default/` directory located in the same folder as your `coder-prompt.md` (the prompt's directory).
 
-- **`dev.dir`**: Defines a custom shared workbench directory. If omitted, it defaults to `workbench-default/` relative to the prompt file.
+- **`workbench.dir`**: Defines a custom shared workbench directory. If omitted, it defaults to `workbench-default/` relative to the prompt file.
 - **Explicit Paths**: If `path` or `dir` is provided for a specific capability (chat, plan, or spec), it takes precedence over the shared `dev.dir`.
 - **Auto-Creation**: Files and directories are created only for enabled capabilities. For example, if `dev.plan` is `false`, no plan files are created in the workbench.
 
 Examples:
 
 ```yaml
-dev:
+workbench:
   chat: true
   plan: true
   spec: true
@@ -450,21 +455,21 @@ dev:
 
 This resolves to a flat layout:
 
-- `.aipack/.prompt/pro@coder/workbench-default/dev-chat.md`
+- `.aipack/.prompt/pro@coder/workbench-default/chat.md`
 - `.aipack/.prompt/pro@coder/workbench-default/_plan-rules.md`
 - `.aipack/.prompt/pro@coder/workbench-default/plan-*.md`
 - `.aipack/.prompt/pro@coder/workbench-default/_spec-rules.md`
 - `.aipack/.prompt/pro@coder/workbench-default/spec.md`
 
-Default path when `dev.chat.path` is omitted:
+Default path when `workbench.chat.path` is omitted:
 
-`$coder_prompt_dir/workbench-default/dev-chat.md`
+`$coder_prompt_dir/workbench-default/chat.md`
 
-Default directory when `dev.plan.dir` is omitted:
+Default directory when `workbench.plan.dir` is omitted:
 
 `$coder_prompt_dir/workbench-default`
 
-Default spec file path when `dev.spec.path` is omitted:
+Default spec file path when `workbench.spec.path` is omitted:
 
 `$coder_prompt_dir/workbench-default/spec.md`
 
@@ -472,30 +477,30 @@ For string/table path values, relative paths are passed through unchanged.
 
 Plan path handling details:
 
-- `dev.plan: "some/dir"` resolves to `some/dir`.
-- `dev.plan: "some/file.md"` resolves to `some` (parent directory).
-- `dev.plan: "plan.md"` resolves to `.`.
+- `workbench.plan: "some/dir"` resolves to `some/dir`.
+- `workbench.plan: "some/file.md"` resolves to `some` (parent directory).
+- `workbench.plan: "plan.md"` resolves to `.`.
 - Trailing slashes are normalized.
-- For table mode, `dev.plan.dir` must be a directory path, `.md` file paths are rejected with a validation error.
+- For table mode, `workbench.plan.dir` must be a directory path, `.md` file paths are rejected with a validation error.
 - When `dev.plan.dir` is omitted, the plan directory resolves directly to the shared workbench root, so `_plan-rules.md` and `plan-*.md` live flat in that directory.
 
 Example:
 
 Spec path handling details:
 
-- `dev.spec: "some/dir"` resolves rules to `some/dir/_spec-rules.md` and context to `some/dir/spec.md`.
-- `dev.spec: "some/spec.md"` resolves rules to `some/_spec-rules.md` and context to `some/spec.md`.
-- `dev.spec: "spec.md"` resolves rules to `./_spec-rules.md` and context to `spec.md`.
+- `workbench.spec: "some/dir"` resolves rules to `some/dir/_spec-rules.md` and context to `some/dir/spec.md`.
+- `workbench.spec: "some/spec.md"` resolves rules to `some/_spec-rules.md` and context to `some/spec.md`.
+- `workbench.spec: "spec.md"` resolves rules to `./_spec-rules.md` and context to `spec.md`.
 - Trailing slashes are normalized.
-- When `dev.spec.path` is a file path, it is treated as the spec context file, not the rules file.
-- When enabled, `pro@coder/dev` also ensures a blank `spec.md` exists beside `_spec-rules.md`.
-- When `dev.dir` is set and `dev.spec` is `true`, spec resolves to `dev.dir/_spec-rules.md` and `dev.dir/spec.md`.
+- When `workbench.spec.path` is a file path, it is treated as the spec context file, not the rules file.
+- When enabled, `pro@coder/workbench` also ensures a blank `spec.md` exists beside `_spec-rules.md`.
+- When `workbench.dir` is set and `workbench.spec` is `true`, spec resolves to `workbench.dir/_spec-rules.md` and `workbench.dir/spec.md`.
 
 Spec file auto-context behavior:
 
 - The resolved spec context file path is appended to `context_globs_post` when missing.
 - The rules file path is appended to `knowledge_globs_post` when missing.
-- The sub-agent returns the spec context file path in `agent_result.dev_content_globs`, so downstream helper-aware sub-agents can consume it without depending on `dev` config internals.
+- The sub-agent returns the spec context file path in `agent_result.workbench_content_globs`, and also preserves `agent_result.dev_content_globs` for compatibility, so downstream helper-aware sub-agents can consume it without depending on config internals.
 
 For string or table values, relative paths are resolved relative to the workspace root unless they are absolute or use pack references.
 
@@ -704,18 +709,18 @@ For `post`, `sub_agents_prev` contains only earlier `post` executions from that 
 
 ## Builtin Sub Agents
 
-### Sub Agent - pro@coder/dev
+### Sub Agent - pro@coder/workbench
 
-The dev sub-agent prepares and wires dev capabilities into context. Current capabilities are `chat`, `plan`, and `spec`.
+The workbench sub-agent prepares and wires workbench capabilities into context. Current capabilities are `chat`, `plan`, and `spec`.
 
 ```yaml
 sub_agents:
-  - name: pro@coder/dev
+  - name: pro@coder/workbench
     enabled: true
     on: start
     chat:            # or chat: true (default false)
       enabled: true  
-      # path: .aipack/.prompt/pro@coder/workbench-default/dev-chat.md
+      # path: .aipack/.prompt/pro@coder/workbench-default/chat.md
     plan:            # or plan: true (default false)
       enabled: true  
       # dir:  .aipack/.prompt/pro@coder/workbench-default
@@ -724,7 +729,7 @@ sub_agents:
       # path: .aipack/.prompt/pro@coder/workbench-default/spec.md
 ```
 
-- Resolves `chat.path` from config, or defaults to `$coder_prompt_dir/workbench-default/dev-chat.md`.
+- Resolves `chat.path` from config, or defaults to `$coder_prompt_dir/workbench-default/chat.md`.
 - Ensures the chat file exists, if the file is empty, it is initialized with the dev-chat template.
 - Resolves `plan.dir` from config, or defaults to `$coder_prompt_dir/workbench-default`.
 - Ensures the plan rules file exists at `$plan_dir/_plan-rules.md`, if empty, it is initialized from template.
@@ -739,31 +744,31 @@ sub_agents:
 - Returns `agent_result.dev_content_globs` for downstream helper-context consumption, including the spec file path when enabled.
 - If all capabilities are disabled, the agent is effectively disabled and does not modify params.
 
-The same behavior can be configured with the `dev` shortcut in the root config:
+The same behavior can be configured with the `workbench` shortcut in the root config:
 
 ```yaml
-dev:
+workbench:
   dir: .aipack/.prompt/pro@coder/workbench-default
   chat: true
   plan: true
   spec: true
 
 # or use a custom directory for all workbench files
-dev:
+workbench:
   dir: _workbench/my-feature-a
   chat: true
   plan: true
   spec: true
 # or
-dev:
-  chat: .aipack/.prompt/pro@coder/workbench-default/dev-chat.md
+workbench:
+  chat: .aipack/.prompt/pro@coder/workbench-default/chat.md
   plan: .aipack/.prompt/pro@coder/workbench-default
   spec: .aipack/.prompt/pro@coder/workbench-default/spec.md
 # or
-dev:
+workbench:
   chat:
     enabled: true
-    path: .aipack/.prompt/pro@coder/workbench-default/dev-chat.md
+    path: .aipack/.prompt/pro@coder/workbench-default/chat.md
   plan:
     enabled: true
     dir:  .aipack/.prompt/pro@coder/workbench-default
@@ -772,15 +777,16 @@ dev:
     path: .aipack/.prompt/pro@coder/workbench-default/spec.md
 ```
 
-- `dev.chat: true` enables chat with the default path.
-- `dev.plan: true` enables plan with the default directory.
-- `dev.spec: true` enables spec with the default path.
-- `dev.dir` sets a shared fallback directory for boolean `true` usage and table configs that omit their own path or dir.
-- When `dev.dir` is omitted, the shared fallback directory defaults to `$coder_prompt_dir/workbench-default`.
+- `workbench.chat: true` enables chat with the default path.
+- `workbench.plan: true` enables plan with the default directory.
+- `workbench.spec: true` enables spec with the default path.
+- `workbench.dir` sets a shared fallback directory for boolean `true` usage and table configs that omit their own path or dir.
+- When `workbench.dir` is omitted, the shared fallback directory defaults to `$coder_prompt_dir/workbench-default`.
 - A string sets the corresponding directory directly for plan, while spec strings can be either a directory or the spec file path.
 - A table maps to the chat, plan, or spec config shape.
-- If all are disabled via table config (`enabled: false`), `pro@coder` seeds `pro@coder/dev` as disabled.
-- For table mode, `dev.plan.dir` is strict and must be a directory path.
+- If all are disabled via table config (`enabled: false`), `pro@coder` seeds `pro@coder/workbench` as disabled.
+- For table mode, `workbench.plan.dir` is strict and must be a directory path.
+- Legacy `name: pro@coder/dev` and root `dev:` config are still accepted and normalized to the canonical workbench surface. A warning pin is shown when the legacy sub-agent name is used.
 
 ### Sub Agent - pro@coder/auto-context
 
@@ -907,7 +913,7 @@ Note that only these four are AI Pack config properties and can be set in the co
 `pro@coder` facilitates **Plan-Based Development** by initializing relevant plan files within the prompt's workbench folder.
 
 - The foundational rules are in `_plan-rules.md`, located in the `workbench-default/` folder beside your `coder-prompt.md`. The plan flow uses `plan-1-todo-steps.md`, `plan-2-active-step.md`, and `plan-3-done-steps.md` in the same directory.
-- By default, setting `dev: { plan: true }` in your meta block automatically initializes these files and includes them in the prompt context.
+- By default, setting `workbench: { plan: true }` in your meta block automatically initializes these files and includes them in the prompt context.
 - To manually include them or use a custom folder, you can use `context_globs_post`:
   - `.aipack/.prompt/pro@coder/workbench-default/plan-*.md`
 - When instructing the agent, refer to the plan rules. For example:
@@ -1007,25 +1013,25 @@ Post-stage output behavior:
 
 ## Spec-Based Development
 
-`pro@coder` also supports **Spec-Based Development** through the `dev.spec` capability.
+`pro@coder` also supports **Spec-Based Development** through the `workbench.spec` capability.
 
 - The foundational rules live in `_spec-rules.md`, located in the `workbench-default/` folder beside your `coder-prompt.md`.
 - The main working spec file is `spec.md`, stored beside `_spec-rules.md` by default.
-- When `dev.spec` is enabled, `pro@coder/dev` ensures both files exist.
+- When `workbench.spec` is enabled, `pro@coder/workbench` ensures both files exist.
 - The rules file is added to `knowledge_globs_post`, and the `spec.md` file is added to `context_globs_post`.
 - This lets you keep specification guidance in knowledge, while the evolving project spec stays in context.
 
 Typical setup:
 
 ```yaml
-dev:
+workbench:
   spec: true
 ```
 
 Or with an explicit path:
 
 ```yaml
-dev:
+workbench:
   spec: .aipack/.prompt/pro@coder/workbench-default/spec.md
 ```
 
