@@ -32,10 +32,6 @@ workbench:
   # plan: true   # default todo:  PATH_TO_PRO_CODER_DIR/workbench-default/plan-1-todo.md
   # spec: true   # default path: PATH_TO_PRO_CODER_DIR/workbench-default/spec.md
 
-# Legacy alias still supported:
-# dev:
-#   chat: true
-
 ## Full model names or aliases (see aliases ~/.aipack-base/config-default.toml)
 ## -high, -medium, or -low suffixes for reasoning (e.g., "flash-low", "opus-max", "gpt-high")
 model: flash
