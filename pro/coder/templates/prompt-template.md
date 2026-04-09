@@ -6,10 +6,10 @@
 
 ## Static knowledge (relative & absolute)
 knowledge_globs:
-  # - /abs/or/rel/path/to/**/*.md      # Any relative or absolute path/glob for Markdown files
-  # - pro@coder/README.md              # Pack path supported (here ask question about pro@coder)
+  # - /abs/or/rel/path/to/**/*.md      # Relative or absolute path/glob for Markdown files
+  # - pro@coder/README.md              # Pack path supported (ask question about pro@coder)
   # - core@doc/for-llm/**/*.md         # For help building .aip AIPack agents
-  # - pro@rust10x/guide/base/**/*.md   # Rust best practices (require `aip install pro@rust10x`)
+  # - pro@rust10x/guide/base/**/*.md   # Rust best practices (requires `aip install pro@rust10x`)
 
 ## Files the AI will work on (paths & content included in prompt, relative only)
 context_globs:
@@ -29,8 +29,8 @@ auto_context:
 workbench:
   # dir:  PATH_TO_PRO_CODER_DIR/workbench-default  # default workbench directory
   # chat: true   # default path: PATH_TO_PRO_CODER_DIR/workbench-default/chat.md 
-  # plan: true   # default todo:  PATH_TO_PRO_CODER_DIR/workbench-default/plan-1-todo.md
   # spec: true   # default path: PATH_TO_PRO_CODER_DIR/workbench-default/spec.md
+  # plan: true   # default path: PATH_TO_PRO_CODER_DIR/workbench-default/plan-1-todo.md
 
 ## Full model names or aliases (see aliases ~/.aipack-base/config-default.toml)
 ## -high, -medium, or -low suffixes for reasoning (e.g., "flash-low", "opus-max", "gpt-high")
