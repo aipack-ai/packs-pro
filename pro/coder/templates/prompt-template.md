@@ -27,10 +27,10 @@ auto_context:
 
 # Default dir: PATH_TO_PRO_CODER_DIR/workbench-default 
 workbench:
-  # dir:  PATH_TO_PRO_CODER_DIR/workbench-default  # default workbench directory
-  # chat: true   # default path: PATH_TO_PRO_CODER_DIR/workbench-default/chat.md 
-  # spec: true   # default path: PATH_TO_PRO_CODER_DIR/workbench-default/spec.md
-  # plan: true   # default path: PATH_TO_PRO_CODER_DIR/workbench-default/plan-1-todo.md
+  # dir:  PATH_TO_PRO_CODER_DIR/workbench-default
+  # chat: true
+  # spec: true
+  # plan: true
 
 ## Full model names or aliases (see aliases ~/.aipack-base/config-default.toml)
 ## -high, -medium, or -low suffixes for reasoning (e.g., "flash-low", "opus-max", "gpt-high")
