@@ -61,7 +61,7 @@ local function normalize_sub_agent_events(config)
 
 	local on = config.on
 	if on == nil then
-		on = "start"
+		on = { "start" }
 	end
 
 	if type(on) == "string" then
@@ -233,7 +233,8 @@ function run_sub_agent(config, stage, current_params, current_coder_prompt, code
 
 	local coder_params_for_sub = extract_coder_params(current_params)
 	local sub_input = {
-		_display         = "sub agent input {event, stage, coder_stage, coder_params, coder_prompt, agent_config, coder_prompt_dir, sub_agents_prev, sub_agents_next}",
+		_display         =
+		"sub agent input {event, stage, coder_stage, coder_params, coder_prompt, agent_config, coder_prompt_dir, sub_agents_prev, sub_agents_next}",
 		event            = event_name,
 		stage            = stage,
 		coder_params     = coder_params_for_sub,
@@ -430,9 +431,9 @@ end
 -- === /Public Interfaces
 
 return {
-	config_matches_event = config_matches_event,
-	new_dev_sub_agent_config = new_dev_sub_agent_config,
+	config_matches_event       = config_matches_event,
+	new_dev_sub_agent_config   = new_dev_sub_agent_config,
 	normalize_sub_agent_events = normalize_sub_agent_events,
-	run_sub_agent  = run_sub_agent,
-	run_sub_agents = run_sub_agents
+	run_sub_agent              = run_sub_agent,
+	run_sub_agents             = run_sub_agents
 }
