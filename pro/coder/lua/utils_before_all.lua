@@ -443,7 +443,7 @@ function run_before_all(inputs)
 	-- === Run Sub Agents
 	if not is_null(meta.sub_agents) and #meta.sub_agents > 0 then
 		local err
-		meta, inst, err = u_sub_agent.run_sub_agents("pre", meta, inst, options, coder_prompt_dir)
+		meta, inst, err = u_sub_agent.run_sub_agents_pre(meta, inst, options, coder_prompt_dir)
 		meta = meta or {} -- make the type nil check happy
 
 		if err then return nil, nil, err end

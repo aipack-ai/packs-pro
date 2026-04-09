@@ -183,7 +183,7 @@ if output_base then
 		end
 	end
 
-	local _, _, err = u_sub_agent.run_sub_agents("post", output_base.coder_params or {}, output_base.coder_prompt, {
+	local _, _, err = u_sub_agent.run_sub_agents_post(output_base.coder_params or {}, output_base.coder_prompt, {
 		extra_sub_input = {
 			coder_context_file_refs = output_base.coder_context_file_refs,
 			coder_knowledge_file_refs = output_base.coder_knowledge_file_refs,
