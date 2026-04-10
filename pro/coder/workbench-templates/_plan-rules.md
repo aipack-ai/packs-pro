@@ -6,13 +6,13 @@ Use this file when the user need to create, follow, implement the development pl
 
 ## Key Rules
 
-This file defines how to manage the plan file. The plan flow now uses a single `plan.md` file.
+This file defines how to manage the plan file. The plan flow now uses a single `plan.md` file with a flat sequence of step sections.
 
 - `plan.md` **must always live in the same directory as this `_plan-rules.md` file**.
 
 - Create, read, and modify `plan.md` in the same directory as the `_plan-rules.md` file. Never place it in any other directory.
 
-- `plan.md` contains the full plan state in one place, including upcoming steps, the current active step when there is one, and completed steps.
+- `plan.md` contains the full plan state in one place as a flat list of `## ... Step - ...` sections, where each heading emoji communicates the step state.
 
 Important note:
 
@@ -24,26 +24,26 @@ Important note:
 
 - Keep the active step as a real in-progress implementation mirror, not a planning transition artifact.
 
-- The active step exists only to reflect the work actively being performed by the AI, including what has just been implemented.
-Do not treat the active step as the "next to do". It mirrors the work just performed and the ongoing work until the user says "do next step" or "continue to work on active step". Do not create or keep an active step during planning-only phases.
+- The current not-started step exists only to reflect the next step that is ready to be implemented.
+Do not treat every future step as active. Keep only the current next step as the leading `## ■ Step - ...` entry, and convert it only when implementation has been performed in that same response.
 
-- When the user asks a question about the active step, add this information to the active step section in `plan.md`.
+- When the user asks a question about the current step being implemented, add this information to that step section in `plan.md`.
 
-- Only move something to active if it can be implemented. If the next step cannot be implemented, due to missing files or anything else, then just tell the user in the prompt or note it as missing files, but do not edit the plan file.
+- Only update a step toward done if it can actually be implemented. If the next step cannot be implemented, due to missing files or anything else, then just tell the user in the prompt or note it as missing files, but do not edit the plan file.
 
-- When the user asks to do, that is, implement, the next step, but there is no remaining todo step and there is an active step, simply move the active step to done as usual, and inform the user that everything is complete.
+- When the user asks to do, that is, implement, the next step, but there is no remaining not-started step and there is a current step that was being worked on, simply mark that current step done as usual, and inform the user that everything is complete.
 
-- If the user continues to ask to do something when there is no remaining todo step, just say that there are no more items in `plan.md`.
+- If the user continues to ask to do something when there is no remaining `## ■ Step - ...`, just say that there are no more items in `plan.md`.
 
-- When the user says there is a bug in the active step, fix the bug and update the active step with the sub-step as defined below. The same applies if the user says it wants to add something new to the active step. Just a sub-step, as defined below.
+- When the user says there is a bug in the current step, fix the bug and update that step with the sub-step as defined below. The same applies if the user says it wants to add something new to the current step. Just a sub-step, as defined below.
 
 ## Markdown formatting rules
 
 - Favor bullet point format for the step content when appropriate.
 - Use `-` character for bullet points
 - When bullet points have a long line or sub-bullet points, include an empty line between the top-level bullet points
-- For headings, except for the `## Step` and `### sub-step`, leave exactly one empty line after the heading.
-  - For `## Step ...` and `### sub-step ...`, do not insert any empty line after the heading. The `      status: ...` line must be immediately after the heading with no blank line in between, followed by any `time-...` fields on subsequent lines.
+- For headings, except for the `## ... Step` and `### sub-step`, leave exactly one empty line after the heading.
+  - For `## ■ Step ...`, `## ✅ Step ...`, `## ✔ Step ...`, and `### sub-step ...`, do not insert any empty line after the heading. The `      status: ...` line must be immediately after the heading with no blank line in between, followed by any `time-...` fields on subsequent lines.
 
 - Info alignment: It is important that the values of all of the values for status:, time-created, time-current, and time-done align, so they should have the appropriate spaces. For example:
 
@@ -68,15 +68,18 @@ time-current:
 Use a single `plan.md` file with these top-level sections, in this order:
 
 - `# Development Plan`
-- `## Todo`
-- `## Active`
-- `## Done`
+- Then a flat sequence of step sections, in chronological plan order
 
-Rules for these sections:
+Rules for this structure:
 
-- `## Todo` lists upcoming steps, ordered top to bottom. The topmost item is the next step to activate.
-- `## Active` contains exactly one active step while implementation is in progress, or a short placeholder such as `- None` when there is no active step.
-- `## Done` contains completed steps from oldest to newest, newest at the bottom.
+- Do not use `## Todo`, `## Active`, or `## Done` sections.
+- Each step is represented directly as its own `## ... Step - ...` section.
+- Keep steps ordered from oldest planned step at the top to newest planned step at the bottom.
+- Use the step heading emoji to represent state:
+  - `## ■ Step - ...` for not started yet
+  - `## ✅ Step - ...` for the step just completed in the current response or the most recently completed step that is still the current focus
+  - `## ✔ Step - ...` for older completed steps
+- At most one step should normally use `## ✅ Step - ...` at a time.
 - Keep these sections in the same file. Do not split them back into multiple files.
 
 ## Step Rules
@@ -85,37 +88,36 @@ Each step must be defined in a way that does not break the code or existing func
 
 - Do not have a step about "preparing directories", because this is not a thing in git. Instead, have a step about creating the appropriate files, which will create the directory.
 
-- When only building or updating the plan, do not mark anything active or done unless the user explicitly asked for implementation work and that work is actually performed in the same response.
+- When only building or updating the plan, do not mark anything done unless the user explicitly asked for implementation work and that work is actually performed in the same response.
 
 ## Core flow
 
-- When asked to create or update the plan, do not implement any step. Only create or modify `plan.md`. Implementation work begins only when the user explicitly requests "do next step" or "continue to work on active step".
+- When asked to create or update the plan, do not implement any step. Only create or modify `plan.md`. Implementation work begins only when the user explicitly requests "do next step" or "continue to work on the current step".
 
-- Always move a step from todo to active as part of performing the implementation. Never move a todo step to active without implementing it in the same response. Never move a todo step directly to done.
+- Always implement the topmost `## ■ Step - ...` as part of performing the implementation. Never mark a step as done without implementing it in the same response.
 
-- When beginning work, move the topmost step from the `## Todo` section into the `## Active` section and set `      status: active`, while simultaneously performing the implementation for that step.
+- When beginning work, use the topmost `## ■ Step - ...` as the current implementation target, while simultaneously performing the implementation for that step.
 
 - When the user says "do next step":
-  - If an active step exists, finalize it and move it to the `## Done` section with `      status: done`.
-  - If a next todo step exists, activate the topmost todo as the new active step and implement it in the same response.
-  - If the todo section is empty, do not leave the active step in place. Move it to done as described above, and inform the user that all steps are complete.
-  - If there is no active step, activate the topmost todo as active and implement it immediately in the same response.
+  - If the most recent completed step is still marked `## ✅ Step - ...`, convert it to `## ✔ Step - ...` before completing the new step.
+  - If a next not-started step exists, implement the topmost `## ■ Step - ...` in the same response and mark it `## ✅ Step - ...` with `      status: done`.
+  - If there is no remaining `## ■ Step - ...`, inform the user that all steps are complete.
 
-- When a step becomes active, keep its original todo content verbatim. Only add supplementary sections like `### Implementation Considerations` or sub-steps as needed.
+- When a step is implemented, keep its original not-started content verbatim as much as possible. Only add supplementary sections like `### Work done`, `### Implementation Considerations`, or sub-steps as needed.
 
 - Only add `Implementation Considerations` or such sections if they add meaningful information.
 
-- While continuing work on the active step, append sub-steps and notes to the same step section. Do not create another top-level step.
+- While continuing work related to the current completed step, append sub-steps and notes to the same step section when appropriate. Do not create another top-level step for that same work unless it is truly a new planned step.
 
-- When a step primarily defines or specifies something, ensure the immediately following todo step includes an explicit reference to that definition, pointing to `plan.md` and the relevant done or active step heading, so downstream work picks up the defined content.
+- When a step primarily defines or specifies something, ensure the immediately following `## ■ Step - ...` includes an explicit reference to that definition, pointing to `plan.md` and the relevant completed step heading, so downstream work picks up the defined content.
 
-## Todo step rules
+## Not-started step rules
 
 - Creating or updating the plan is planning-only. Do not begin implementing any step while composing or editing the plan file.
 
 - Each step should be worthy of a commit, and it should not break anything, should be incremental toward the goal, and should be comprehensive. It can be small, but it should be a holistic unit of work.
 
-- Each step uses a heading `## Step - short title for the work`.
+- Each not-started step uses a heading `## ■ Step - short title for the work`.
 
 - Include `      status: not_started`.
 
@@ -125,29 +127,31 @@ Each step must be defined in a way that does not break the code or existing func
 
 - Format the step clearly. Often, a paragraph plus a bullet-point list of the task and the files/resources needed is a good way to express what needs to be done.
 
-- When a step will build on a definition or specification from a previous step, include an explicit reference in the body, for example "References: see the definition in `plan.md`, step 'Step - ...'". This ensures the next step picks up the defined content from active or done.
+- When a step will build on a definition or specification from a previous step, include an explicit reference in the body, for example "References: see the definition in `plan.md`, step '✅ Step - ...'". This ensures the next step picks up the defined content from the completed step.
 
-- When a step is activated, move the entire step from the `## Todo` section to the `## Active` section, change `      status` to `active`, and remove it from todo while performing its implementation in the same response. Preserve all original content.
+- When a step is implemented, keep the full step in place, change the heading from `## ■ Step - ...` to `## ✅ Step - ...`, change `      status` to `done`, add `   time-done: ...`, and preserve all original content.
 
-## Active step rules
+## Current completed step and follow-up rules
 
-- The `## Active` section contains exactly one step with `      status: active` only while implementation is in progress. If there is no active implementation, the section should be empty or use a short placeholder such as `- None`.
+- The latest completed step may remain marked as `## ✅ Step - ...` so follow-up refinements, fixes, or notes can be attached with minimal edits.
 
-- This section is here in case the user wants new things or if something needs to be fixed, see sub-step below.
+- This is useful in case the user wants new things or if something needs to be fixed, see sub-step below.
 
-- Copy the full body from todo when the step becomes active; do not delete details. Add follow-up sections as needed without altering the original text.
+- Preserve the original body of the step; do not delete details. Add follow-up sections as needed without altering the original text.
 
-- Keep the same heading format `## Step - short title for the work`.
+- Keep the heading format as either `## ✅ Step - short title for the work` for the latest completed step or `## ✔ Step - short title for the work` for older completed steps.
 
 - Preserve the original `time-created: ...`.
 
-- Add `time-current: ...` just below.
+- Use `   time-done: ...` for the completion time.
 
 - Use the body to track sub-steps, design notes, decisions, and outstanding questions in chronological order.
 
-- If the user asks to fix a bug in the active step, add a `### Bug fix - SUB_STEP_BUG_SHORT_DESC`, and below it, describe what the issue was and what was fixed.
+- Every completed step should include a `### Work done` section that summarizes what was implemented. This summary can be short.
 
-- When a sub-step is needed because the user asks to fix or add something to the active step, use the following section format:
+- If the user asks to fix a bug in the current completed step, add a `### Bug fix - SUB_STEP_BUG_SHORT_DESC`, and below it, describe what the issue was and what was fixed.
+
+- When a sub-step is needed because the user asks to fix or add something to the current completed step, use the following section format:
 
 ```md
 ### sub-step - SUB_STEP_SHORT_DESCRIPTION
@@ -169,25 +173,25 @@ IF_NEEDED_OTHER_SUB_STEP_SECTION_FOR_ADDITIONAL_INFORMATION
 - Add the `#### Implementation Considerations` only when needed as well, same as for the top step.
 
 - When the user requests to move on, for example, do next step:
-  - If there are no sub-steps, move the step as-is to the `## Done` section with `      status: done`.
-  - If there are many sub-steps or back-and-forth, consolidate them into a concise set of instructions or summary, then mark `      status: done` and archive, except when the step is primarily defining or specifying something. In that case, do not consolidate, carry the entire content verbatim into done so that subsequent steps have full information.
-
-- After archiving the active step:
-  - If a next todo exists, immediately activate the topmost todo as the new active step and implement it in the same response.
-  - If the todo section is empty, the active step has already been moved to done. Inform the user that all steps are complete. Do not leave a stale active step behind.
+  - If there are no sub-steps, the step may stay as-is except that it should be downgraded from `## ✅ Step - ...` to `## ✔ Step - ...` once a newer step is completed.
+  - If there are many sub-steps or back-and-forth, consolidate them into a concise set of instructions or summary before the step becomes an older completed step, except when the step is primarily defining or specifying something. In that case, do not consolidate, carry the entire content verbatim so that subsequent steps have full information.
 
 ## Done step rules
 
-- Only steps that have been active can be moved to the `## Done` section.
+- Only steps that were previously planned as `## ■ Step - ...` can become completed steps.
 
-- Use the same heading format as the other sections.
+- Use the same flat ordering in the file.
 
-- Set `      status: done`. Keep the original `time-created: ...`, the `time-current` becomes the `time-done: ...` when moved to the done section. If there were sub-steps in the active step, then the last `time-current` becomes `time-done`.
+- Set `      status: done`. Keep the original `time-created: ...` and add `   time-done: ...`.
 
-- If there were no additional sub-steps while active, carry the content over verbatim so nothing is lost.
+- The most recently completed or currently-followed-up step should use `## ✅ Step - ...`.
 
-- Provide a consolidated summary capturing key details, decisions, and answers without the iterative back-and-forth.
+- Older completed steps should use `## ✔ Step - ...`.
 
-- For steps whose primary purpose is to define or specify something, do not consolidate or shorten. Carry the entire content verbatim so subsequent steps have the full reference for downstream work.
+- If there were no additional sub-steps, carry the content over verbatim so nothing is lost.
 
-- List steps from oldest to newest, newest at the bottom.
+- Provide a `### Work done` section capturing key details, decisions, and answers without the iterative back-and-forth. This summary can be concise.
+
+- For steps whose primary purpose is to define or specify something, do not consolidate or shorten the main content. Carry the entire content verbatim so subsequent steps have the full reference for downstream work.
+
+- Keep steps listed from oldest to newest, newest at the bottom.
