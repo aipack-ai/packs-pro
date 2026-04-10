@@ -49,18 +49,14 @@ local function pin_workbench_status(chat, plan, spec)
 		})
 	else
 		local plan_pin_lines = {}
-		local dir = plan.dir
-		local rules_path = dir .. "/_plan-rules.md"
-		-- plan flies
-		table.insert(plan_pin_lines, "Plan Files:")
-		local existing_plan_files = aip.file.list({ dir .. "/plan-*.md" })
-		if type(existing_plan_files) == "table" and #existing_plan_files > 0 then
-			for _, file in ipairs(existing_plan_files) do
-				table.insert(plan_pin_lines, "- " .. file.path)
-			end
+		local plan_path = plan.path
+		local rules_path = plan.rules_path or (plan.dir .. "/_plan-rules.md")
+		table.insert(plan_pin_lines, "Plan File:")
+		if not is_null(plan_path) and plan_path ~= "" then
+			table.insert(plan_pin_lines, "- " .. plan_path)
 			table.insert(plan_pin_lines, "(Added to context_globs_post)")
 		else
-			table.insert(plan_pin_lines, "- (none yet)")
+			table.insert(plan_pin_lines, "- (not resolved)")
 		end
 		
 		table.insert(plan_pin_lines, "\nPlan Rules File: " .. rules_path)
@@ -182,7 +178,7 @@ if chat ~= nil then
 end
 
 if plan ~= nil then
-	local dir, _rules_path, ensure_err = u_common.ensure_workbench_plan_file(plan.dir)
+	local dir, _rules_path, plan_path, ensure_err = u_common.ensure_workbench_plan_file(plan.path or plan.dir)
 	if ensure_err then
 		aip.run.pin("workbench-plan", 3, {
 			label = CONST.LABEL_PLAN,
@@ -207,11 +203,11 @@ if plan ~= nil then
 		})
 	end
 	plan.dir = dir
+	plan.rules_path = _rules_path
+	plan.path = plan_path
 
 	append_unique(next_knowledge_globs_pre, _rules_path)
-	append_unique(next_context_globs_post, dir .. "/plan-*.md")
-
-	local existing_plan_files = aip.file.list({ dir .. "/plan-*.md" })
+	append_unique(next_context_globs_post, plan_path)
 end
 
 if spec ~= nil then
@@ -265,7 +261,7 @@ if chat ~= nil and not is_null(chat.path) and chat.path ~= "" then
 	table.insert(dev_content_globs, chat.path)
 end
 if plan ~= nil and not is_null(plan.dir) and plan.dir ~= "" then
-	table.insert(dev_content_globs, plan.dir .. "/plan-*.md")
+	table.insert(dev_content_globs, plan.path)
 end
 if spec ~= nil and not is_null(spec.context_path) and spec.context_path ~= "" then
 	table.insert(dev_content_globs, spec.context_path)

@@ -42,18 +42,32 @@ end
 local function normalize_workbench_plan_config(workbench_plan, options)
 	local plan = nil
 	if workbench_plan == true then
+		local dir, _rules_path, path = u_common.resolve_workbench_plan_paths(nil, options)
 		plan = {
 			enabled = true,
-			dir = resolve_workbench_plan_dir(nil, options)
+			dir = dir,
+			path = path
 		}
 	elseif type(workbench_plan) == "string" then
+		local dir, _rules_path, path = u_common.resolve_workbench_plan_paths(workbench_plan, options)
 		plan = {
 			enabled = true,
-			dir = resolve_workbench_plan_dir(workbench_plan, options)
+			dir = dir,
+			path = path
 		}
 	elseif type(workbench_plan) == "table" then
 		plan = aip.lua.merge({ enabled = true }, workbench_plan)
-		plan.dir, plan._resolve_err = resolve_workbench_plan_dir(plan.dir, aip.lua.merge({}, options, { strict_dir = true }))
+		local plan_value = plan.path
+		if is_null(plan_value) or plan_value == "" then
+			plan_value = plan.dir
+		end
+		plan.dir, _rules_path, plan.path = u_common.resolve_workbench_plan_paths(plan_value, options)
+		if not is_null(plan.dir) and plan.dir ~= "" and plan.path ~= plan.dir .. "/plan.md" and not is_null(plan.dir) and plan.dir ~= "" then
+			local resolved_parent = aip.path.parent(plan.path)
+			if not is_null(resolved_parent) and resolved_parent ~= "" then
+				plan.dir = resolved_parent
+			end
+		end
 	end
 	return plan
 end

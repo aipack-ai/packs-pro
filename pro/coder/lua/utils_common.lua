@@ -70,6 +70,31 @@ local function resolve_workbench_chat_path(workbench_chat_path, options)
 	return normalized_path
 end
 
+local function resolve_workbench_plan_paths(workbench_plan_value, options)
+	options = options or {}
+	local workbench_root_dir = resolve_workbench_root_dir(options)
+
+	if is_null(workbench_plan_value) or workbench_plan_value == "" then
+		local dir = workbench_root_dir
+		return dir, dir .. "/_plan-rules.md", dir .. "/plan.md"
+	end
+
+	local normalized_path = workbench_plan_value:gsub("/+$", "")
+	local _dir, file_name = aip.path.split(normalized_path)
+	local has_extension = file_name and file_name:match("^.+%.[^%.]+$") ~= nil
+	if has_extension then
+		local plan_path = normalized_path
+		local dir = aip.path.parent(plan_path)
+		if is_null(dir) or dir == "" then
+			dir = "."
+		end
+		return dir, dir .. "/_plan-rules.md", plan_path
+	end
+
+	local dir = normalized_path
+	return dir, dir .. "/_plan-rules.md", dir .. "/plan.md"
+end
+
 local function is_same_path(path_a, path_b)
 	if is_null(path_a) or is_null(path_b) then
 		return false
@@ -202,12 +227,12 @@ end
 
 local function ensure_workbench_plan_file(workbench_plan_dir, options)
 	options = options or {}
-	local resolved_dir, resolve_err = resolve_workbench_plan_dir(workbench_plan_dir, options)
+	local resolved_dir, rules_path, plan_path = resolve_workbench_plan_paths(workbench_plan_dir, options)
+	local resolve_err = nil
 	if is_null(resolved_dir) or resolved_dir == "" then
 		return nil, nil, resolve_err or "Invalid workbench.plan.dir"
 	end
 
-	local rules_path = resolved_dir .. "/_plan-rules.md"
 	local ensure_res
 	if aip.file.exists(rules_path) then
 		ensure_res = aip.file.info(rules_path)
@@ -219,7 +244,18 @@ local function ensure_workbench_plan_file(workbench_plan_dir, options)
 		return nil, nil, ensure_res.error
 	end
 
-	return resolved_dir, rules_path
+	local ensure_plan_res
+	if aip.file.exists(plan_path) then
+		ensure_plan_res = aip.file.info(plan_path)
+	else
+		ensure_plan_res = aip.file.ensure_exists(plan_path)
+	end
+
+	if type(ensure_plan_res) == "table" and ensure_plan_res.error then
+		return nil, nil, nil, ensure_plan_res.error
+	end
+
+	return resolved_dir, rules_path, plan_path
 end
 
 local function load_dev_spec_rules_template_content()
@@ -303,6 +339,7 @@ return {
 	resolve_workbench_root_dir = resolve_workbench_root_dir,
 	resolve_workbench_chat_path = resolve_workbench_chat_path,
 	resolve_workbench_plan_dir = resolve_workbench_plan_dir,
+	resolve_workbench_plan_paths = resolve_workbench_plan_paths,
 	resolve_workbench_spec_path = resolve_workbench_spec_path,
 	load_workbench_chat_template_content = load_workbench_chat_template_content,
 	ensure_workbench_chat_file = ensure_workbench_chat_file,
