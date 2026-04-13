@@ -1,4 +1,10 @@
-## Example Best Practices
+# Example Best Practices
+
+## When to use this file
+
+Use this file when creating or updating Rust example files in the `examples/` directory, including naming conventions (c01...), standard `main` signatures, and simplified error handling strategies for examples.
+
+## Example important rules
 
 - When creating example files, a good naming convention is to use chapters, guiding the user from simple to more complex examples.
 
@@ -13,27 +19,3 @@ The main signature will be:
 - `fn main() -> Result<(), Box<dyn std::error::Error>>` (for example files, do not `use std::error::Error`; just use it this way)
 
 - In most cases, we don't need a type alias for these, since it's only one file, and that will allow exporting the crate's `Result/Error` if needed.
-
-## xp project Best Practices
-
-- Sometimes the user may create an `xp-...`-like project, where `xp` stands for experiment or exploration.
-
-- For example, if the goal of the `xp-...` project is to learn about `blake3`, the name is `xp-blake3`.
-
-- So, this will be a lib project with a `src/lib.rs` file (empty to start with),
-
-- Start with an empty `src/lib.rs` unless the user asks specifically.
-
-- with `examples/c01-simple.rs` 
-
-- if asked to be async, add the tokio cargo group, and make the example tokio async. 
-
-- When doing async do not do `use tokio::main` but `#[tokio::main] async fn main...`
-
-- The content of the `main` example function should be
-
-```rust
-println!("Hello World");
-
-Ok(())
-```
