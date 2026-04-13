@@ -11,6 +11,17 @@ Use this file as a general guide for writing clean, idiomatic Rust code, coverin
 
 - However, using the `.unwrap_or_..(..)` are completely ok and good practices when it fit the logic.
 
+- For constructors and builders (fluid API), when requested or needed
+  - use the `Default` pattern for sync and empty constructors. (do not use `new() -> Self` with empty argument)
+  - use `new(...) -> Self` if there is an obvious common-arguments-based constructor.
+  - use `from_..(...) -> Self` for secondary constructors.
+  - use `with_..(self, ..) -> Self` for fluent builder-like APIs (self-consuming pattern).
+  - use `append_...(self, ..)` and `extend_...(self, ...)` when appropriate.
+  - for the `new, from_, with_, set_, append, ...` use `impl Into<...>` when appropriate.
+
+- The full builder pattern (separate `Builder` struct) with a `.build()` method should be used when construction is complex, requires validation, or is fallible (returning `Result`).
+  - For simple `Options` or `Config` structs, if the construction is infallible, inline fluid APIs (using `with_...`) on the struct itself are simpler and preferred.
+
 - In Rust 2024, explicit ref, ref mut, or mut annotations on a binding are only allowed if the pattern leading up to that binding is fully explicit (i.e. you did not rely on the so-called “match ergonomics”).
 
 - So, Avoid the `ref ..` all together. 
@@ -36,20 +47,17 @@ Use this file as a general guide for writing clean, idiomatic Rust code, coverin
 	
 - Avoid manual pattern match when possible
   - For example, Do this `line.trim_start_matches([' ', '\t']).len()`
-  - Do not do this: `line.trim_start_matches(|c: char| c == ' ' || c == '\t')`
+    - Do not do this: `line.trim_start_matches(|c: char| c == ' ' || c == '\t')`
 
 - When using proc or declarative macros, make sure to import them with `use ...` rather than using the qualified name like `lib_name::macro_name!(...)` (this is a bad pattern).
     - So the good pattern for macros is:
-    - First, import them like `use lib_name::macro_name;`
-    - Then use `macro_name!(...)`
-    - A more complete example:
-        - Do not write:
-            - `use lopdf::Document;`
-            - `let dict = lopdf::dictionary! { "Title" => "My PDF", "Author" => "User" };`
-        - Instead, write:
-            - `use lopdf::{Document, dictionary};`
-            - `let dict = dictionary! { "Title" => "My PDF", "Author" => "User" };`
-
+    - First, import them like `use lib_name::macro_name;`, then use `macro_name!(...)`
+    - For example, 
+      ```rs
+      use lopdf::{Document, dictionary};
+      // ...
+      let dict = dictionary! { "Title" => "My PDF", "Author" => "User" };
+      ```
 
 - If a struct property has a comment or attribute and is not the first property in the struct, add an empty line before it to improve clarity.
 
