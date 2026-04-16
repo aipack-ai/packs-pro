@@ -60,7 +60,7 @@ local function pin_workbench_status(chat, plan, spec)
 		end
 		
 		table.insert(plan_pin_lines, "\nPlan Rules File: " .. rules_path)
-		table.insert(plan_pin_lines, "(Added to knowledge_globs_pre)")
+		table.insert(plan_pin_lines, "(Added to knowledge_globs_post)")
 				
 		-- do the pin
 		aip.run.pin("workbench-plan", 3, {
@@ -206,7 +206,7 @@ if plan ~= nil then
 	plan.rules_path = _rules_path
 	plan.path = plan_path
 
-	append_unique(next_knowledge_globs_pre, _rules_path)
+	append_unique(next_knowledge_globs_post, _rules_path)
 	append_unique(next_context_globs_post, plan_path)
 end
 
