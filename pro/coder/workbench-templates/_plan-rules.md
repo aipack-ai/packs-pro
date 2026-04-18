@@ -75,7 +75,7 @@ Rules for this structure:
 - Do not use `## Todo`, `## Active`, or `## Done` sections.
 - Each step is represented directly as its own `## ... Step - ...` section.
 - Keep steps ordered from oldest planned step at the top to newest planned step at the bottom.
-- Use the step heading emoji to represent state:
+ - Use the step heading emoji to represent state, and ensure they are updated as the status of the step changes:
   - `## ■ Step - ...` for not started yet
   - `## ✅ Step - ...` for the step just completed in the current response or the most recently completed step that is still the current focus
   - `## ✔ Step - ...` for older completed steps
@@ -95,6 +95,8 @@ Each step must be defined in a way that does not break the code or existing func
 - When asked to create or update the plan, do not implement any step. Only create or modify `plan.md`. Implementation work begins only when the user explicitly requests "do next step" or "continue to work on the current step".
 
 - Always implement the topmost `## ■ Step - ...` as part of performing the implementation. Never mark a step as done without implementing it in the same response.
+
+- When implementing or completing a step, ensure the heading emoji is updated to reflect the new state (e.g., from ■ to ✅).
 
 - When beginning work, use the topmost `## ■ Step - ...` as the current implementation target, while simultaneously performing the implementation for that step.
 
