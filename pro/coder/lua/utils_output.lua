@@ -37,7 +37,8 @@ function process_ui_directives(content, single_task)
 		return
 	end
 
-	local elems = aip.tag.extract(content, { "suggested_git_command", "AIP_TO_PIN", "missing_files" }) or {}
+	local elems = aip.tag.extract(content, { "suggested_git_command", "AIP_TO_PIN", "missing_files", "set_run_label" }) or
+			{}
 	if type(elems) ~= "table" then return end
 
 	for _, elem in ipairs(elems) do
@@ -52,6 +53,11 @@ function process_ui_directives(content, single_task)
 					label   = CONST.LABEL_GIT_COMMIT,
 					content = aip.text.trim(elem.content)
 				})
+			end
+		elseif elem.tag == "set_run_label" then
+			local content = aip.text.trim(elem.content)
+			if content and #content > 0 then
+				aip.run.set_label(content)
 			end
 		elseif elem.tag == "AIP_TO_PIN" then
 			local body = aip.text.trim(elem.content)

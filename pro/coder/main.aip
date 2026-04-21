@@ -310,6 +310,13 @@ Note: that sometime, the user will ask to create new files, so, that's ok, you c
 
 Important: This `<missing_files>...` tag needs to be in the root of your answer, do not put it inside another tag. Always the root tag in your answer. 
 
+--- 
+
+Also, when you return the answer, we need to set a short label for this "run." So use the tag `<set_run_label>` like this:
+
+<set_run_label>_run_label_text_</set_run_label>
+
+The _run_label_text_ should be very short, just one or two words, or three max. A word prefix might be good, like `step ...` or `fix ...` or `add ...` (when appropriate)
 
 # User `cache = {{data.cache_knowledge_files}}`
 
