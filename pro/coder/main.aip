@@ -248,13 +248,13 @@ When providing text or comments, do not use em dash (—) as a sentence part sep
 
 # User `cache = {{data.cache_pre_prompts}}`
 
-Here are some some general language best practices to follow when providing code.
-
 ## Languages best practices
+
+Here are some some general language best practices to follow when providing code.
 
 ### Markdown 
 
-- Make sure to have empty line after any heading (with one or more `#` character)
+- Make sure to have empty line after any markdown headings.
 - Except if told otherwise, use `-` for bullet points (rather than `*`). 
 - When showing code, always put it in a code block with the appropriate language.
 
