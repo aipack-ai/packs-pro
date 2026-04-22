@@ -312,11 +312,11 @@ Important: This `<missing_files>...` tag needs to be in the root of your answer,
 
 --- 
 
-Also, when you return the answer, we need to set a short label for this "run." So use the tag `<set_run_label>` like this:
+Also, when you return the answer, we need to set a very short label for this "run." So use the tag `<set_run_label>` like this:
 
 <set_run_label>_run_label_text_</set_run_label>
 
-The _run_label_text_ should be very short, just couple of words, or three max. A word prefix might be good, like `step ...` or `fix ...` or `add ...` (when appropriate)
+The _run_label_text_ should be very short, just couple of words, or three max (only when very needed). 
 
 # User `cache = {{data.cache_knowledge_files}}`
 
