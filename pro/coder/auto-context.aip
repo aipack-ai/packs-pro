@@ -123,10 +123,10 @@ for _, cfile in ipairs(c_files) do
 	local txt = "- " .. cfile.file_path .. "\n"
 	txt = txt .. "    - Summary: " .. cfile.summary .. "\n"
 	txt = txt .. "    - When To Use: " .. cfile.when_to_use .. "\n"
-	if cfile.public_types and #cfile.public_types > 0 then
-		txt = txt .. "    - Types: " .. table.concat(cfile.public_types, ", ")  .. "\n"
+	if cfile.public_types and type(cfile.public_types) == "table" and next(cfile.public_types) then
+    txt = txt .. "    - Types: " .. table.concat(cfile.public_types, ", ")  .. "\n"
 	end
-	if cfile.public_functions and #cfile.public_functions > 0 then
+	if cfile.public_functions and type(cfile.public_functions) == "table" and next(cfile.public_functions) then
 		txt = txt .. "    - Functions: " .. table.concat(cfile.public_functions, ", ")  .. "\n"
 	end
 	c_files_txt = c_files_txt .. txt .. "\n"
@@ -342,8 +342,17 @@ end
 
 local res_map = aip.tag.extract_as_map(ai_response.content, tag_names)
 
-local needed_context_files = aip.json.parse(res_map.needed_context_files.content)
-local context_reasoning = res_map.context_reasoning.content
+local needed_context_files = {}
+if res_map.needed_context_files and res_map.needed_context_files.content then
+    local ok, parsed = pcall(aip.json.parse, res_map.needed_context_files.content)
+    if ok and type(parsed) == "table" then
+        needed_context_files = parsed
+    end
+end
+local context_reasoning = nil
+if res_map.context_reasoning and res_map.context_reasoning.content then
+    context_reasoning = res_map.context_reasoning.content
+end
 
 local new_context_globs = {}
 	-- TODO: need to add the negative globs
