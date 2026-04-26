@@ -625,11 +625,12 @@ function run_before_all(inputs)
 	local file_content_mode, err = get_file_content_mode(meta, write_mode)
 	if err then return nil, nil, err end
 
-	-- Clean up pinned keys from meta before downstream use
+	-- Clean up pinned and normalized workbench keys from meta before downstream use
 	meta.context_globs_pre = nil
 	meta.context_globs_post = nil
 	meta.knowledge_globs_pre = nil
 	meta.knowledge_globs_post = nil
+	meta.workbench = nil
 	meta.dev = nil
 
 	-- === Suggest Commit

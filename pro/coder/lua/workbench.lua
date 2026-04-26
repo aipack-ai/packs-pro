@@ -66,7 +66,7 @@ local function normalize_workbench_plan_config(workbench_plan, options)
 		local rules_path
 		plan.dir, rules_path, plan.path = u_common.resolve_workbench_plan_paths(plan_value, options)
 		plan.rules_path = rules_path
-		if not is_null(plan.dir) and plan.dir ~= "" and plan.path ~= plan.dir .. "/plan.md" and not is_null(plan.dir) and plan.dir ~= "" then
+		if not is_null(plan.dir) and plan.dir ~= "" and plan.path ~= plan.dir .. "/plan.md" then
 			local resolved_parent = aip.path.parent(plan.path)
 			if not is_null(resolved_parent) and resolved_parent ~= "" then
 				plan.dir = resolved_parent
@@ -79,21 +79,25 @@ end
 local function normalize_workbench_spec_config(workbench_spec, options)
 	local spec = nil
 	if workbench_spec == true then
+		local rules_path, spec_path = u_common.resolve_workbench_spec_path(nil, options)
 		spec = {
 			enabled = true,
-			rules_path = u_common.resolve_workbench_spec_path(nil, options),
-			path = select(2, u_common.resolve_workbench_spec_path(nil, options))
+			rules_path = rules_path,
+			path = spec_path,
+			context_path = spec_path
 		}
 	elseif type(workbench_spec) == "string" then
 		local rules_path, spec_path = u_common.resolve_workbench_spec_path(workbench_spec, options)
 		spec = {
 			enabled = true,
 			rules_path = rules_path,
-			path = spec_path
+			path = spec_path,
+			context_path = spec_path
 		}
 	elseif type(workbench_spec) == "table" then
 		spec = aip.lua.merge({ enabled = true }, workbench_spec)
 		spec.rules_path, spec.path = u_common.resolve_workbench_spec_path(spec.path, options)
+		spec.context_path = spec.path
 	end
 	return spec
 end
