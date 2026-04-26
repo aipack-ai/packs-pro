@@ -543,12 +543,39 @@ Available properties for the table definition:
 
 Sub-agents are standard `.aip` files. They receive stage-specific input structures as their `input` (accessible in `# Data` or `# Output` stages).
 
+When `workbench` is active, sub-agents receive a resolved `coder_workbench` object at the root of their input. This is the effective runtime state, not the raw user configuration. Use `input.coder_workbench` for workbench paths and cache locations. The `workbench` key is stripped from `input.coder_params` at the sub-agent boundary to avoid two sources of truth.
+
+```ts
+type CoderWorkbench = {
+  dir: string,
+  cache_dir: string,
+  prompt_cache_dir: string,
+  chat?: {
+    enabled: boolean,
+    path: string,
+  },
+  plan?: {
+    enabled: boolean,
+    dir: string,
+    path: string,
+    rules_path: string,
+  },
+  spec?: {
+    enabled: boolean,
+    path: string,
+    rules_path: string,
+    context_path: string,
+  },
+}
+```
+
 ```ts
 type SubAgentPreInput = {
   event: string,            // Current event being handled, e.g. "start", "auto-context::end"
   stage: "pre",             // Runtime contract marker
   coder_prompt_dir: string, // Absolute path to the prompt file directory
   coder_params: table,      // Current parameters (from YAML block or previous sub-agents)
+  coder_workbench?: CoderWorkbench | nil, // Resolved workbench state when workbench is active
   coder_prompt: string,     // Current instruction text
   agent_config: AgentConfig,// The configuration object defined in the sub_agents list
 
@@ -566,6 +593,7 @@ type SubAgentPostInput = {
   stage: "post",
   coder_prompt_dir: string,
   coder_params: table,
+  coder_workbench?: CoderWorkbench | nil,
   coder_prompt: string,
   agent_config: AgentConfig,
   
@@ -742,6 +770,8 @@ sub_agents:
 - Appends the spec rules path to `knowledge_globs_post` when missing (deduped).
 - Appends the resolved spec file path to `context_globs_post` when missing (deduped).
 - Returns `agent_result.dev_content_globs` for downstream helper-context consumption, including the spec file path when enabled.
+- Exposes the resolved runtime state to sub-agents as root-level `input.coder_workbench`, including `dir`, `cache_dir`, `prompt_cache_dir`, and enabled helper paths.
+- Removes the raw `workbench` config from sub-agent `input.coder_params`, so sub-agents can treat `input.coder_workbench` as the source of truth.
 - If all capabilities are disabled, the agent is effectively disabled and does not modify params.
 
 The same behavior can be configured with the `workbench` shortcut in the root config:
@@ -969,6 +999,7 @@ type SubAgentPostInput = {
   stage: "post",
   coder_prompt_dir: string,
   coder_params: table,
+  coder_workbench?: CoderWorkbench | nil,
   coder_context_file_refs: table | nil,
   coder_knowledge_file_refs: table | nil,
   coder_working_file_refs: table | nil,
@@ -983,6 +1014,8 @@ type SubAgentPostInput = {
 Interpretation notes:
 
 - `coder_params` reflects the final effective coder params after `pre` stage processing.
+- `coder_workbench` contains the resolved effective workbench state when workbench is active, including cache locations and enabled helper paths.
+- Sub-agents should read workbench paths from `coder_workbench`; the raw `workbench` config key is stripped from `coder_params` for sub-agent input.
 - `coder_prompt` reflects the final effective instruction after `pre` stage processing.
 - `coder_context_file_refs`, `coder_knowledge_file_refs`, and `coder_working_file_refs` are the resolved file refs actually used by the main run.
 - `coder_responses` contains one item per output task, in output order.
