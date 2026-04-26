@@ -677,7 +677,8 @@ type SubAgentPostOutput = {
 
   sub_agents_next?: AgentConfig[], // Optional: Replaces the pending sub-agent tail
   emit_events?: string[],        // Optional: Queues follow-up events in FIFO order for the current stage
-
+  coder_redo?: boolean,          // Optional: Post-stage only. Requests one full coder rerun after post processing completes.
+  
   success?: boolean,             // Optional (defaults to true). Set to false to fail.
   error_msg?: string,            // Optional. If present, the run fails with this message.
   error_details?: string,        // Optional. More context for the failure.
@@ -691,6 +692,7 @@ type SubAgentPostOutput = {
 - `agent_result`: If provided, this payload is exposed to downstream sub-agents through `sub_agents_prev[*].agent_result` (and `sub_agent_result` for compatibility).
 - `sub_agents_next`: If provided, it replaces the pending tail of the pipeline for future dispatch only.
 - `emit_events`: If provided, the listed events are appended to the current stage event queue in order.
+- `coder_redo`: Honored only for post-stage sub-agents. If any post-stage sub-agent returns `coder_redo: true`, `pro@coder` requests one full rerun after all currently queued post-stage sub-agents and emitted post events complete. The redo request is cumulative for the post stage and capped at 20 redo-chain runs using `CTX.RUN_FLOW_REDO_COUNT`; when the cap is reached, `pro@coder` warns instead of rerunning.
 - Errors: If `success` is `false` or `error_msg` is present, the entire `pro@coder` run will halt with the provided error.
 
 - A sub-agent can return this data either from:
@@ -1030,6 +1032,7 @@ type SubAgentPostOutput = {
   agent_result?: any,
   sub_agents_next?: AgentConfig[],
   emit_events?: string[],
+  coder_redo?: boolean,
   success?: boolean,
   error_msg?: string,
   error_details?: string,
@@ -1042,7 +1045,30 @@ Post-stage output behavior:
 - `agent_result` is preserved for downstream `post` pipeline context.
 - `sub_agents_next` may replace the remaining `post` pipeline tail.
 - `emit_events` appends follow-up post-stage events to the queue in order.
+- `coder_redo` is honored only in `post`. If any post-stage sub-agent returns `coder_redo: true`, one full coder rerun is requested after post-stage processing completes.
 - `coder_params` and `coder_prompt` are not part of the documented post-stage output contract.
+
+### Post-stage coder redo
+
+Post-stage sub-agents can request that `pro@coder` run again by returning `coder_redo = true`.
+
+```lua
+return {
+  coder_redo = true,
+  agent_result = {
+    reason = "Plan updated, requesting coder to continue."
+  }
+}
+```
+
+Redo behavior:
+
+- `coder_redo` is ignored outside the post stage.
+- The redo decision is cumulative and sticky for one post-stage dispatch. If any post-stage sub-agent returns `coder_redo: true`, later sub-agent outputs do not need to repeat it and cannot unset it.
+- `pro@coder` finishes all currently queued post-stage sub-agents and emitted post events before acting on the redo request.
+- Redo is capped at 20 redo-chain runs.
+- The cap uses AIPack redo-chain state through `CTX.RUN_FLOW_REDO_COUNT`.
+- When the cap is reached, `pro@coder` warns instead of rerunning.
 
 ## Spec-Based Development
 
