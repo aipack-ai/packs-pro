@@ -212,6 +212,7 @@ if output_base then
 
 	return {
 		coder_params              = output_base.coder_params,
+		coder_workbench           = output_base.coder_workbench,
 		coder_prompt              = output_base.coder_prompt,
 		coder_prompt_dir          = output_base.coder_prompt_dir,
 		coder_context_file_refs   = output_base.coder_context_file_refs,
@@ -513,6 +514,7 @@ end
 	_display = response,
 	data = {
 		coder_params              = data.coder_params,
+		coder_workbench           = data.coder_workbench,
 		coder_prompt              = data.coder_prompt,
 		coder_prompt_dir          = data.coder_prompt_dir,
 		coder_context_file_refs   = data.coder_context_file_refs,
