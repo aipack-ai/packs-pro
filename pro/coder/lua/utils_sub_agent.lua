@@ -208,6 +208,7 @@ local function run_sub_agents_dispatch(dispatch_item, coder_meta, inst, coder_op
 
 	local current_coder_prompt = inst
 	local extra_sub_input = coder_options and coder_options.extra_sub_input or nil
+	local coder_workbench = coder_options and coder_options.coder_workbench or nil
 	local event_queue = {
 		new_dispatch_item(dispatch_item.event, dispatch_item.stage, agent_configs, dispatch_item.history or {})
 	}
@@ -250,6 +251,7 @@ local function run_sub_agents_dispatch(dispatch_item, coder_meta, inst, coder_op
 						event = dispatch_event,
 						sub_agents_prev = sub_agents_prev,
 						sub_agents_next = sub_agents_next,
+						coder_workbench = coder_workbench,
 						extra_sub_input = extra_sub_input
 					}),
 					coder_prompt_dir
@@ -304,10 +306,12 @@ function run_sub_agent(config, stage, current_params, current_coder_prompt, code
 	local sub_agents_prev = opts.sub_agents_prev
 	local sub_agents_next = opts.sub_agents_next
 	local extra_sub_input = opts.extra_sub_input
+	local coder_workbench = opts.coder_workbench
 	local event_name = opts.event
 	opts.sub_agents_prev = nil
 	opts.sub_agents_next = nil
 	opts.extra_sub_input = nil
+	opts.coder_workbench = nil
 	opts.event = nil
 
 	if config.enabled == false then
@@ -317,10 +321,11 @@ function run_sub_agent(config, stage, current_params, current_coder_prompt, code
 	local coder_params_for_sub = extract_coder_params(current_params)
 	local sub_input = {
 		_display         =
-		"sub agent input {event, stage, coder_stage, coder_params, coder_prompt, agent_config, coder_prompt_dir, sub_agents_prev, sub_agents_next}",
+		"sub agent input {event, stage, coder_stage, coder_params, coder_workbench, coder_prompt, agent_config, coder_prompt_dir, sub_agents_prev, sub_agents_next}",
 		event            = event_name,
 		stage            = stage,
 		coder_params     = coder_params_for_sub,
+		coder_workbench  = coder_workbench,
 		coder_prompt     = current_coder_prompt,
 		coder_prompt_dir = coder_prompt_dir,
 		agent_config     = config,
