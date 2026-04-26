@@ -192,7 +192,7 @@ end
 local function run_sub_agents_dispatch(dispatch_item, coder_meta, inst, coder_options, coder_prompt_dir)
 	local agent_configs = extract_sub_agent_configs(coder_meta.sub_agents, { coder_prompt_dir = coder_prompt_dir })
 	if #agent_configs == 0 then
-		return coder_meta, inst
+		return coder_meta, inst, nil, false
 	end
 
 	local current_params = aip.lua.merge_deep({}, coder_meta)
@@ -215,11 +215,12 @@ local function run_sub_agents_dispatch(dispatch_item, coder_meta, inst, coder_op
 	}
 
 	local steps = 0
+	local coder_redo_requested = false
 
 	while #event_queue > 0 do
 		steps = steps + 1
 		if steps > MAX_SUB_AGENT_STEPS then
-			return nil, nil, "Sub-agent pipeline exceeded max steps (" .. MAX_SUB_AGENT_STEPS .. ")."
+			return nil, nil, "Sub-agent pipeline exceeded max steps (" .. MAX_SUB_AGENT_STEPS .. ").", false
 		end
 
 		local dispatch = table.remove(event_queue, 1)
@@ -243,7 +244,8 @@ local function run_sub_agents_dispatch(dispatch_item, coder_meta, inst, coder_op
 				local returned_next
 				local agent_result
 				local emit_events
-				current_params, current_coder_prompt, returned_next, agent_result, emit_events, err = run_sub_agent(
+				local coder_redo
+				current_params, current_coder_prompt, returned_next, agent_result, emit_events, err, coder_redo = run_sub_agent(
 					config,
 					dispatch_stage,
 					current_params,
@@ -258,6 +260,9 @@ local function run_sub_agents_dispatch(dispatch_item, coder_meta, inst, coder_op
 					coder_prompt_dir
 				)
 				if err then return nil, nil, err end
+				if dispatch_stage == "post" and coder_redo == true then
+					coder_redo_requested = true
+				end
 
 				table.insert(executed, {
 					config = clone_shallow(config),
@@ -293,7 +298,7 @@ local function run_sub_agents_dispatch(dispatch_item, coder_meta, inst, coder_op
 	-- put back the sub_agents
 	new_coder_meta.sub_agents = agent_configs
 
-	return new_coder_meta, current_coder_prompt
+	return new_coder_meta, current_coder_prompt, nil, coder_redo_requested
 end
 
 -- === /Support Functions
@@ -301,7 +306,7 @@ end
 -- === Public Interfaces
 
 -- Runs a single sub-agent.
--- Returns modified params, modified prompt, and error message if any.
+-- Returns modified params, modified prompt, next configs, agent result, emitted events, error message, and post-stage redo flag.
 function run_sub_agent(config, stage, current_params, current_coder_prompt, coder_options, coder_prompt_dir)
 	local opts = coder_options or {}
 	local sub_agents_prev = opts.sub_agents_prev
@@ -349,7 +354,7 @@ function run_sub_agent(config, stage, current_params, current_coder_prompt, code
 	})
 
 	if run_res == nil then
-		return nil, nil, nil, "Sub-agent [" .. config.name .. "] execution failed (no response)"
+		return nil, nil, nil, nil, nil, "Sub-agent [" .. config.name .. "] execution failed (no response)"
 	end
 
 	local res = extract_sub_agent_response(run_res)
@@ -360,7 +365,7 @@ function run_sub_agent(config, stage, current_params, current_coder_prompt, code
 	if res == nil then return current_params, current_coder_prompt, next_configs, nil, emit_events end
 
 	if type(res) ~= "table" then
-		return nil, nil, nil, "Sub-agent [" .. config.name .. "] failed: invalid response type, expected table or nil"
+		return nil, nil, nil, nil, nil, "Sub-agent [" .. config.name .. "] failed: invalid response type, expected table or nil"
 	end
 
 	-- Validate the response structure
@@ -371,7 +376,7 @@ function run_sub_agent(config, stage, current_params, current_coder_prompt, code
 		if res.error_details then
 			full_err = full_err .. "\nDetails: " .. res.error_details
 		end
-		return nil, nil, nil, full_err
+		return nil, nil, nil, nil, nil, full_err
 	end
 
 	-- Merge or replace state
@@ -393,8 +398,9 @@ function run_sub_agent(config, stage, current_params, current_coder_prompt, code
 
 	emit_events = normalize_emit_events(res.emit_events)
 	local agent_result = type(res) == "table" and res.agent_result or nil
+	local coder_redo = stage == "post" and res.coder_redo == true
 
-	return current_params, current_coder_prompt, next_configs, agent_result, emit_events
+	return current_params, current_coder_prompt, next_configs, agent_result, emit_events, nil, coder_redo
 end
 
 -- Executes pre-stage sub-agents with the explicit root start event.
