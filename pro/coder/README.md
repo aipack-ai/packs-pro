@@ -1025,15 +1025,12 @@ Typical setup:
 
 ```yaml
 workbench:
+  dir: _workbench/some-feature
+  chat: true # to extract the chat into the spec for example
   spec: true
+  # plan: false # can be enabled later
 ```
 
-Or with an explicit path:
-
-```yaml
-workbench:
-  spec: .aipack/.prompt/pro@coder/workbench-default/spec.md
-```
 
 You can then prompt the agent with requests such as:
 
