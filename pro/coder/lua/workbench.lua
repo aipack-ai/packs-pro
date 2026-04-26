@@ -42,18 +42,20 @@ end
 local function normalize_workbench_plan_config(workbench_plan, options)
 	local plan = nil
 	if workbench_plan == true then
-		local dir, _rules_path, path = u_common.resolve_workbench_plan_paths(nil, options)
+		local dir, rules_path, path = u_common.resolve_workbench_plan_paths(nil, options)
 		plan = {
 			enabled = true,
 			dir = dir,
-			path = path
+			path = path,
+			rules_path = rules_path
 		}
 	elseif type(workbench_plan) == "string" then
-		local dir, _rules_path, path = u_common.resolve_workbench_plan_paths(workbench_plan, options)
+		local dir, rules_path, path = u_common.resolve_workbench_plan_paths(workbench_plan, options)
 		plan = {
 			enabled = true,
 			dir = dir,
-			path = path
+			path = path,
+			rules_path = rules_path
 		}
 	elseif type(workbench_plan) == "table" then
 		plan = aip.lua.merge({ enabled = true }, workbench_plan)
@@ -61,7 +63,9 @@ local function normalize_workbench_plan_config(workbench_plan, options)
 		if is_null(plan_value) or plan_value == "" then
 			plan_value = plan.dir
 		end
-		plan.dir, _rules_path, plan.path = u_common.resolve_workbench_plan_paths(plan_value, options)
+		local rules_path
+		plan.dir, rules_path, plan.path = u_common.resolve_workbench_plan_paths(plan_value, options)
+		plan.rules_path = rules_path
 		if not is_null(plan.dir) and plan.dir ~= "" and plan.path ~= plan.dir .. "/plan.md" and not is_null(plan.dir) and plan.dir ~= "" then
 			local resolved_parent = aip.path.parent(plan.path)
 			if not is_null(resolved_parent) and resolved_parent ~= "" then
@@ -92,6 +96,43 @@ local function normalize_workbench_spec_config(workbench_spec, options)
 		spec.rules_path, spec.path = u_common.resolve_workbench_spec_path(spec.path, options)
 	end
 	return spec
+end
+
+local function clone_config_section(section)
+	if is_null(section) or type(section) ~= "table" then
+		return nil
+	end
+	return aip.lua.merge({}, section)
+end
+
+local function build_coder_workbench(workbench_config, options)
+	options = options or {}
+	if is_null(workbench_config) or type(workbench_config) ~= "table" or workbench_config.enabled == false then
+		return nil
+	end
+
+	local prompt_cache_dir = options.prompt_cache_dir
+	if is_null(prompt_cache_dir) or prompt_cache_dir == "" then
+		local coder_prompt_dir = options.coder_prompt_dir
+		if not is_null(coder_prompt_dir) and coder_prompt_dir ~= "" then
+			prompt_cache_dir = coder_prompt_dir .. "/.cache"
+		end
+	end
+
+	local dir = normalize_workbench_dir(workbench_config.dir)
+	local cache_dir = prompt_cache_dir
+	if not is_null(dir) and dir ~= "" then
+		cache_dir = dir .. "/.cache"
+	end
+
+	return {
+		dir = dir,
+		cache_dir = cache_dir,
+		prompt_cache_dir = prompt_cache_dir,
+		chat = clone_config_section(workbench_config.chat),
+		plan = clone_config_section(workbench_config.plan),
+		spec = clone_config_section(workbench_config.spec)
+	}
 end
 
 local function new_workbench_sub_agent_config(workbench, options)
@@ -133,6 +174,7 @@ end
 
 return {
 	new_workbench_sub_agent_config = new_workbench_sub_agent_config,
+	build_coder_workbench = build_coder_workbench,
 	normalize_workbench_chat_config = normalize_workbench_chat_config,
 	resolve_workbench_chat_path = resolve_workbench_chat_path,
 	normalize_workbench_plan_config = normalize_workbench_plan_config,

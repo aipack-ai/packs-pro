@@ -65,11 +65,14 @@ local function prepare_paths(prompt_file_path)
 	end
 
 	local prompt_dir = aip.path.parent(prompt_file_path)
-	local cache_dir = prompt_dir .. "/.cache"
+	local prompt_cache_dir = prompt_dir .. "/.cache"
+	local cache_dir = prompt_cache_dir
 
 	return {
 		prompt_file_rel_path               = prompt_file_rel_path,
 		prompt_dir                         = prompt_dir,
+		cache_dir                          = cache_dir,
+		prompt_cache_dir                   = prompt_cache_dir,
 		prompt_file_paths                  = cache_dir .. "/last_prompt_file_paths.md",
 		ai_responses_for_raw_path          = cache_dir .. "/last_ai_responses_for_raw.md",
 		ai_responses_for_prompt_path       = cache_dir .. "/last_ai_responses_for_prompt.md",
@@ -412,6 +415,7 @@ function run_before_all(inputs)
 	end
 
 	local builtin_sub_agents = {}
+	local coder_workbench = nil
 
 	-- === Build workbench sub agent if present
 	local legacy_dev = meta.dev
@@ -430,6 +434,10 @@ function run_before_all(inputs)
 		local workbench_config = u_workbench.new_workbench_sub_agent_config(selected_workbench,
 			{ coder_prompt_dir = coder_prompt_dir })
 		if workbench_config then
+			coder_workbench = u_workbench.build_coder_workbench(workbench_config, {
+				coder_prompt_dir = coder_prompt_dir,
+				prompt_cache_dir = paths.prompt_cache_dir
+			})
 			workbench_config.on = value_or(workbench_config.on, "start")
 			table.insert(builtin_sub_agents, workbench_config)
 		end
