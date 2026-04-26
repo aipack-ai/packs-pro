@@ -214,11 +214,15 @@ local CONST = require("consts")
 local u_sub_agent = require("utils_sub_agent")
 
 local output_base = outputs and outputs[1] and outputs[1].data or nil
+local MAX_CODER_REDO_COUNT = 20
 
 if output_base then
 	local post_err = nil
 	local post_has_failure = false
 	local post_error_msg = nil
+	local coder_redo_requested = false
+	local coder_redo_count = nil
+	local coder_redo_cap_reached = false
 
 	local coder_responses = {}
 	for _, output in ipairs(outputs or {}) do
@@ -227,7 +231,7 @@ if output_base then
 		end
 	end
 
-	local _, _, err = u_sub_agent.run_sub_agents_post(output_base.coder_params or {}, output_base.coder_prompt, {
+	local _, _, err, coder_redo = u_sub_agent.run_sub_agents_post(output_base.coder_params or {}, output_base.coder_prompt, {
 		coder_workbench = output_base.coder_workbench,
 		extra_sub_input = {
 			coder_context_file_refs = output_base.coder_context_file_refs,
@@ -251,6 +255,28 @@ if output_base then
 		})
 	end
 
+	if coder_redo == true then
+		coder_redo_requested = true
+	end
+
+	if coder_redo_requested and not post_has_failure then
+		coder_redo_count = tonumber(CTX.RUN_FLOW_REDO_COUNT) or 0
+
+		if coder_redo_count < MAX_CODER_REDO_COUNT then
+			aip.run.pin("coder_redo_requested", 9, {
+				label = CONST.LABEL_COMPLETED,
+				content = "Post-stage sub-agent requested a coder rerun.\n\nRedo count: " .. coder_redo_count .. "\nCap: " .. MAX_CODER_REDO_COUNT .. "\n\nStarting a new coder run."
+			})
+			return aip.flow.redo_run()
+		end
+
+		coder_redo_cap_reached = true
+		aip.run.pin("coder_redo_cap_reached", 10, {
+			label = "WARNING",
+			content = "Post-stage sub-agent requested a coder rerun, but the redo cap was reached.\n\nRedo count: " .. coder_redo_count .. "\nCap: " .. MAX_CODER_REDO_COUNT .. "\n\nNo additional coder rerun will be started."
+		})
+	end
+
 	return {
 		coder_params              = output_base.coder_params,
 		coder_workbench           = output_base.coder_workbench,
@@ -259,6 +285,9 @@ if output_base then
 		coder_context_file_refs   = output_base.coder_context_file_refs,
 		coder_knowledge_file_refs = output_base.coder_knowledge_file_refs,
 		coder_working_file_refs   = output_base.coder_working_file_refs,
+		post_coder_redo_requested = coder_redo_requested,
+		post_coder_redo_count     = coder_redo_count,
+		post_coder_redo_cap_reached = coder_redo_cap_reached,
 		post_has_failure          = post_has_failure,
 		post_error_msg            = post_error_msg,
 		error                     = post_err,
