@@ -173,6 +173,7 @@ local function extract_coder_params(coder_meta)
 	local params = {}
 	aip.lua.merge_deep(params, coder_meta)
 	params.sub_agents = nil
+	params.workbench = nil
 	return params
 end
 
