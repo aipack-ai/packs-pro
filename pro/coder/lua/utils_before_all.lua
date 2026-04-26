@@ -121,6 +121,56 @@ local function print_run_info(input_base, working_refs_list, write_mode, input_c
 	print(run_info)
 end
 
+local function append_diagnostic_line(lines, label, value)
+	if not is_null(value) and value ~= "" then
+		table.insert(lines, label .. ": " .. tostring(value))
+	end
+end
+
+local function append_diagnostic_section(lines, title, section, fields)
+	if is_null(section) or type(section) ~= "table" or section.enabled == false then
+		return
+	end
+
+	table.insert(lines, "")
+	table.insert(lines, title .. ": enabled")
+	for _, field in ipairs(fields) do
+		append_diagnostic_line(lines, "  " .. field, section[field])
+	end
+end
+
+local function build_workbench_diagnostics(coder_workbench)
+	if is_null(coder_workbench) or type(coder_workbench) ~= "table" then
+		return nil
+	end
+
+	local lines = {}
+	append_diagnostic_line(lines, "Workbench", coder_workbench.dir)
+	append_diagnostic_line(lines, "Cache", coder_workbench.cache_dir)
+	append_diagnostic_line(lines, "Prompt Cache", coder_workbench.prompt_cache_dir)
+	append_diagnostic_section(lines, "Chat", coder_workbench.chat, { "path" })
+	append_diagnostic_section(lines, "Plan", coder_workbench.plan, { "dir", "path", "rules_path" })
+	append_diagnostic_section(lines, "Spec", coder_workbench.spec, { "path", "rules_path", "context_path" })
+
+	if #lines == 0 then
+		return nil
+	end
+
+	return table.concat(lines, "\n")
+end
+
+local function pin_workbench_diagnostics(coder_workbench)
+	local content = build_workbench_diagnostics(coder_workbench)
+	if content == nil or content == "" then
+		return
+	end
+
+	aip.run.pin("workbench", 3, {
+		label = CONST.LABEL_WORKBENCH,
+		content = content
+	})
+end
+
 -- Splits the prompt Markdown content into instruction (first part) and previous content (second part).
 -- It also cleans the second part by removing any existing note blocks (lines starting with '>').
 local function extract_prompt_parts(prompt_content)
@@ -461,6 +511,8 @@ function run_before_all(inputs)
 		meta.workbench = selected_workbench
 		meta.dev = nil
 	end
+
+	pin_workbench_diagnostics(coder_workbench)
 
 	-- === Build auto_context sub agent if present
 	if not is_null(meta.auto_context) then

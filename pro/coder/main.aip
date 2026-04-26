@@ -118,6 +118,46 @@ local function build_section(title, all, pre, post)
     return s
 end
 
+local function append_workbench_report_line(lines, label, value)
+    if not is_null(value) and value ~= "" then
+        table.insert(lines, "- " .. label .. ": " .. tostring(value))
+    end
+end
+
+local function append_workbench_report_section(lines, title, section, fields)
+    if is_null(section) or type(section) ~= "table" or section.enabled == false then
+        return
+    end
+
+    table.insert(lines, "")
+    table.insert(lines, "## " .. title)
+    table.insert(lines, "")
+    append_workbench_report_line(lines, "enabled", "true")
+    for _, field in ipairs(fields) do
+        append_workbench_report_line(lines, field, section[field])
+    end
+end
+
+local function build_workbench_report(workbench)
+    if is_null(workbench) or type(workbench) ~= "table" then return "" end
+
+    local lines = {
+        "# Workbench",
+        "",
+        "Resolved workbench state used for this run.",
+        ""
+    }
+    append_workbench_report_line(lines, "dir", workbench.dir)
+    append_workbench_report_line(lines, "cache_dir", workbench.cache_dir)
+    append_workbench_report_line(lines, "prompt_cache_dir", workbench.prompt_cache_dir)
+    append_workbench_report_section(lines, "Chat", workbench.chat, { "path" })
+    append_workbench_report_section(lines, "Plan", workbench.plan, { "dir", "path", "rules_path" })
+    append_workbench_report_section(lines, "Spec", workbench.spec, { "path", "rules_path", "context_path" })
+
+    return table.concat(lines, "\n") .. "\n\n"
+end
+
+prompt_files_content = prompt_files_content .. build_workbench_report(base.coder_workbench)
 prompt_files_content = prompt_files_content .. build_section("Knowledge Files", base.knowledge_refs, base.knowledge_refs_pre, base.knowledge_refs_post)
 prompt_files_content = prompt_files_content .. build_section("Context Files", new_context_refs, new_context_refs_pre, new_context_refs_post)
 
