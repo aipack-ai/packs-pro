@@ -55,7 +55,9 @@ local function check_version()
 end
 
 -- Resolves various paths used by the agent based on the prompt file location.
-local function prepare_paths(prompt_file_path)
+-- When a workbench directory is provided, transient cache files use its cache directory.
+local function prepare_paths(prompt_file_path, options)
+	options = options or {}
 	local prompt_file_rel_path = nil
 	if prompt_file_path:sub(1, 2) == "./" then
 		prompt_file_rel_path = prompt_file_path:sub(3)
@@ -67,13 +69,17 @@ local function prepare_paths(prompt_file_path)
 	local prompt_dir = aip.path.parent(prompt_file_path)
 	local prompt_cache_dir = prompt_dir .. "/.cache"
 	local cache_dir = prompt_cache_dir
+	local workbench_dir = options.workbench_dir
+	if not is_null(workbench_dir) and workbench_dir ~= "" then
+		cache_dir = tostring(workbench_dir):gsub("/+$", "") .. "/.cache"
+	end
 
 	return {
 		prompt_file_rel_path               = prompt_file_rel_path,
 		prompt_dir                         = prompt_dir,
 		cache_dir                          = cache_dir,
 		prompt_cache_dir                   = prompt_cache_dir,
-		prompt_file_paths                  = cache_dir .. "/last_prompt_file_paths.md",
+		prompt_file_paths                  = prompt_cache_dir .. "/last_prompt_file_paths.md",
 		ai_responses_for_raw_path          = cache_dir .. "/last_ai_responses_for_raw.md",
 		ai_responses_for_prompt_path       = cache_dir .. "/last_ai_responses_for_prompt.md",
 		last_file_change_fails_report_path = cache_dir .. "/last_file_change_fails_report.md"
@@ -435,6 +441,9 @@ function run_before_all(inputs)
 		local workbench_config = u_workbench.new_workbench_sub_agent_config(selected_workbench,
 			{ coder_prompt_dir = coder_prompt_dir })
 		if workbench_config then
+			if workbench_config.enabled ~= false and not is_null(workbench_config.dir) and workbench_config.dir ~= "" then
+				paths = prepare_paths(prompt_file.path, { workbench_dir = workbench_config.dir })
+			end
 			coder_workbench = u_workbench.build_coder_workbench(workbench_config, {
 				coder_prompt_dir = coder_prompt_dir,
 				prompt_cache_dir = paths.prompt_cache_dir
