@@ -123,36 +123,24 @@ local function print_run_info(input_base, working_refs_list, write_mode, input_c
 	print(run_info)
 end
 
-local function append_diagnostic_line(lines, label, value)
-	if not is_null(value) and value ~= "" then
-		table.insert(lines, label .. ": " .. tostring(value))
-	end
-end
-
-local function append_diagnostic_section(lines, title, section, fields)
-	if is_null(section) or type(section) ~= "table" or section.enabled == false then
-		return
-	end
-
-	table.insert(lines, "")
-	table.insert(lines, title .. ": enabled")
-	for _, field in ipairs(fields) do
-		append_diagnostic_line(lines, "  " .. field, section[field])
-	end
-end
-
 local function build_workbench_diagnostics(coder_workbench)
 	if is_null(coder_workbench) or type(coder_workbench) ~= "table" then
 		return nil
 	end
 
 	local lines = {}
-	append_diagnostic_line(lines, "Workbench", coder_workbench.dir)
-	append_diagnostic_line(lines, "Cache", coder_workbench.cache_dir)
-	append_diagnostic_line(lines, "Prompt Cache", coder_workbench.prompt_cache_dir)
-	append_diagnostic_section(lines, "Chat", coder_workbench.chat, { "path" })
-	append_diagnostic_section(lines, "Plan", coder_workbench.plan, { "dir", "path", "rules_path" })
-	append_diagnostic_section(lines, "Spec", coder_workbench.spec, { "path", "rules_path", "context_path" })
+	local chat_path = coder_workbench and coder_workbench.chat and coder_workbench.chat.path
+	if chat_path then
+		table.insert(lines, "chat ➜ " .. chat_path)
+	end
+	local spec_path = coder_workbench and coder_workbench.spec and coder_workbench.spec.path
+	if spec_path then
+		table.insert(lines, "Spec ➜ " .. spec_path)
+	end
+	local plan_path = coder_workbench and coder_workbench.plan and coder_workbench.plan.path
+	if plan_path then
+		table.insert(lines, "Plan ➜ " .. plan_path)
+	end
 
 	if #lines == 0 then
 		return nil
