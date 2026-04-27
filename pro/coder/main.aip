@@ -389,13 +389,6 @@ Also, when you return the answer, we need to set a very short label for this "ru
 
 The _run_label_text_ should be very short, just couple of words, or three max (only when very needed). 
 
-Also, here are some possible prefixes for the _run_label_text_
-
-- `💬 ` if this run is only about updated the chat.md
-- `📆 ` if this run was about creating a new plan.md (without implementation)
-- `📆 ✔ ` if this run was about implementing a step of the plan.md
-- `🗓️ 🏁 ` if this run was the implentation of the last step of the plan .dm 
-
 # User `cache = {{data.cache_knowledge_files}}`
 
 {{#if data.knowledge_files}}
