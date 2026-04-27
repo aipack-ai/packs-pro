@@ -79,7 +79,7 @@ local function prepare_paths(prompt_file_path, options)
 		prompt_dir                         = prompt_dir,
 		cache_dir                          = cache_dir,
 		prompt_cache_dir                   = prompt_cache_dir,
-		prompt_file_paths                  = prompt_cache_dir .. "/last_prompt_file_paths.md",
+		prompt_file_paths                  = cache_dir .. "/last_prompt_file_paths.md",
 		ai_responses_for_raw_path          = cache_dir .. "/last_ai_responses_for_raw.md",
 		ai_responses_for_prompt_path       = cache_dir .. "/last_ai_responses_for_prompt.md",
 		last_file_change_fails_report_path = cache_dir .. "/last_file_change_fails_report.md"
