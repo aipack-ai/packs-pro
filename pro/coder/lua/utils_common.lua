@@ -52,6 +52,31 @@ local function resolve_workbench_root_dir(options)
 	return coder_prompt_dir .. "/workbench-default"
 end
 
+local function resolve_work_cache_dir(options)
+	options = options or {}
+	local workbench_cache_dir = options.workbench_cache_dir
+	if is_null(workbench_cache_dir) and type(options.coder_workbench) == "table" then
+		workbench_cache_dir = options.coder_workbench.cache_dir
+	end
+
+	if not is_null(workbench_cache_dir) and workbench_cache_dir ~= "" then
+		return tostring(workbench_cache_dir):gsub("/+$", "")
+	end
+
+	local workbench_dir = options.workbench_dir
+	if not is_null(workbench_dir) and workbench_dir ~= "" then
+		return tostring(workbench_dir):gsub("/+$", "") .. "/.cache"
+	end
+
+	local prompt_cache_dir = options.prompt_cache_dir
+	if is_null(prompt_cache_dir) or prompt_cache_dir == "" then
+		local coder_prompt_dir = options.coder_prompt_dir or "."
+		prompt_cache_dir = tostring(coder_prompt_dir):gsub("/+$", "") .. "/.cache"
+	end
+
+	return tostring(prompt_cache_dir):gsub("/+$", "")
+end
+
 local function resolve_workbench_chat_path(workbench_chat_path, options)
 	options = options or {}
 	local workbench_root_dir = resolve_workbench_root_dir(options)
@@ -337,6 +362,7 @@ return {
 	list_likely_text_with_stats = list_likely_text_with_stats,
 	list_load_likely_text = list_load_likely_text,
 	resolve_workbench_root_dir = resolve_workbench_root_dir,
+	resolve_work_cache_dir = resolve_work_cache_dir,
 	resolve_workbench_chat_path = resolve_workbench_chat_path,
 	resolve_workbench_plan_dir = resolve_workbench_plan_dir,
 	resolve_workbench_plan_paths = resolve_workbench_plan_paths,

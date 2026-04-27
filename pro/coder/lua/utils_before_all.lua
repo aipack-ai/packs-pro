@@ -68,11 +68,13 @@ local function prepare_paths(prompt_file_path, options)
 
 	local prompt_dir = aip.path.parent(prompt_file_path)
 	local prompt_cache_dir = prompt_dir .. "/.cache"
-	local cache_dir = prompt_cache_dir
-	local workbench_dir = options.workbench_dir
-	if not is_null(workbench_dir) and workbench_dir ~= "" then
-		cache_dir = tostring(workbench_dir):gsub("/+$", "") .. "/.cache"
-	end
+	local cache_dir = u_common.resolve_work_cache_dir({
+		coder_prompt_dir = prompt_dir,
+		prompt_cache_dir = prompt_cache_dir,
+		workbench_dir = options.workbench_dir,
+		workbench_cache_dir = options.workbench_cache_dir,
+		coder_workbench = options.coder_workbench
+	})
 
 	return {
 		prompt_file_rel_path               = prompt_file_rel_path,
