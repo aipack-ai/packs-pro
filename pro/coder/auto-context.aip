@@ -170,10 +170,7 @@ if auto_context_config.knowledge and knowledge_code_map then
 end
 
 -- === Save the descriptions to cache
-local ac_cache_dir = u_common.resolve_work_cache_dir({
-	coder_prompt_dir = sub_agent_input.coder_prompt_dir,
-	coder_workbench = sub_agent_input.coder_workbench
-}) .. "/auto-context"
+local ac_cache_dir = sub_agent_input.coder_prompt_dir .. "/.cache/auto-context"
 -- Save context file descs
 local ctx_cache_file = ac_cache_dir .. "/last_context_file_descriptions.md"
 local ctx_cache_content = ""
