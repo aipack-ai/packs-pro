@@ -158,9 +158,69 @@ local function build_failed_hunk_searches_block(fc)
 	return table.concat(lines, "\n")
 end
 
+local function integer_or_nil(value)
+	local n = tonumber(value or nil)
+	if n == nil or n % 1 ~= 0 or n < 0 then
+		return nil
+	end
+	return n
+end
+
+local function parse_failed_hunk_counts_from_error_msg(error_msg)
+	if type(error_msg) ~= "string" or error_msg == "" then
+		return nil, nil
+	end
+
+	local normalized_error_msg = error_msg:lower()
+	local patterns = {
+		"(%d+)%s+of%s+(%d+)%s+hunks?%s+failed",
+		"(%d+)%s*/%s*(%d+)%s+hunks?%s+failed"
+	}
+
+	for _, pattern in ipairs(patterns) do
+		local failed_text, total_text = normalized_error_msg:match(pattern)
+		local failed_count = integer_or_nil(failed_text)
+		local total_count = integer_or_nil(total_text)
+		if failed_count ~= nil and total_count ~= nil then
+			return failed_count, total_count
+		end
+	end
+
+	return nil, nil
+end
+
+local function resolve_failed_hunk_total_count(item, failed_count)
+	if type(item) ~= "table" then
+		return nil
+	end
+
+	local field_names = {
+		"total_hunk_count",
+		"total_hunks",
+		"hunk_count",
+		"hunks_count",
+		"file_hunk_count",
+		"file_hunks_count"
+	}
+
+	for _, field_name in ipairs(field_names) do
+		local total_count = integer_or_nil(item[field_name])
+		if total_count ~= nil and total_count >= failed_count then
+			return total_count
+		end
+	end
+
+	local _parsed_failed_count, parsed_total_count = parse_failed_hunk_counts_from_error_msg(item.error_msg)
+	if parsed_total_count ~= nil and parsed_total_count >= failed_count then
+		return parsed_total_count
+	end
+
+	return nil
+end
+
 local function failed_hunk_counts(fc)
 	if type(fc) ~= "table" then
-		return 0, 0
+		return 0, nil
 	end
 
 	local failed_count = 0
@@ -168,11 +228,29 @@ local function failed_hunk_counts(fc)
 		failed_count = #fc.error_hunks
 	end
 
-	local total_count = tonumber(fc.total_count or nil)
-	if total_count == nil or total_count < failed_count then
+	local parsed_failed_count, parsed_total_count = parse_failed_hunk_counts_from_error_msg(fc.error_msg)
+	if failed_count == 0 and parsed_failed_count ~= nil then
+		failed_count = parsed_failed_count
+	end
+
+	local total_count = integer_or_nil(fc.total_count)
+	if total_count == nil then
+		total_count = parsed_total_count
+	end
+	if total_count ~= nil and total_count < failed_count then
 		total_count = failed_count
 	end
 	return failed_count, total_count
+end
+
+local function hunk_failure_count_text(failed_count, total_count)
+	if total_count ~= nil then
+		return tostring(failed_count) .. "/" .. tostring(total_count) .. " hunks"
+	end
+	if failed_count == 1 then
+		return "1 hunk"
+	end
+	return tostring(failed_count) .. " hunks"
 end
 
 function format_failed_changes_for_tui(files_changes_failed)
@@ -184,10 +262,10 @@ function format_failed_changes_for_tui(files_changes_failed)
 	for _, fc in ipairs(files_changes_failed) do
 		local failed_count, total_count = failed_hunk_counts(fc)
 		table.insert(lines, "- " .. tostring(fc.path or ""))
-		if failed_count == 0 and total_count == 0 and fc.error_msg and fc.error_msg ~= "" then
+		if failed_count == 0 and total_count == nil and fc.error_msg and fc.error_msg ~= "" then
 			table.insert(lines, "  (apply failed, no failed hunk details reported)")
 		else
-			table.insert(lines, "  (" .. tostring(failed_count) .. "/" .. tostring(total_count) .. " hunks failed to apply)")
+			table.insert(lines, "  (" .. hunk_failure_count_text(failed_count, total_count) .. " failed to apply)")
 		end
 		table.insert(lines, "")
 	end
@@ -217,10 +295,10 @@ function format_failed_changes_for_file_report(files_changes_failed)
 		local failed_count, total_count = failed_hunk_counts(fc)
 		table.insert(lines, "")
 		table.insert(lines, "## " .. tostring(fc.path or ""))
-		if failed_count == 0 and total_count == 0 and fc.error_msg and fc.error_msg ~= "" then
+		if failed_count == 0 and total_count == nil and fc.error_msg and fc.error_msg ~= "" then
 			table.insert(lines, "(apply failed, no failed hunk details reported)")
 		else
-			table.insert(lines, "(" .. tostring(failed_count) .. "/" .. tostring(total_count) .. " hunks failed to apply)")
+			table.insert(lines, "(" .. hunk_failure_count_text(failed_count, total_count) .. " failed to apply)")
 		end
 		if fc.error_msg and fc.error_msg ~= "" then
 			table.insert(lines, "")
@@ -479,11 +557,12 @@ function apply_changes(ai_content, data)
 					if type(item.error_hunks) == "table" then
 						failed_count = #item.error_hunks
 					end
+					local total_count = resolve_failed_hunk_total_count(item, failed_count)
 					table.insert(files_changes_failed, {
 						path = f_path,
 						error_msg = reason,
 						error_hunks = item.error_hunks,
-						total_count = failed_count,
+						total_count = total_count,
 						kind = item.kind,
 						changes_info = {
 							failed_changes = { { reason = reason, search = "UDIFFX Block failed: " .. reason } }
