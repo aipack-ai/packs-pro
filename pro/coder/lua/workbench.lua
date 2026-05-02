@@ -1,3 +1,4 @@
+local CONST = require("consts")
 local u_common = require("utils_common")
 
 local function resolve_workbench_chat_path(workbench_chat_path, options)
@@ -102,6 +103,241 @@ local function normalize_workbench_spec_config(workbench_spec, options)
 	return spec
 end
 
+local function append_unique(list, value)
+	for _, item in ipairs(list) do
+		if item == value then
+			return list
+		end
+	end
+	table.insert(list, value)
+	return list
+end
+
+local function pin_workbench_status(chat, plan, spec)
+	if is_null(chat) or not chat.path then
+		aip.run.pin("workbench-chat", 2, {
+			label = CONST.LABEL_CHAT,
+			content = "(not activated)"
+		})
+	else
+		local content = chat.path .. "\n(Added to context_globs_post)"
+		aip.run.pin("workbench-chat", 2, {
+			label = CONST.LABEL_CHAT,
+			content = content
+		})
+	end
+
+	if is_null(plan) or not plan.dir then
+		aip.run.pin("workbench-plan", 3, {
+			label = CONST.LABEL_PLAN,
+			content = "(not activated)"
+		})
+	else
+		local plan_pin_lines = {}
+		local plan_path = plan.path
+		local rules_path = plan.rules_path or (plan.dir .. "/_plan-rules.md")
+		table.insert(plan_pin_lines, "Plan File:")
+		if not is_null(plan_path) and plan_path ~= "" then
+			table.insert(plan_pin_lines, "- " .. plan_path)
+			table.insert(plan_pin_lines, "(Added to context_globs_post)")
+		else
+			table.insert(plan_pin_lines, "- (not resolved)")
+		end
+		
+		table.insert(plan_pin_lines, "\nPlan Rules File: " .. rules_path)
+		table.insert(plan_pin_lines, "(Added to knowledge_globs_post)")
+				
+		-- do the pin
+		aip.run.pin("workbench-plan", 3, {
+			label = CONST.LABEL_PLAN,
+			content = table.concat(plan_pin_lines, "\n")
+		})
+	end
+
+	if is_null(spec) or not spec.path then
+		aip.run.pin("workbench-spec", 4, {
+			label = CONST.LABEL_SPEC,
+			content = "(not activated)"
+		})
+	else
+		local spec_pin_lines = {}
+		table.insert(spec_pin_lines, "Spec Rules File: " .. spec.rules_path)
+		table.insert(spec_pin_lines, "(Added to knowledge_globs_post)")
+		local spec_context_path = spec.context_path or ((aip.path.parent(spec.path) or ".") .. "/spec.md")
+		table.insert(spec_pin_lines, "")
+		table.insert(spec_pin_lines, "Spec Context File: " .. spec_context_path)
+		table.insert(spec_pin_lines, "(Added to context_globs_post)")
+		aip.run.pin("workbench-spec", 4, {
+			label = CONST.LABEL_SPEC,
+			content = table.concat(spec_pin_lines, "\n")
+		})
+	end
+end
+
+local function prepare_workbench(agent_config, coder_params, options)
+	options = options or {}
+	agent_config = agent_config or {}
+	coder_params = coder_params or {}
+
+	local chat = agent_config.chat
+	if type(chat) ~= "table" then
+		chat = nil
+	elseif chat.enabled == false then
+		chat = nil
+	end
+
+	local plan = agent_config.plan
+	if type(plan) ~= "table" then
+		plan = nil
+	elseif plan.enabled == false then
+		plan = nil
+	elseif not is_null(plan._resolve_err) and plan._resolve_err ~= "" then
+		aip.run.pin("workbench-plan", 3, {
+			label = CONST.LABEL_PLAN,
+			content = "ERROR: " .. plan._resolve_err
+		})
+		return {
+			success = false,
+			error_msg = plan._resolve_err
+		}
+	end
+
+	local spec = agent_config.spec
+	if type(spec) ~= "table" then
+		spec = nil
+	elseif spec.enabled == false then
+		spec = nil
+	end
+
+	if chat == nil and plan == nil and spec == nil then
+		return {
+			coder_params = {}
+		}
+	end
+
+	local next_context_globs_post = coder_params.context_globs_post
+	if type(next_context_globs_post) ~= "table" then
+		next_context_globs_post = {}
+	end
+
+	local next_knowledge_globs_pre = coder_params.knowledge_globs_pre
+	if type(next_knowledge_globs_pre) ~= "table" then
+		next_knowledge_globs_pre = {}
+	end
+
+	local next_knowledge_globs_post = coder_params.knowledge_globs_post
+	if type(next_knowledge_globs_post) ~= "table" then
+		next_knowledge_globs_post = {}
+	end
+
+	if chat ~= nil then
+		local path, ensure_err = u_common.ensure_workbench_chat_file(chat.path, options)
+		if is_null(path) or path == "" then
+			return {
+				success = false,
+				error_msg = "Invalid workbench.chat.path"
+			}
+		end
+
+		if ensure_err then
+			return {
+				success = false,
+				error_msg = "Failed to initialize dev chat file",
+				error_details = ensure_err
+			}
+		end
+
+		chat.path = path
+		append_unique(next_context_globs_post, path)
+	end
+
+	if plan ~= nil then
+		local dir, _rules_path, plan_path, ensure_err = u_common.ensure_workbench_plan_file(plan.path or plan.dir, options)
+		if ensure_err then
+			aip.run.pin("workbench-plan", 3, {
+				label = CONST.LABEL_PLAN,
+				content = "ERROR: " .. ensure_err
+			})
+			return {
+				success = false,
+				error_msg = "Failed to initialize workbench plan rules file",
+				error_details = ensure_err
+			}
+		end
+		if is_null(dir) or dir == "" then
+			return {
+				success = false,
+				error_msg = "Invalid workbench.plan.dir"
+			}
+		end
+		plan.dir = dir
+		plan.rules_path = _rules_path
+		plan.path = plan_path
+
+		append_unique(next_knowledge_globs_post, _rules_path)
+		append_unique(next_context_globs_post, plan_path)
+	end
+
+	if spec ~= nil then
+		local spec_rules_path, spec_context_path, spec_path, ensure_err = u_common.ensure_workbench_spec_file(spec.path, options)
+		if ensure_err then
+			aip.run.pin("workbench-spec", 4, {
+				label = CONST.LABEL_SPEC,
+				content = "ERROR: " .. ensure_err
+			})
+			return {
+				success = false,
+				error_msg = "Failed to initialize workbench spec rules file",
+				error_details = ensure_err
+			}
+		end
+		if is_null(spec_path) or spec_path == "" then
+			return {
+				success = false,
+				error_msg = "Invalid workbench.spec.path"
+			}
+		end
+		spec.rules_path = spec_rules_path
+		spec.path = spec_path
+		spec.context_path = spec_context_path
+
+		append_unique(next_knowledge_globs_post, spec_rules_path)
+		append_unique(next_context_globs_post, spec_context_path)
+	end
+
+	pin_workbench_status(chat, plan, spec)
+
+	local updated_coder_params = {}
+	if #next_context_globs_post > 0 then
+		updated_coder_params.context_globs_post = next_context_globs_post
+	end
+	if #next_knowledge_globs_pre > 0 then
+		updated_coder_params.knowledge_globs_pre = next_knowledge_globs_pre
+	end
+	if #next_knowledge_globs_post > 0 then
+		updated_coder_params.knowledge_globs_post = next_knowledge_globs_post
+	end
+
+	local dev_content_globs = {}
+	if chat ~= nil and not is_null(chat.path) and chat.path ~= "" then
+		table.insert(dev_content_globs, chat.path)
+	end
+	if plan ~= nil and not is_null(plan.dir) and plan.dir ~= "" then
+		table.insert(dev_content_globs, plan.path)
+	end
+	if spec ~= nil and not is_null(spec.context_path) and spec.context_path ~= "" then
+		table.insert(dev_content_globs, spec.context_path)
+	end
+
+	return {
+		coder_params = updated_coder_params,
+		agent_result = {
+			workbench_content_globs = dev_content_globs,
+			dev_content_globs = dev_content_globs
+		}
+	}
+end
+
 local function clone_config_section(section)
 	if is_null(section) or type(section) ~= "table" then
 		return nil
@@ -179,6 +415,7 @@ end
 return {
 	new_workbench_sub_agent_config = new_workbench_sub_agent_config,
 	build_coder_workbench = build_coder_workbench,
+	prepare_workbench = prepare_workbench,
 	normalize_workbench_chat_config = normalize_workbench_chat_config,
 	resolve_workbench_chat_path = resolve_workbench_chat_path,
 	normalize_workbench_plan_config = normalize_workbench_plan_config,
