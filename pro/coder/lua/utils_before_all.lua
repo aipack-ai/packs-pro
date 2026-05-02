@@ -140,15 +140,15 @@ local function build_workbench_diagnostics(coder_workbench)
 	local lines = {}
 	local chat_path = coder_workbench and coder_workbench.chat and coder_workbench.chat.path
 	if chat_path then
-		table.insert(lines, "chat ➜ " .. chat_path)
-	end
-	local spec_path = coder_workbench and coder_workbench.spec and coder_workbench.spec.path
-	if spec_path then
-		table.insert(lines, "Spec ➜ " .. spec_path)
+		table.insert(lines, "Chat ➜ " .. chat_path .. " (added to context & auto-context helper file)")
 	end
 	local plan_path = coder_workbench and coder_workbench.plan and coder_workbench.plan.path
 	if plan_path then
-		table.insert(lines, "Plan ➜ " .. plan_path)
+		table.insert(lines, "Plan ➜ " .. plan_path .. " (added to context & auto-context helper file)")
+	end
+	local spec_path = coder_workbench and coder_workbench.spec and (coder_workbench.spec.context_path or coder_workbench.spec.path)
+	if spec_path then
+		table.insert(lines, "Spec ➜ " .. spec_path .. " (added to context & auto-context helper file)")
 	end
 
 	if #lines == 0 then
@@ -551,6 +551,7 @@ function run_before_all(inputs)
 	if not is_null(meta.auto_context) then
 		local ac_config = u_auto_context.new_auto_context_sub_agent_config(meta.auto_context)
 		if ac_config then
+			ac_config.helper_globs = u_workbench.append_workbench_helper_globs(ac_config.helper_globs, coder_workbench)
 			ac_config.on = value_or(ac_config.on, "start")
 			table.insert(builtin_sub_agents, ac_config)
 		end

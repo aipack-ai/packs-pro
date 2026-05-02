@@ -113,6 +113,48 @@ local function append_unique(list, value)
 	return list
 end
 
+local function collect_workbench_content_globs(coder_workbench)
+	local globs = {}
+	if is_null(coder_workbench) or type(coder_workbench) ~= "table" then
+		return globs
+	end
+
+	local chat_path = coder_workbench.chat and coder_workbench.chat.path
+	if not is_null(chat_path) and chat_path ~= "" then
+		append_unique(globs, chat_path)
+	end
+
+	local plan_path = coder_workbench.plan and coder_workbench.plan.path
+	if not is_null(plan_path) and plan_path ~= "" then
+		append_unique(globs, plan_path)
+	end
+
+	local spec_path = coder_workbench.spec and (coder_workbench.spec.context_path or coder_workbench.spec.path)
+	if not is_null(spec_path) and spec_path ~= "" then
+		append_unique(globs, spec_path)
+	end
+
+	return globs
+end
+
+local function append_workbench_helper_globs(helper_globs, coder_workbench)
+	local workbench_globs = collect_workbench_content_globs(coder_workbench)
+	if #workbench_globs == 0 then
+		return helper_globs
+	end
+
+	local next_helper_globs = helper_globs
+	if type(next_helper_globs) ~= "table" then
+		next_helper_globs = {}
+	end
+
+	for _, glob in ipairs(workbench_globs) do
+		append_unique(next_helper_globs, glob)
+	end
+
+	return next_helper_globs
+end
+
 local function pin_workbench_status(chat, plan, spec)
 	if is_null(chat) or not chat.path then
 		aip.run.pin("workbench-chat", 2, {
@@ -120,7 +162,7 @@ local function pin_workbench_status(chat, plan, spec)
 			content = "(not activated)"
 		})
 	else
-		local content = chat.path .. "\n(Added to context_globs_post)"
+		local content = "Chat ➜ " .. chat.path .. " (added to context & auto-context helper file)"
 		aip.run.pin("workbench-chat", 2, {
 			label = CONST.LABEL_CHAT,
 			content = content
@@ -136,16 +178,14 @@ local function pin_workbench_status(chat, plan, spec)
 		local plan_pin_lines = {}
 		local plan_path = plan.path
 		local rules_path = plan.rules_path or (plan.dir .. "/_plan-rules.md")
-		table.insert(plan_pin_lines, "Plan File:")
 		if not is_null(plan_path) and plan_path ~= "" then
-			table.insert(plan_pin_lines, "- " .. plan_path)
-			table.insert(plan_pin_lines, "(Added to context_globs_post)")
+			table.insert(plan_pin_lines, "Plan ➜ " .. plan_path .. " (added to context & auto-context helper file)")
 		else
-			table.insert(plan_pin_lines, "- (not resolved)")
+			table.insert(plan_pin_lines, "Plan ➜ (not resolved)")
 		end
 		
-		table.insert(plan_pin_lines, "\nPlan Rules File: " .. rules_path)
-		table.insert(plan_pin_lines, "(Added to knowledge_globs_post)")
+		table.insert(plan_pin_lines, "")
+		table.insert(plan_pin_lines, "Plan Rules ➜ " .. rules_path .. " (added to knowledge)")
 				
 		-- do the pin
 		aip.run.pin("workbench-plan", 3, {
@@ -161,12 +201,10 @@ local function pin_workbench_status(chat, plan, spec)
 		})
 	else
 		local spec_pin_lines = {}
-		table.insert(spec_pin_lines, "Spec Rules File: " .. spec.rules_path)
-		table.insert(spec_pin_lines, "(Added to knowledge_globs_post)")
 		local spec_context_path = spec.context_path or ((aip.path.parent(spec.path) or ".") .. "/spec.md")
+		table.insert(spec_pin_lines, "Spec ➜ " .. spec_context_path .. " (added to context & auto-context helper file)")
 		table.insert(spec_pin_lines, "")
-		table.insert(spec_pin_lines, "Spec Context File: " .. spec_context_path)
-		table.insert(spec_pin_lines, "(Added to context_globs_post)")
+		table.insert(spec_pin_lines, "Spec Rules ➜ " .. spec.rules_path .. " (added to knowledge)")
 		aip.run.pin("workbench-spec", 4, {
 			label = CONST.LABEL_SPEC,
 			content = table.concat(spec_pin_lines, "\n")
@@ -418,6 +456,8 @@ return {
 	prepare_workbench = prepare_workbench,
 	normalize_workbench_chat_config = normalize_workbench_chat_config,
 	resolve_workbench_chat_path = resolve_workbench_chat_path,
+	collect_workbench_content_globs = collect_workbench_content_globs,
+	append_workbench_helper_globs = append_workbench_helper_globs,
 	normalize_workbench_plan_config = normalize_workbench_plan_config,
 	resolve_workbench_plan_dir = resolve_workbench_plan_dir,
 	normalize_workbench_spec_config = normalize_workbench_spec_config,

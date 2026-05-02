@@ -1,5 +1,6 @@
 --
 local _cm                       = require("code_map")
+local u_workbench               = require("workbench")
 
 -- CONSTS
 local LABEL_STATUS              = "          Status:"
@@ -65,6 +66,7 @@ local function extract_auto_context_config(sub_input)
 	local helper_globs = input_agent_config.helper_globs
 	-- Add dev chat path as helper_glob if present in previous sub-agents
 	helper_globs = append_helper_globs_from_sub_agents(helper_globs, sub_input.sub_agents_prev)
+	helper_globs = u_workbench.append_workbench_helper_globs(helper_globs, sub_input.coder_workbench)
 	if type(helper_globs) == "table" and #helper_globs > 1 then
 		local seen = {}
 		local deduped = {}
