@@ -12,6 +12,11 @@ local CLEAR_CODER_PARAMS_RESPONSE_PROPERTIES = {
 	"sub_agents",
 }
 
+local UNSUPPORTED_WORKBENCH_SUB_AGENT_NAMES = {
+	["pro@coder/workbench"] = true,
+	["pro@coder/dev"] = true,
+}
+
 -- Create a new sub_agent_config
 -- NOTE: when item is a table, not realy validation for now, just make sure .enabled is default to true
 -- TODO: when table should validate at lest that name is define
@@ -74,6 +79,31 @@ local function normalize_sub_agent_events(config)
 	end
 
 	return config
+end
+
+local function get_sub_agent_name(sub_agent_item)
+	if type(sub_agent_item) == "string" then
+		return sub_agent_item
+	end
+
+	if type(sub_agent_item) == "table" then
+		return sub_agent_item.name
+	end
+
+	return nil
+end
+
+local function validate_no_workbench_sub_agents(sub_agents)
+	if type(sub_agents) ~= "table" then return nil end
+
+	for _, item in ipairs(sub_agents) do
+		local name = get_sub_agent_name(item)
+		if UNSUPPORTED_WORKBENCH_SUB_AGENT_NAMES[name] then
+			return "Unsupported workbench sub-agent `" .. name .. "` configured in `sub_agents`.\n\nRoot `workbench:` is the supported configuration surface. Explicit `pro@coder/workbench` and legacy `pro@coder/dev` sub-agent entries are not supported.\nLegacy root `dev:` remains supported only as root config compatibility."
+		end
+	end
+
+	return nil
 end
 
 local function config_matches_event(config, event_name)
@@ -187,6 +217,11 @@ local function extract_sub_agent_response(run_res)
 end
 
 local function run_sub_agents_dispatch(dispatch_item, coder_meta, inst, coder_options, coder_prompt_dir)
+	local validation_err = validate_no_workbench_sub_agents(coder_meta and coder_meta.sub_agents)
+	if validation_err then
+		return nil, nil, validation_err, false
+	end
+
 	local agent_configs = extract_sub_agent_configs(coder_meta.sub_agents, { coder_prompt_dir = coder_prompt_dir })
 	if #agent_configs == 0 then
 		return coder_meta, inst, nil, false
@@ -390,6 +425,10 @@ function run_sub_agent(config, stage, current_params, current_coder_prompt, code
 	end
 
 	if res.sub_agents_next ~= nil then
+		local validation_err = validate_no_workbench_sub_agents(res.sub_agents_next)
+		if validation_err then
+			return nil, nil, nil, nil, nil, validation_err
+		end
 		next_configs = extract_sub_agent_configs(res.sub_agents_next, { coder_prompt_dir = coder_prompt_dir })
 	end
 
@@ -446,6 +485,7 @@ return {
 	new_workbench_sub_agent_config = new_workbench_sub_agent_config,
 	new_dev_sub_agent_config   = new_workbench_sub_agent_config,
 	normalize_sub_agent_events = normalize_sub_agent_events,
+	validate_no_workbench_sub_agents = validate_no_workbench_sub_agents,
 	run_sub_agent              = run_sub_agent,
 	run_sub_agents_pre_event   = run_sub_agents_pre_event,
 	run_sub_agents_post        = run_sub_agents_post,

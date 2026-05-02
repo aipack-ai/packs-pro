@@ -534,6 +534,8 @@ function run_before_all(inputs)
 	if type(user_sub_agents) ~= "table" then
 		user_sub_agents = {}
 	end
+	local workbench_sub_agents_err = u_sub_agent.validate_no_workbench_sub_agents(user_sub_agents)
+	if workbench_sub_agents_err then return nil, nil, workbench_sub_agents_err end
 
 	local builtin_sub_agents = {}
 	local coder_workbench = nil
