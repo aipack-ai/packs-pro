@@ -1,4 +1,3 @@
-local CONST = require("consts")
 local u_common = require("utils_common")
 
 local function resolve_workbench_chat_path(workbench_chat_path, options)
@@ -153,63 +152,6 @@ local function append_workbench_helper_globs(helper_globs, coder_workbench)
 	end
 
 	return next_helper_globs
-end
-
-local function pin_workbench_status(chat, plan, spec)
-	if is_null(chat) or not chat.path then
-		aip.run.pin("workbench-chat", 2, {
-			label = CONST.LABEL_CHAT,
-			content = "(not activated)"
-		})
-	else
-		local content = "Chat ➜ " .. chat.path .. " (added to context & auto-context helper file)"
-		aip.run.pin("workbench-chat", 2, {
-			label = CONST.LABEL_CHAT,
-			content = content
-		})
-	end
-
-	if is_null(plan) or not plan.dir then
-		aip.run.pin("workbench-plan", 3, {
-			label = CONST.LABEL_PLAN,
-			content = "(not activated)"
-		})
-	else
-		local plan_pin_lines = {}
-		local plan_path = plan.path
-		local rules_path = plan.rules_path or (plan.dir .. "/_plan-rules.md")
-		if not is_null(plan_path) and plan_path ~= "" then
-			table.insert(plan_pin_lines, "Plan ➜ " .. plan_path .. " (added to context & auto-context helper file)")
-		else
-			table.insert(plan_pin_lines, "Plan ➜ (not resolved)")
-		end
-		
-		table.insert(plan_pin_lines, "")
-		table.insert(plan_pin_lines, "Plan Rules ➜ " .. rules_path .. " (added to knowledge)")
-				
-		-- do the pin
-		aip.run.pin("workbench-plan", 3, {
-			label = CONST.LABEL_PLAN,
-			content = table.concat(plan_pin_lines, "\n")
-		})
-	end
-
-	if is_null(spec) or not spec.path then
-		aip.run.pin("workbench-spec", 4, {
-			label = CONST.LABEL_SPEC,
-			content = "(not activated)"
-		})
-	else
-		local spec_pin_lines = {}
-		local spec_context_path = spec.context_path or ((aip.path.parent(spec.path) or ".") .. "/spec.md")
-		table.insert(spec_pin_lines, "Spec ➜ " .. spec_context_path .. " (added to context & auto-context helper file)")
-		table.insert(spec_pin_lines, "")
-		table.insert(spec_pin_lines, "Spec Rules ➜ " .. spec.rules_path .. " (added to knowledge)")
-		aip.run.pin("workbench-spec", 4, {
-			label = CONST.LABEL_SPEC,
-			content = table.concat(spec_pin_lines, "\n")
-		})
-	end
 end
 
 local function prepare_workbench(agent_config, coder_params, options)
