@@ -1,15 +1,12 @@
 # Before All
 
 ```lua
-aip.run.set_label("workbench")
-local u_workbench = require("workbench")
-
-local sub_input = inputs and inputs[1] or {}
-local result = u_workbench.prepare_workbench(sub_input.agent_config, sub_input.coder_params)
-
 return aip.flow.before_all_response({
 	inputs = {},
-	before_all = result
+	before_all = {
+		success = false,
+		error_msg = "The `pro@coder/workbench` agent is no longer a supported sub-agent implementation path. Configure root `workbench:` in the coder prompt instead."
+	}
 })
 
 ```

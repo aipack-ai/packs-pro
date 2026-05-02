@@ -1,6 +1,3 @@
-local CONST = require("consts")
-local u_workbench = require("workbench")
-
 -- === Support Functions
 local MAX_SUB_AGENT_STEPS = 100
 
@@ -31,23 +28,8 @@ local function new_sub_agent_config(sub_agent_item, options)
 		if item.on == nil then
 			item.on = "start"
 		end
-		if item.name == "pro@coder/dev" or item.name == "pro@coder/workbench" then
-			local workbench_config = u_workbench.new_workbench_sub_agent_config(item, options)
-			if workbench_config then
-				if item.name == "pro@coder/dev" then
-					aip.run.pin("workbench-legacy-sub-agent", 1, {
-						label = CONST.LABEL_WORKBENCH,
-						content = "Legacy sub-agent name `pro@coder/dev` detected.\nNormalized to `pro@coder/workbench`."
-					})
-				end
-				if workbench_config.enabled == nil then
-					workbench_config.enabled = true
-				end
-				if workbench_config.on == nil then
-					workbench_config.on = "start"
-				end
-				return workbench_config
-			end
+		if UNSUPPORTED_WORKBENCH_SUB_AGENT_NAMES[item.name] then
+			return nil
 		end
 		return item
 	end
@@ -193,8 +175,8 @@ local function new_dispatch_item(event_name, stage_name, agent_configs, history)
 	}
 end
 
-local function new_workbench_sub_agent_config(workbench, options)
-	return u_workbench.new_workbench_sub_agent_config(workbench, options)
+local function new_workbench_sub_agent_config(_workbench, _options)
+	return nil
 end
 
 local function extract_coder_params(coder_meta)
