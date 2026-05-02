@@ -2,7 +2,7 @@
 
 ## When to use this file
 
-Use this file as a general guide for writing clean, idiomatic Rust code, covering error handling (avoiding unwrap), modern syntax (if-let-chains, match ergonomics), macro usage, async closures, iterator patterns, and standardized file organization using regions.
+Always use this file when writing and updating Rust code as this is general guide for writing clean, idiomatic Rust code, covering error handling (avoiding unwrap), modern syntax (if-let-chains, match ergonomics), macro usage, async closures, iterator patterns, and standardized file organization using regions.
 
 ## Common Rules & Best Practices
 
