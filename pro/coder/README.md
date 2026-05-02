@@ -403,6 +403,7 @@ First-class `pro@coder` runtime feature that enables a workbench with integrated
 
 Behavior:
 - Workbench initializes before the `start` event, so user sub-agents and auto-context receive resolved workbench state when workbench is enabled.
+- Because it runs before the `start` event, workbench configuration is effectively final for the duration of the run; sub-agents cannot customize the workbench setup for the current execution.
 - `chat` ensures the dev chat markdown file exists, then appends its path to `context_globs_post` (deduped).
 - `plan` ensures `_plan-rules.md` and `plan.md` exist in the plan directory, appends the rules file to `knowledge_globs_post` (deduped), and appends `plan.md` to `context_globs_post` (deduped).
 - `spec` ensures `_spec-rules.md` exists, appends this rules file to `knowledge_globs_post` (deduped), and appends the resolved spec context file path to `context_globs_post` (deduped).
@@ -548,6 +549,8 @@ Available properties for the table definition:
 Sub-agents are standard `.aip` files. They receive stage-specific input structures as their `input` (accessible in `# Data` or `# Output` stages).
 
 When `workbench` is active, sub-agents receive a resolved `coder_workbench` object at the root of their input. This is the effective runtime state. Use `input.coder_workbench` for resolved workbench paths and cache locations. The root `workbench` config may still be visible in `input.coder_params`, but sub-agents should treat `input.coder_workbench` as the source of truth for resolved runtime state.
+
+Note: Since workbench is initialized before sub-agents run, modifications to `coder_params.workbench` within a sub-agent will not affect the active workbench state for the current run.
 
 ```ts
 type CoderWorkbench = {
