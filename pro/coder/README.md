@@ -145,7 +145,7 @@ auto_context:
   # input_concurrency: 8      # code map building concurrency (default 8, or coder value)
   # code_map_model: flash-low # code map model (optional, default auto_context model above)
   helper_globs:               # Files to help select relevant context files
-    - .aipack/.prompt/pro@coder/dev/plan/*.md
+    - .aipack/.prompt/pro@coder/workbench-default/plan.md
 
 ## Workbench helpers (shortcut for pro@coder/workbench sub-agent)
 workbench:
@@ -267,7 +267,7 @@ context_globs_pre:
   - package.json
   - src/shared/**/*.ts
 context_globs_post:
-  - .aipack/.prompt/pro@coder/dev/plan/*.md
+  - .aipack/.prompt/pro@coder/workbench-default/plan.md
 ```
 
 Final context globs order: `context_globs_pre + auto_context_selected + context_globs_post` (deduped).
@@ -399,15 +399,19 @@ auto_context:
 
 #### workbench
 
-Shortcut to configure and run the `pro@coder/workbench` sub-agent. This agent enables a workbench with integrated capabilities for `chat`, `plan`, and `spec`. It automatically manages these files and wires them into the prompt context (no need to manually add them to `context_globs`).
+First-class `pro@coder` runtime feature that enables a workbench with integrated capabilities for `chat`, `plan`, and `spec`. It automatically manages these files and wires them into the prompt context, so there is no need to manually add them to `context_globs`.
 
 Behavior:
+- Workbench initializes before the `start` event, so user sub-agents and auto-context receive resolved workbench state when workbench is enabled.
 - `chat` ensures the dev chat markdown file exists, then appends its path to `context_globs_post` (deduped).
-- `plan` ensures `_plan-rules.md` exists in the plan directory, prepends this rules file to `knowledge_globs_pre` (deduped), and appends `plan-*.md` to `context_globs_post` (deduped).
+- `plan` ensures `_plan-rules.md` and `plan.md` exist in the plan directory, appends the rules file to `knowledge_globs_post` (deduped), and appends `plan.md` to `context_globs_post` (deduped).
 - `spec` ensures `_spec-rules.md` exists, appends this rules file to `knowledge_globs_post` (deduped), and appends the resolved spec context file path to `context_globs_post` (deduped).
-- The sub-agent returns `agent_result.dev_content_globs` containing enabled dev content globs (chat path, plan glob, and/or spec file path). This lets downstream sub-agents consume helper files without depending on `dev` config internals.
-- If all capabilities are disabled, the sub-agent is effectively disabled and does not modify params.
-- Legacy `dev` is still accepted and normalized to `workbench`. If both are present, `workbench` wins.
+- Enabled workbench content files are also added as auto-context helper files, so chat, plan, and spec context can guide auto-context selection.
+- Sub-agents receive the resolved runtime state at `input.coder_workbench`.
+- After the normal `start` event, `pro@coder` dispatches `workbench::done` so sub-agents can subscribe when they need resolved workbench state.
+- If all capabilities are disabled, workbench is effectively disabled and does not modify params.
+- Legacy root `dev` is still accepted and normalized to `workbench`. If both are present, `workbench` wins.
+- Explicit `sub_agents` entries named `pro@coder/workbench` or `pro@coder/dev` are not supported. Configure workbench through the root `workbench:` block instead.
 
 Current shape:
 - **A table**:
@@ -457,7 +461,7 @@ This resolves to a flat layout:
 
 - `.aipack/.prompt/pro@coder/workbench-default/chat.md`
 - `.aipack/.prompt/pro@coder/workbench-default/_plan-rules.md`
-- `.aipack/.prompt/pro@coder/workbench-default/plan-*.md`
+- `.aipack/.prompt/pro@coder/workbench-default/plan.md`
 - `.aipack/.prompt/pro@coder/workbench-default/_spec-rules.md`
 - `.aipack/.prompt/pro@coder/workbench-default/spec.md`
 
@@ -543,7 +547,7 @@ Available properties for the table definition:
 
 Sub-agents are standard `.aip` files. They receive stage-specific input structures as their `input` (accessible in `# Data` or `# Output` stages).
 
-When `workbench` is active, sub-agents receive a resolved `coder_workbench` object at the root of their input. This is the effective runtime state, not the raw user configuration. Use `input.coder_workbench` for workbench paths and cache locations. The `workbench` key is stripped from `input.coder_params` at the sub-agent boundary to avoid two sources of truth.
+When `workbench` is active, sub-agents receive a resolved `coder_workbench` object at the root of their input. This is the effective runtime state. Use `input.coder_workbench` for resolved workbench paths and cache locations. The root `workbench` config may still be visible in `input.coder_params`, but sub-agents should treat `input.coder_workbench` as the source of truth for resolved runtime state.
 
 ```ts
 type CoderWorkbench = {
@@ -739,44 +743,9 @@ For `post`, `sub_agents_prev` contains only earlier `post` executions from that 
 
 ## Builtin Sub Agents
 
-### Sub Agent - pro@coder/workbench
+### Workbench runtime integration
 
-The workbench sub-agent prepares and wires workbench capabilities into context. Current capabilities are `chat`, `plan`, and `spec`.
-
-```yaml
-sub_agents:
-  - name: pro@coder/workbench
-    enabled: true
-    on: start
-    chat:            # or chat: true (default false)
-      enabled: true  
-      # path: .aipack/.prompt/pro@coder/workbench-default/chat.md
-    plan:            # or plan: true (default false)
-      enabled: true  
-      # dir:  .aipack/.prompt/pro@coder/workbench-default
-    spec:            # or spec: true (default false)
-      enabled: true
-      # path: .aipack/.prompt/pro@coder/workbench-default/spec.md
-```
-
-- Resolves `chat.path` from config, or defaults to `$coder_prompt_dir/workbench-default/chat.md`.
-- Ensures the chat file exists, if the file is empty, it is initialized with the dev-chat template.
-- Resolves `plan.dir` from config, or defaults to `$coder_prompt_dir/workbench-default`.
-- Ensures the plan rules file exists at `$plan_dir/_plan-rules.md`, if empty, it is initialized from template.
-- Resolves `spec.path` from config as either a spec directory or a spec file path.
-- Ensures the spec rules file exists at `$spec_dir/_spec-rules.md`, if empty, it is initialized from template.
-- Ensures the spec context file exists at the resolved spec file path.
-- When using the default shared fallback root, only the enabled helper files are created, matching the behavior of custom workbench paths.
-- Appends the resolved chat path and `plan-*.md` glob to `context_globs_post` when missing (deduped).
-- Prepends the plan rules path to `knowledge_globs_pre` when missing (deduped).
-- Appends the spec rules path to `knowledge_globs_post` when missing (deduped).
-- Appends the resolved spec file path to `context_globs_post` when missing (deduped).
-- Returns `agent_result.dev_content_globs` for downstream helper-context consumption, including the spec file path when enabled.
-- Exposes the resolved runtime state to sub-agents as root-level `input.coder_workbench`, including `dir`, `cache_dir`, `prompt_cache_dir`, and enabled helper paths.
-- Removes the raw `workbench` config from sub-agent `input.coder_params`, so sub-agents can treat `input.coder_workbench` as the source of truth.
-- If all capabilities are disabled, the agent is effectively disabled and does not modify params.
-
-The same behavior can be configured with the `workbench` shortcut in the root config:
+Workbench is configured through the root `workbench:` block, not through `sub_agents`.
 
 ```yaml
 workbench:
@@ -791,12 +760,14 @@ workbench:
   chat: true
   plan: true
   spec: true
-# or
+
+# or set individual paths
 workbench:
   chat: .aipack/.prompt/pro@coder/workbench-default/chat.md
   plan: .aipack/.prompt/pro@coder/workbench-default
   spec: .aipack/.prompt/pro@coder/workbench-default/spec.md
-# or
+
+# or use table mode
 workbench:
   chat:
     enabled: true
@@ -816,9 +787,12 @@ workbench:
 - When `workbench.dir` is omitted, the shared fallback directory defaults to `$coder_prompt_dir/workbench-default`.
 - A string sets the corresponding directory directly for plan, while spec strings can be either a directory or the spec file path.
 - A table maps to the chat, plan, or spec config shape.
-- If all are disabled via table config (`enabled: false`), `pro@coder` seeds `pro@coder/workbench` as disabled.
+- If all are disabled via table config (`enabled: false`), workbench is disabled.
 - For table mode, `workbench.plan.dir` is strict and must be a directory path.
-- Legacy `name: pro@coder/dev` and root `dev:` config are still accepted and normalized to the canonical workbench surface. A warning pin is shown when the legacy sub-agent name is used.
+- Legacy root `dev:` config is still accepted and normalized to the canonical workbench surface.
+- Explicit `sub_agents` entries named `pro@coder/workbench` or `pro@coder/dev` fail with a clear error. Root `workbench:` is the supported configuration surface.
+
+Workbench runs before the `start` event, so all pre-stage sub-agents, including auto-context, can receive `input.coder_workbench` when workbench is enabled. The resolved chat, plan, and spec context files are also added as auto-context helper files. After the normal `start` event, `pro@coder` dispatches `workbench::done` for sub-agents that need to react after the regular start-stage pipeline has seen resolved workbench state.
 
 ### Sub Agent - pro@coder/auto-context
 
@@ -942,18 +916,18 @@ Note that only these four are AI Pack config properties and can be set in the co
 
 ## Plan-Based Development
 
-`pro@coder` facilitates **Plan-Based Development** by initializing relevant plan files within the prompt's workbench folder.
+`pro@coder` facilitates **Plan-Based Development** by initializing the plan rules and current plan file within the prompt's workbench folder.
 
-- The foundational rules are in `_plan-rules.md`, located in the `workbench-default/` folder beside your `coder-prompt.md`. The plan flow uses `plan-1-todo-steps.md`, `plan-2-active-step.md`, and `plan-3-done-steps.md` in the same directory.
+- The foundational rules are in `_plan-rules.md`, located in the `workbench-default/` folder beside your `coder-prompt.md`. The plan flow uses a single `plan.md` file in the same directory.
 - By default, setting `workbench: { plan: true }` in your meta block automatically initializes these files and includes them in the prompt context.
 - To manually include them or use a custom folder, you can use `context_globs_post`:
-  - `.aipack/.prompt/pro@coder/workbench-default/plan-*.md`
+  - `.aipack/.prompt/pro@coder/workbench-default/plan.md`
 - When instructing the agent, refer to the plan rules. For example:
   - `Following the plan rules, create a plan to do the following: ....`
   - Or, to execute a step:
     - `Following the plan rules, execute the next step in the plan and update the appropriate files.`
 
-To disable Plan-Based Development, remove the `...plan/*.md` glob pattern from your `context_globs`.
+To disable Plan-Based Development, disable `workbench.plan` or remove the plan file path from your `context_globs`.
 
 ## Post-stage sub-agent example
 
