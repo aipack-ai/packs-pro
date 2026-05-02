@@ -343,8 +343,6 @@ local function prepare_workbench(agent_config, coder_params, options)
 		append_unique(next_context_globs_post, spec_context_path)
 	end
 
-	pin_workbench_status(chat, plan, spec)
-
 	local updated_coder_params = {}
 	if #next_context_globs_post > 0 then
 		updated_coder_params.context_globs_post = next_context_globs_post
