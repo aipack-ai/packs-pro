@@ -123,6 +123,15 @@ local function print_run_info(input_base, working_refs_list, write_mode, input_c
 	print(run_info)
 end
 
+local function build_agent_options(meta)
+	return {
+		model             = meta.model,
+		temperature       = meta.temperature,
+		model_aliases     = meta.model_aliases,
+		input_concurrency = meta.input_concurrency
+	}
+end
+
 local function build_workbench_diagnostics(coder_workbench)
 	if is_null(coder_workbench) or type(coder_workbench) ~= "table" then
 		return nil
@@ -159,6 +168,73 @@ local function pin_workbench_diagnostics(coder_workbench)
 		label = CONST.LABEL_WORKBENCH,
 		content = content
 	})
+end
+
+local function normalize_root_workbench_config(meta)
+	local legacy_dev = meta.dev
+	local canonical_workbench = meta.workbench
+	if is_null(canonical_workbench) and is_null(legacy_dev) then
+		return nil
+	end
+
+	local selected_workbench = canonical_workbench
+	if is_null(selected_workbench) then
+		selected_workbench = legacy_dev
+		aip.run.pin("workbench-legacy-config", 1, {
+			label = CONST.LABEL_WORKBENCH,
+			content = "Legacy `dev` config detected.\nNormalized to `workbench` in coder params."
+		})
+	elseif not is_null(legacy_dev) then
+		aip.run.pin("workbench-legacy-config-ignored", 1, {
+			label = CONST.LABEL_WORKBENCH,
+			content = "Both `workbench` and legacy `dev` config are set.\nUsing `workbench` and ignoring `dev`."
+		})
+	end
+
+	meta.workbench = selected_workbench
+	meta.dev = nil
+	return selected_workbench
+end
+
+local function prepare_direct_workbench(root_workbench, meta, prompt_file_path, paths, coder_prompt_dir)
+	if is_null(root_workbench) then
+		return nil, paths, nil
+	end
+
+	local workbench_config = u_workbench.new_workbench_sub_agent_config(root_workbench,
+		{ coder_prompt_dir = coder_prompt_dir })
+	if is_null(workbench_config) or type(workbench_config) ~= "table" or workbench_config.enabled == false then
+		return nil, paths, nil
+	end
+
+	if not is_null(workbench_config.dir) and workbench_config.dir ~= "" then
+		paths = prepare_paths(prompt_file_path, { workbench_dir = workbench_config.dir })
+	end
+
+	local setup_res = u_workbench.prepare_workbench(workbench_config, meta, {
+		coder_prompt_dir = coder_prompt_dir,
+		workbench_dir = workbench_config.dir
+	})
+	if type(setup_res) ~= "table" then
+		return nil, paths, "Failed to initialize workbench"
+	end
+	if setup_res.success == false or setup_res.error_msg ~= nil then
+		local err_msg = value_or(setup_res.error_msg, "Failed to initialize workbench")
+		if setup_res.error_details then
+			err_msg = err_msg .. "\nDetails: " .. setup_res.error_details
+		end
+		return nil, paths, err_msg
+	end
+	if setup_res.coder_params then
+		aip.lua.merge(meta, setup_res.coder_params)
+	end
+
+	local coder_workbench = u_workbench.build_coder_workbench(workbench_config, {
+		coder_prompt_dir = coder_prompt_dir,
+		prompt_cache_dir = paths.prompt_cache_dir
+	})
+
+	return coder_workbench, paths, nil
 end
 
 -- Splits the prompt Markdown content into instruction (first part) and previous content (second part).
@@ -446,13 +522,11 @@ function run_before_all(inputs)
 	meta.knowledge_globs_pre = knowledge_globs_pre
 	meta.knowledge_globs_post = knowledge_globs_post
 
+	-- === Normalize root workbench/dev config before start sub-agents
+	local root_workbench = normalize_root_workbench_config(meta)
+
 	-- === Compute the agent options
-	local options = {
-		model             = meta.model,
-		temperature       = meta.temperature,
-		model_aliases     = meta.model_aliases,
-		input_concurrency = meta.input_concurrency
-	}
+	local options = build_agent_options(meta)
 
 	local coder_prompt_dir = paths.prompt_dir
 
@@ -463,46 +537,6 @@ function run_before_all(inputs)
 
 	local builtin_sub_agents = {}
 	local coder_workbench = nil
-
-	-- === Build workbench sub agent if present
-	local legacy_dev = meta.dev
-	local canonical_workbench = meta.workbench
-	if not is_null(canonical_workbench) or not is_null(legacy_dev) then
-		local selected_workbench = canonical_workbench
-		if is_null(selected_workbench) then
-			selected_workbench = legacy_dev
-		elseif not is_null(legacy_dev) then
-			aip.run.pin("workbench-legacy-config-ignored", 1, {
-				label = CONST.LABEL_WORKBENCH,
-				content = "Both `workbench` and legacy `dev` config are set.\nUsing `workbench` and ignoring `dev`."
-			})
-		end
-
-		local workbench_config = u_workbench.new_workbench_sub_agent_config(selected_workbench,
-			{ coder_prompt_dir = coder_prompt_dir })
-		if workbench_config then
-			if workbench_config.enabled ~= false and not is_null(workbench_config.dir) and workbench_config.dir ~= "" then
-				paths = prepare_paths(prompt_file.path, { workbench_dir = workbench_config.dir })
-			end
-			coder_workbench = u_workbench.build_coder_workbench(workbench_config, {
-				coder_prompt_dir = coder_prompt_dir,
-				prompt_cache_dir = paths.prompt_cache_dir
-			})
-			workbench_config.on = value_or(workbench_config.on, "start")
-			table.insert(builtin_sub_agents, workbench_config)
-		end
-
-		if is_null(canonical_workbench) and not is_null(legacy_dev) then
-			aip.run.pin("workbench-legacy-config", 1, {
-				label = CONST.LABEL_WORKBENCH,
-				content = "Legacy `dev` config detected.\nNormalized to `workbench` in coder params."
-			})
-		end
-		meta.workbench = selected_workbench
-		meta.dev = nil
-	end
-
-	pin_workbench_diagnostics(coder_workbench)
 
 	-- === Build auto_context sub agent if present
 	if not is_null(meta.auto_context) then
@@ -536,12 +570,29 @@ function run_before_all(inputs)
 
 		if err then return nil, nil, err end
 		-- recompute options from the meta returned
-		options = {
-			model             = meta.model,
-			temperature       = meta.temperature,
-			model_aliases     = meta.model_aliases,
-			input_concurrency = meta.input_concurrency
-		}
+		options = build_agent_options(meta)
+	end
+
+	-- === Initialize workbench directly after the start event
+	root_workbench = normalize_root_workbench_config(meta)
+	local workbench_err = nil
+	coder_workbench, paths, workbench_err = prepare_direct_workbench(root_workbench, meta, prompt_file.path, paths,
+		coder_prompt_dir)
+	if workbench_err then return nil, nil, workbench_err end
+	pin_workbench_diagnostics(coder_workbench)
+
+	-- === Run post-workbench pre-stage sub-agents
+	if coder_workbench ~= nil and not is_null(meta.sub_agents) and #meta.sub_agents > 0 then
+		local err
+		meta, inst, err = u_sub_agent.run_sub_agents_pre_event("workbench::done", meta, inst,
+			aip.lua.merge_deep({}, options, {
+				coder_workbench = coder_workbench
+			}), coder_prompt_dir)
+		meta = meta or {} -- make the type nil check happy
+
+		if err then return nil, nil, err end
+		-- recompute options from the meta returned
+		options = build_agent_options(meta)
 	end
 
 	-- === Apply pinned globs (pre and post) as the final step before resolving refs.

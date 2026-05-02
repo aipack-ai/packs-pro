@@ -9,8 +9,6 @@ local MAX_SUB_AGENT_STEPS = 100
 local CLEAR_CODER_PARAMS_RESPONSE_PROPERTIES = {
 	"auto_context",
 	"chat",
-	"workbench",
-	"dev",
 	"sub_agents",
 }
 
@@ -173,7 +171,6 @@ local function extract_coder_params(coder_meta)
 	local params = {}
 	aip.lua.merge_deep(params, coder_meta)
 	params.sub_agents = nil
-	params.workbench = nil
 	return params
 end
 
