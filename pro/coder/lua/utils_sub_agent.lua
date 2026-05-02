@@ -403,19 +403,28 @@ function run_sub_agent(config, stage, current_params, current_coder_prompt, code
 	return current_params, current_coder_prompt, next_configs, agent_result, emit_events, nil, coder_redo
 end
 
--- Executes pre-stage sub-agents with the explicit root start event.
--- Returns the modified meta and instruction string (derived from concatenated prompts).
-function run_sub_agents_pre(coder_meta, inst, coder_options, coder_prompt_dir)
+function run_sub_agents_pre_event(event_name, coder_meta, inst, coder_options, coder_prompt_dir)
 	-- Check AIPack version for sub-agent support
 	if not aip.semver.compare(CTX.AIPACK_VERSION, ">", "0.8.14") then
 		return nil, nil, "Sub-agents require AIPack 0.8.15 or above (current: " .. CTX.AIPACK_VERSION .. ")"
 	end
 
+	if type(event_name) ~= "string" or event_name == "" then
+		return nil, nil, "Sub-agent pre-stage event name must be a non-empty string"
+	end
+
 	return run_sub_agents_dispatch({
-		event = "start",
+		event = event_name,
 		stage = "pre",
 		history = {},
 	}, coder_meta, inst, coder_options, coder_prompt_dir)
+end
+
+-- Executes pre-stage sub-agents with the explicit root start event.
+-- Returns the modified meta and instruction string (derived from concatenated prompts).
+function run_sub_agents_pre(coder_meta, inst, coder_options, coder_prompt_dir)
+	-- Check AIPack version for sub-agent support
+	return run_sub_agents_pre_event("start", coder_meta, inst, coder_options, coder_prompt_dir)
 end
 
 -- Executes post-stage sub-agents with the explicit root end event.
@@ -441,6 +450,7 @@ return {
 	new_dev_sub_agent_config   = new_workbench_sub_agent_config,
 	normalize_sub_agent_events = normalize_sub_agent_events,
 	run_sub_agent              = run_sub_agent,
+	run_sub_agents_pre_event   = run_sub_agents_pre_event,
 	run_sub_agents_post        = run_sub_agents_post,
 	run_sub_agents_pre         = run_sub_agents_pre
 }
