@@ -138,6 +138,7 @@ local function build_workbench_diagnostics(coder_workbench)
 	end
 
 	local lines = {}
+	local knowledge_lines = {}
 	local chat_path = coder_workbench and coder_workbench.chat and coder_workbench.chat.path
 	if chat_path then
 		table.insert(lines, "Chat ➜ " .. chat_path .. " (added to context & auto-context helper file)")
@@ -146,13 +147,31 @@ local function build_workbench_diagnostics(coder_workbench)
 	if plan_path then
 		table.insert(lines, "Plan ➜ " .. plan_path .. " (added to context & auto-context helper file)")
 	end
+	local plan_rules_path = coder_workbench and coder_workbench.plan and coder_workbench.plan.rules_path
+	if plan_rules_path then
+		table.insert(knowledge_lines, "Plan Rules ➜ " .. plan_rules_path)
+	end
 	local spec_path = coder_workbench and coder_workbench.spec and (coder_workbench.spec.context_path or coder_workbench.spec.path)
 	if spec_path then
 		table.insert(lines, "Spec ➜ " .. spec_path .. " (added to context & auto-context helper file)")
 	end
+	local spec_rules_path = coder_workbench and coder_workbench.spec and coder_workbench.spec.rules_path
+	if spec_rules_path then
+		table.insert(knowledge_lines, "Spec Rules ➜ " .. spec_rules_path)
+	end
 
-	if #lines == 0 then
+	if #lines == 0 and #knowledge_lines == 0 then
 		return nil
+	end
+
+	if #knowledge_lines > 0 then
+		if #lines > 0 then
+			table.insert(lines, "")
+		end
+		table.insert(lines, "Rules added to knowledge:")
+		for _, line in ipairs(knowledge_lines) do
+			table.insert(lines, line)
+		end
 	end
 
 	return table.concat(lines, "\n")
