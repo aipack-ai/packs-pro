@@ -540,6 +540,13 @@ function run_before_all(inputs)
 	local builtin_sub_agents = {}
 	local coder_workbench = nil
 
+	-- === Initialize workbench directly before the start event
+	local workbench_err = nil
+	coder_workbench, paths, workbench_err = prepare_direct_workbench(root_workbench, meta, prompt_file.path, paths,
+		coder_prompt_dir)
+	if workbench_err then return nil, nil, workbench_err end
+	pin_workbench_diagnostics(coder_workbench)
+
 	-- === Build auto_context sub agent if present
 	if not is_null(meta.auto_context) then
 		local ac_config = u_auto_context.new_auto_context_sub_agent_config(meta.auto_context)
@@ -574,14 +581,6 @@ function run_before_all(inputs)
 		-- recompute options from the meta returned
 		options = build_agent_options(meta)
 	end
-
-	-- === Initialize workbench directly after the start event
-	root_workbench = normalize_root_workbench_config(meta)
-	local workbench_err = nil
-	coder_workbench, paths, workbench_err = prepare_direct_workbench(root_workbench, meta, prompt_file.path, paths,
-		coder_prompt_dir)
-	if workbench_err then return nil, nil, workbench_err end
-	pin_workbench_diagnostics(coder_workbench)
 
 	-- === Run post-workbench pre-stage sub-agents
 	if coder_workbench ~= nil and not is_null(meta.sub_agents) and #meta.sub_agents > 0 then
