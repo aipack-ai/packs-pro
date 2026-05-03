@@ -125,6 +125,9 @@ local function extract_auto_context_config(sub_input)
 		end
 	end
 
+	-- workbench_data_globs
+	local workbench_data_globs = sub_input.coder_params.workbench_data_globs
+
 	-- workbench data info
 	local workbench = sub_input.coder_workbench
 	local workbench_data_enabled = false
@@ -149,10 +152,12 @@ local function extract_auto_context_config(sub_input)
 		code_map_input_concurrency = code_map_input_concurrency,
 		knowledge                  = knowledge,
 		knowledge_globs            = knowledge_globs,
+		workbench_data_globs       = workbench_data_globs,
 		workbench_data_enabled     = workbench_data_enabled,
 		workbench_dir              = workbench_dir,
 		workbench_data_dir         = workbench_data_dir,
 		workbench_cache_dir        = workbench_cache_dir,
+		prompt_base_dir            = sub_input.coder_params.base_dir or "",
 	}
 end
 
@@ -190,6 +195,13 @@ local function pin_status(auto_context_config, ctx)
 	elseif ctx.new_knowledge_globs then
 		knowledge_done = true
 	end
+	local workbench_data_enabled = auto_context_config.workbench_data_enabled and (ctx.workbench_data_files_count or 0) > 0
+	local workbench_data_done = false
+	if not workbench_data_enabled then
+		workbench_data_done = true
+	elseif ctx.new_workbench_data_globs then
+		workbench_data_done = true
+	end
 
 	local new_context_files = nil
 	local new_context_files_size = nil
@@ -211,6 +223,20 @@ local function pin_status(auto_context_config, ctx)
 		end
 	end
 
+	local new_workbench_data_files = nil
+	local new_workbench_data_files_size = nil
+	if ctx.new_workbench_data_globs then
+		new_workbench_data_files_size = 0
+		if #ctx.new_workbench_data_globs > 0 then
+			new_workbench_data_files = aip.file.list(ctx.new_workbench_data_globs)
+		else
+			new_workbench_data_files = {}
+		end
+		for _, file in ipairs(new_workbench_data_files) do
+			new_workbench_data_files_size = new_workbench_data_files_size + file.size
+		end
+	end
+
 	-- === Status pin
 	local context_files_size_fmt = aip.text.format_size(ctx.context_files_size)
 	local msg = done and "✅" or ".."
@@ -222,12 +248,12 @@ local function pin_status(auto_context_config, ctx)
 		label = " Reducing"
 	end
 
-	msg = msg .. string.format("%-30s", label .. " " .. ctx.context_files_count .. " context files")
+	msg = msg .. string.format("%-35s", label .. " " .. ctx.context_files_count .. " context files")
 	msg = msg .. " (" .. context_files_size_fmt .. ")"
 
 	if ctx.new_context_globs then
 		msg = msg .. '\n' .. " ➜"
-		msg = msg .. string.format("%-30s", " Now " .. #new_context_files .. " context files")
+		msg = msg .. string.format("%-35s", " Now " .. #new_context_files .. " context files")
 		local new_context_files_size_fmt = aip.text.format_size(new_context_files_size)
 		msg = msg .. " (" .. new_context_files_size_fmt .. ")"
 	else
@@ -239,14 +265,31 @@ local function pin_status(auto_context_config, ctx)
 		local knowledge_files_size_fmt = aip.text.format_size(ctx.knowledge_files_size or 0)
 		local k_status = knowledge_done and "✅" or ".."
 		msg = msg .. '\n' .. k_status
-		msg = msg .. string.format("%-30s", " Reducing " .. (ctx.knowledge_files_count or 0) .. " knowledge files")
+		msg = msg .. string.format("%-35s", " Reducing " .. (ctx.knowledge_files_count or 0) .. " knowledge files")
 		msg = msg .. " (" .. knowledge_files_size_fmt .. ")"
 
 		if ctx.new_knowledge_globs then
 			msg = msg .. '\n' .. " ➜"
-			msg = msg .. string.format("%-30s", " Now " .. #new_knowledge_files .. " knowledge files")
+			msg = msg .. string.format("%-35s", " Now " .. #new_knowledge_files .. " knowledge files")
 			local new_knowledge_files_size_fmt = aip.text.format_size(new_knowledge_files_size)
 			msg = msg .. " (" .. new_knowledge_files_size_fmt .. ")"
+		else
+			msg = msg .. '\n' .. build_pending_status_line()
+		end
+	end
+
+	if workbench_data_enabled then
+		local workbench_data_files_size_fmt = aip.text.format_size(ctx.workbench_data_files_size or 0)
+		local wd_status = workbench_data_done and "✅" or ".."
+		msg = msg .. '\n' .. wd_status
+		msg = msg .. string.format("%-35s", " Reducing " .. (ctx.workbench_data_files_count or 0) .. " workbench data files")
+		msg = msg .. " (" .. workbench_data_files_size_fmt .. ")"
+
+		if ctx.new_workbench_data_globs then
+			msg = msg .. '\n' .. " ➜"
+			msg = msg .. string.format("%-35s", " Now " .. #new_workbench_data_files .. " workbench data files")
+			local new_workbench_data_files_size_fmt = aip.text.format_size(new_workbench_data_files_size)
+			msg = msg .. " (" .. new_workbench_data_files_size_fmt .. ")"
 		else
 			msg = msg .. '\n' .. build_pending_status_line()
 		end

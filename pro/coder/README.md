@@ -164,6 +164,7 @@ workbench:
   # spec:
   #   enabled: true
   #   path: .aipack/.prompt/pro@coder/workbench-default/spec.md
+  data: false                # true creates workbench data dir and lets auto-context select data files
 
 ## Legacy alias still supported:
 dev:
@@ -407,10 +408,11 @@ Behavior:
 - `chat` ensures the dev chat markdown file exists, then appends its path to `context_globs_post` (deduped).
 - `plan` ensures `_plan-rules.md` and `plan.md` exist in the plan directory, appends the rules file to `knowledge_globs_post` (deduped), and appends `plan.md` to `context_globs_post` (deduped).
 - `spec` ensures `_spec-rules.md` exists, appends this rules file to `knowledge_globs_post` (deduped), and appends the resolved spec context file path to `context_globs_post` (deduped).
+- `data: true` ensures the workbench data directory exists. When auto-context is enabled, data files can be summarized through the existing code-map agent and selected from generated descriptions.
 - Enabled workbench content files are also added as auto-context helper files, so chat, plan, and spec context can guide auto-context selection.
 - Sub-agents receive the resolved runtime state at `input.coder_workbench`.
 - After the normal `start` event, `pro@coder` dispatches `workbench::done` so sub-agents can subscribe when they need resolved workbench state.
-- If all capabilities are disabled, workbench is effectively disabled and does not modify params.
+- If all capabilities are disabled, including `data`, workbench is effectively disabled and does not modify params.
 - Legacy root `dev` is still accepted and normalized to `workbench`. If both are present, `workbench` wins.
 - Explicit `sub_agents` entries named `pro@coder/workbench` or `pro@coder/dev` are not supported. Configure workbench through the root `workbench:` block instead.
 
@@ -419,6 +421,7 @@ Current shape:
   - `workbench.chat`
   - `workbench.plan`
   - `workbench.spec`
+  - `workbench.data`
 
 Supported `workbench.chat` values:
 - **A boolean**:
@@ -441,6 +444,13 @@ Supported `workbench.spec` values:
 - **A string**: Path to the spec directory, or to the spec file.
 - **A table**: `enabled`, `path`, and future-safe extra keys.
 
+Supported `workbench.data` values:
+- **A boolean**:
+  - `true`: Enable the workbench data directory.
+  - `false`: Disable workbench data.
+
+When `workbench.data` is `true`, the resolved `coder_workbench.data_dir` is created under the workbench directory. Auto-context can then summarize matching data files through the same existing `pro@coder/code-map` agent run used for context and knowledge maps.
+
 ### Default Workbench Behavior
 
 `pro@coder` provides an out-of-the-box workbench. By default, helper files are organized in a `workbench-default/` directory located in the same folder as your `coder-prompt.md` (the prompt's directory).
@@ -456,6 +466,7 @@ workbench:
   chat: true
   plan: true
   spec: true
+  data: true
 ```
 
 This resolves to a flat layout:
@@ -465,6 +476,7 @@ This resolves to a flat layout:
 - `.aipack/.prompt/pro@coder/workbench-default/plan.md`
 - `.aipack/.prompt/pro@coder/workbench-default/_spec-rules.md`
 - `.aipack/.prompt/pro@coder/workbench-default/spec.md`
+- `.aipack/.prompt/pro@coder/workbench-default/data/`
 
 Default path when `workbench.chat.path` is omitted:
 
@@ -477,6 +489,15 @@ Default directory when `workbench.plan.dir` is omitted:
 Default spec file path when `workbench.spec.path` is omitted:
 
 `$coder_prompt_dir/workbench-default/spec.md`
+
+Default data directory when `workbench.data` is true:
+
+`$coder_prompt_dir/workbench-default/data`
+
+When auto-context processes workbench data, generated artifacts use the workbench cache directory:
+
+- `<workbench-cache-dir>/code-map/data-code-map.json`
+- `<workbench-cache-dir>/auto-context/last_data_file_descriptions`
 
 For string/table path values, relative paths are passed through unchanged.
 
@@ -557,6 +578,7 @@ type CoderWorkbench = {
   dir: string,
   cache_dir: string,
   prompt_cache_dir: string,
+  data_dir?: string,
   chat?: {
     enabled: boolean,
     path: string,
@@ -756,6 +778,7 @@ workbench:
   chat: true
   plan: true
   spec: true
+  data: true
 
 # or use a custom directory for all workbench files
 workbench:
@@ -786,16 +809,21 @@ workbench:
 - `workbench.chat: true` enables chat with the default path.
 - `workbench.plan: true` enables plan with the default directory.
 - `workbench.spec: true` enables spec with the default path.
+- `workbench.data: true` enables a workbench data directory and allows auto-context to select data files from generated descriptions.
 - `workbench.dir` sets a shared fallback directory for boolean `true` usage and table configs that omit their own path or dir.
 - When `workbench.dir` is omitted, the shared fallback directory defaults to `$coder_prompt_dir/workbench-default`.
 - A string sets the corresponding directory directly for plan, while spec strings can be either a directory or the spec file path.
 - A table maps to the chat, plan, or spec config shape.
-- If all are disabled via table config (`enabled: false`), workbench is disabled.
+- If all capabilities are disabled via table config (`enabled: false`) and `workbench.data` is not `true`, workbench is disabled.
 - For table mode, `workbench.plan.dir` is strict and must be a directory path.
 - Legacy root `dev:` config is still accepted and normalized to the canonical workbench surface.
 - Explicit `sub_agents` entries named `pro@coder/workbench` or `pro@coder/dev` fail with a clear error. Root `workbench:` is the supported configuration surface.
 
 Workbench runs before the `start` event, so all pre-stage sub-agents, including auto-context, can receive `input.coder_workbench` when workbench is enabled. The resolved chat, plan, and spec context files are also added as auto-context helper files. After the normal `start` event, `pro@coder` dispatches `workbench::done` for sub-agents that need to react after the regular start-stage pipeline has seen resolved workbench state.
+
+When `workbench.data` is enabled, auto-context uses the existing code-map agent run to include an additional data named map. The map is written to `<workbench-cache-dir>/code-map/data-code-map.json`, and the data descriptions cache is written to `<workbench-cache-dir>/auto-context/last_data_file_descriptions`. The data descriptions are then used for workbench data selection, rather than adding a separate data-specific code-map sub-agent.
+
+Selected workbench data files are returned by auto-context via `workbench_data_globs` (using context-style relative paths) and are automatically merged into the final coder context by the main agent during prompt assembly.
 
 ### Sub Agent - pro@coder/auto-context
 

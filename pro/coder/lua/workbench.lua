@@ -352,6 +352,10 @@ local function build_coder_workbench(workbench_config, options)
 	end
 
 	local dir = normalize_workbench_dir(workbench_config.dir)
+	if is_null(dir) or dir == "" then
+		dir = u_common.resolve_workbench_root_dir(options)
+	end
+
 	local cache_dir = prompt_cache_dir
 	if not is_null(dir) and dir ~= "" then
 		cache_dir = dir .. "/.cache"
@@ -387,7 +391,11 @@ local function build_coder_workbench(workbench_config, options)
 
 	local data_dir = nil
 	if workbench_config.data == true then
-		data_dir = (dir or prompt_cache_dir) .. "/data"
+		local data_base_dir = dir
+		if is_null(data_base_dir) or data_base_dir == "" then
+			data_base_dir = prompt_cache_dir
+		end
+		data_dir = data_base_dir .. "/data"
 	end
 
 	return {
@@ -422,6 +430,9 @@ local function new_workbench_sub_agent_config(workbench, options)
 	elseif type(workbench) == "table" then
 		local base = aip.lua.merge({ name = "pro@coder/workbench", enabled = true }, workbench)
 		base.dir = normalize_workbench_dir(base.dir)
+		if is_null(base.dir) or base.dir == "" then
+			base.dir = u_common.resolve_workbench_root_dir(options)
+		end
 		base.data = workbench.data == true
 		local resolve_options = aip.lua.merge({}, options, { workbench_dir = base.dir })
 		base.chat = normalize_workbench_chat_config(base.chat, resolve_options)
@@ -430,7 +441,8 @@ local function new_workbench_sub_agent_config(workbench, options)
 		local chat_enabled = not is_null(base.chat) and base.chat.enabled ~= false
 		local plan_enabled = not is_null(base.plan) and base.plan.enabled ~= false
 		local spec_enabled = not is_null(base.spec) and base.spec.enabled ~= false
-		if not chat_enabled and not plan_enabled and not spec_enabled then
+		local data_enabled = base.data == true
+		if not chat_enabled and not plan_enabled and not spec_enabled and not data_enabled then
 			base.enabled = false
 		end
 		workbench_config = base

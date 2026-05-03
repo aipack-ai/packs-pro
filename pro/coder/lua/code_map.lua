@@ -4,6 +4,8 @@ local u_common = require("utils_common")
 
 local LABEL_STATUS              = "   Status:"
 local LABEL_RECOVERED           = "Recovered:"
+local WORKBENCH_DATA_MAP_NAME   = "data"
+local WORKBENCH_DATA_MAP_GLOBS  = { "**/*.*" }
 
 -- === Public Functions
 
@@ -16,6 +18,7 @@ local LABEL_RECOVERED           = "Recovered:"
 --   agent_config: {
 --      globs?:  string[],
 --      named_maps?: { name: string, globs: string[] }[],
+--      workbench_data?: table | boolean,
 --      model?: string,
 --      input_concurrency?: number
 --   }
@@ -24,7 +27,8 @@ local LABEL_RECOVERED           = "Recovered:"
 -- type MapDef = {
 --   name: string | nil,
 --   globs: string[],
---   file_path: string
+--   file_path: string,
+--   base_dir?: string,
 -- }
 
 -- type CodeMapConfig = {
@@ -35,6 +39,59 @@ local LABEL_RECOVERED           = "Recovered:"
 --   model: string,
 --   input_concurrency: number,
 -- }
+
+local function has_text(value)
+	return type(value) == "string" and value ~= ""
+end
+
+local function clone_array(values)
+	local out = {}
+	if type(values) ~= "table" then
+		return out
+	end
+	for _, value in ipairs(values) do
+		table.insert(out, value)
+	end
+	return out
+end
+
+local function new_workbench_data_named_map(workbench_data_config)
+	if is_null(workbench_data_config) or type(workbench_data_config) ~= "table" then
+		return nil
+	end
+
+	local data_dir = workbench_data_config.data_dir
+	if not has_text(data_dir) then
+		data_dir = workbench_data_config.base_dir
+	end
+
+	local file_path = workbench_data_config.file_path
+	local cache_dir = workbench_data_config.cache_dir
+	if not has_text(file_path) and has_text(cache_dir) then
+		file_path = cache_dir .. "/code-map/" .. WORKBENCH_DATA_MAP_NAME .. "-code-map.json"
+	end
+
+	if not has_text(data_dir) or not has_text(file_path) then
+		return nil
+	end
+
+	local map_name = workbench_data_config.name
+	if not has_text(map_name) then
+		map_name = WORKBENCH_DATA_MAP_NAME
+	end
+
+	local globs = clone_array(workbench_data_config.globs)
+	if #globs == 0 then
+		globs = clone_array(WORKBENCH_DATA_MAP_GLOBS)
+	end
+
+	return {
+		name = map_name,
+		globs = globs,
+		file_path = file_path,
+		base_dir = data_dir,
+	}
+end
 
 -- - sub_input: CodeMapInput
 -- - return: CodeMapConfig
@@ -90,11 +147,21 @@ local function extract_code_map_config(sub_input)
 			table.insert(map_defs, {
 				name = nm.name,
 				globs = nm.globs,
-				file_path = code_map_dir .. "/" .. nm.name .. "-code-map.json",
+				file_path = nm.file_path or (code_map_dir .. "/" .. nm.name .. "-code-map.json"),
 				base_dir = nm.base_dir or base_dir,
 			})
 			add_globs(nm.globs)
 		end
+	end
+
+	local workbench_data_config = agent_config.workbench_data
+	if workbench_data_config == true then
+		workbench_data_config = sub_input.coder_workbench
+	end
+	local workbench_data_map = new_workbench_data_named_map(workbench_data_config)
+	if workbench_data_map then
+		table.insert(map_defs, workbench_data_map)
+		add_globs(workbench_data_map.globs)
 	end
 
 	return {
@@ -146,8 +213,11 @@ return {
 	extract_code_map_config = extract_code_map_config,
 	load_code_map_file      = load_code_map_file,
 	filter_text_files       = filter_text_files,
+	new_workbench_data_named_map = new_workbench_data_named_map,
 
 	-- consts
 	LABEL_STATUS            = LABEL_STATUS,
-	LABEL_RECOVERED         = LABEL_RECOVERED
+	LABEL_RECOVERED         = LABEL_RECOVERED,
+	WORKBENCH_DATA_MAP_NAME = WORKBENCH_DATA_MAP_NAME,
+	WORKBENCH_DATA_MAP_GLOBS = WORKBENCH_DATA_MAP_GLOBS,
 }

@@ -150,6 +150,7 @@ local function build_workbench_report(workbench)
     append_workbench_report_line(lines, "dir", workbench.dir)
     append_workbench_report_line(lines, "cache_dir", workbench.cache_dir)
     append_workbench_report_line(lines, "prompt_cache_dir", workbench.prompt_cache_dir)
+    append_workbench_report_line(lines, "data_dir", workbench.data_dir)
     append_workbench_report_section(lines, "Chat", workbench.chat, { "path" })
     append_workbench_report_section(lines, "Plan", workbench.plan, { "dir", "path", "rules_path" })
     append_workbench_report_section(lines, "Spec", workbench.spec, { "path", "rules_path", "context_path" })
@@ -388,6 +389,24 @@ Also, when you return the answer, we need to set a very short label for this "ru
 <set_run_label>_run_label_text_</set_run_label>
 
 The _run_label_text_ should be very short, just couple of words, or three max (only when very needed). 
+
+{{#if data.coder_workbench}}
+
+---
+
+## Workbench Environment
+
+The workbench path for this run is:
+
+`{{data.coder_workbench.dir}}`
+
+{{#if data.coder_workbench.data_dir}}
+The workbench data directory is available for supporting files:
+
+`{{data.coder_workbench.data_dir}}`
+{{/if}}
+
+{{/if}}
 
 # User `cache = {{data.cache_knowledge_files}}`
 

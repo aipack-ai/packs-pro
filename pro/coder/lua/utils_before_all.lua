@@ -141,19 +141,20 @@ local function build_workbench_diagnostics(coder_workbench)
 	local knowledge_lines = {}
 	local chat_path = coder_workbench and coder_workbench.chat and coder_workbench.chat.path
 	if chat_path then
-		table.insert(lines, "Chat ➜ " .. chat_path .. " (added to context & auto-context helper file)")
+		table.insert(lines, "Chat ➜ " .. chat_path .. " (added to context & auto-context)")
 	end
 	local plan_path = coder_workbench and coder_workbench.plan and coder_workbench.plan.path
 	if plan_path then
-		table.insert(lines, "Plan ➜ " .. plan_path .. " (added to context & auto-context helper file)")
+		table.insert(lines, "Plan ➜ " .. plan_path .. " (added to context & auto-context)")
 	end
 	local plan_rules_path = coder_workbench and coder_workbench.plan and coder_workbench.plan.rules_path
 	if plan_rules_path then
 		table.insert(knowledge_lines, "Plan Rules ➜ " .. plan_rules_path)
 	end
-	local spec_path = coder_workbench and coder_workbench.spec and (coder_workbench.spec.context_path or coder_workbench.spec.path)
+	local spec_path = coder_workbench and coder_workbench.spec and
+	(coder_workbench.spec.context_path or coder_workbench.spec.path)
 	if spec_path then
-		table.insert(lines, "Spec ➜ " .. spec_path .. " (added to context & auto-context helper file)")
+		table.insert(lines, "Spec ➜ " .. spec_path .. " (added to context & auto-context)")
 	end
 	local spec_rules_path = coder_workbench and coder_workbench.spec and coder_workbench.spec.rules_path
 	if spec_rules_path then
@@ -316,7 +317,7 @@ end
 
 -- Resolves knowledge, structure, context, and working file globs from metadata into file lists.
 -- Uses the metadata 'base_dir' for workspace-relative lookups.
-local function resolve_refs(meta)
+local function resolve_refs(meta, coder_workbench)
 	local u_utils = require("utils_data")
 	local knowledge_refs = nil
 	if u_utils.is_not_empty(meta.knowledge_globs) then
@@ -327,6 +328,7 @@ local function resolve_refs(meta)
 	local context_refs = nil
 	local structure_refs = nil
 	local working_refs_list = nil
+	local workbench_data_refs = nil
 
 	if base_dir then
 		-- Remove the trailing /
@@ -340,11 +342,38 @@ local function resolve_refs(meta)
 			context_refs = u_common.list_likely_text(meta.context_globs, { base_dir = base_dir })
 		end
 
+		if u_utils.is_not_empty(meta.workbench_data_globs) then
+			local wb_base_dir = (coder_workbench and coder_workbench.dir) or base_dir
+			local wb_files = u_common.list_likely_text(meta.workbench_data_globs, { base_dir = wb_base_dir, absolute = true })
+			if #wb_files == 0 and wb_base_dir ~= base_dir then
+				wb_files = u_common.list_likely_text(meta.workbench_data_globs, { base_dir = base_dir, absolute = true })
+			end
+			for _, f in ipairs(wb_files) do
+				f.path = aip.path.diff(f.path, base_dir)
+			end
+			workbench_data_refs = wb_files
+		end
+
 		if u_utils.is_not_empty(meta.working_globs) then
 			working_refs_list = u_utils.compute_working_refs_list(meta.working_globs, base_dir)
 		end
 	else
 		print("INFO: No base_dir, update in place.")
+	end
+
+	-- Merge workbench data refs into context_refs
+	if workbench_data_refs then
+		context_refs = context_refs or {}
+		local seen = {}
+		for _, ref in ipairs(context_refs) do
+			seen[ref.path] = true
+		end
+		for _, ref in ipairs(workbench_data_refs) do
+			if not seen[ref.path] then
+				seen[ref.path] = true
+				table.insert(context_refs, ref)
+			end
+		end
 	end
 
 	return knowledge_refs, structure_refs, context_refs, working_refs_list, base_dir
@@ -636,7 +665,7 @@ function run_before_all(inputs)
 	-- === Prep the cache files
 	clean_and_init_cache(paths)
 
-	local knowledge_refs, structure_refs, context_refs, working_refs_list, base_dir = resolve_refs(meta)
+	local knowledge_refs, structure_refs, context_refs, working_refs_list, base_dir = resolve_refs(meta, coder_workbench)
 
 	-- Resolve pinned pre/post separately (aip.file.list, not list_likely_text),
 	-- then do a single ordered merge per ref type.
