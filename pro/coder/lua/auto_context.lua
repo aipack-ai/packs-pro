@@ -125,6 +125,20 @@ local function extract_auto_context_config(sub_input)
 		end
 	end
 
+	-- workbench data info
+	local workbench = sub_input.coder_workbench
+	local workbench_data_enabled = false
+	local workbench_dir = nil
+	local workbench_data_dir = nil
+	local workbench_cache_dir = nil
+
+	if type(workbench) == "table" and not is_null(workbench.data_dir) and workbench.data_dir ~= "" then
+		workbench_data_enabled = true
+		workbench_dir = workbench.dir
+		workbench_data_dir = workbench.data_dir
+		workbench_cache_dir = workbench.cache_dir
+	end
+
 	return {
 		user_prompt                = user_prompt,
 		mode                       = mode,
@@ -135,6 +149,10 @@ local function extract_auto_context_config(sub_input)
 		code_map_input_concurrency = code_map_input_concurrency,
 		knowledge                  = knowledge,
 		knowledge_globs            = knowledge_globs,
+		workbench_data_enabled     = workbench_data_enabled,
+		workbench_dir              = workbench_dir,
+		workbench_data_dir         = workbench_data_dir,
+		workbench_cache_dir        = workbench_cache_dir,
 	}
 end
 
