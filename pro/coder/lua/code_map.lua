@@ -40,7 +40,9 @@ local LABEL_RECOVERED           = "Recovered:"
 -- - return: CodeMapConfig
 local function extract_code_map_config(sub_input)
 	local agent_config = sub_input.agent_config
-	local code_map_dir = sub_input.coder_prompt_dir .. "/.cache/code-map"
+	-- Use agent_config.cache_dir if provided, else default
+	local code_map_dir = agent_config.cache_dir or (sub_input.coder_prompt_dir .. "/.cache/code-map")
+	local base_dir = agent_config.base_dir -- can be nil
 
 	if not agent_config.globs and not agent_config.named_maps then
 		error("code map agent config require a `globs: string[]` or `named_maps` property")
@@ -77,7 +79,8 @@ local function extract_code_map_config(sub_input)
 		table.insert(map_defs, {
 			name = nil,
 			globs = agent_config.globs,
-			file_path = code_map_dir .. "/code-map.json"
+			file_path = code_map_dir .. "/code-map.json",
+			base_dir = base_dir,
 		})
 		add_globs(agent_config.globs)
 	end
@@ -87,7 +90,8 @@ local function extract_code_map_config(sub_input)
 			table.insert(map_defs, {
 				name = nm.name,
 				globs = nm.globs,
-				file_path = code_map_dir .. "/" .. nm.name .. "-code-map.json"
+				file_path = code_map_dir .. "/" .. nm.name .. "-code-map.json",
+				base_dir = nm.base_dir or base_dir,
 			})
 			add_globs(nm.globs)
 		end
@@ -100,6 +104,7 @@ local function extract_code_map_config(sub_input)
 		user_prompt       = user_prompt,
 		model             = code_map_model,
 		input_concurrency = code_map_input_concurrency,
+		base_dir          = base_dir,
 	}
 end
 

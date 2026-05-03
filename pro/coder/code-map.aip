@@ -84,7 +84,7 @@ for _, mdef in ipairs(code_map_config.map_defs) do
 	local map_data = loaded_maps[mdef.file_path]
 	local file_map = map_data.file_map
 	local u_common = require("utils_common")
-	local filtered_result = u_common.list_likely_text_with_stats(mdef.globs)
+	local filtered_result = u_common.list_likely_text_with_stats(mdef.globs, { base_dir = mdef.base_dir, absolute = true })
 	local map_files = filtered_result.files
 	non_text_file_count = non_text_file_count + filtered_result.non_text_file_count
 	
