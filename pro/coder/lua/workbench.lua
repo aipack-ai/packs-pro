@@ -344,13 +344,41 @@ local function build_coder_workbench(workbench_config, options)
 		cache_dir = dir .. "/.cache"
 	end
 
+	local chat = nil
+	if not is_null(workbench_config.chat) and workbench_config.chat.enabled ~= false then
+		chat = {
+			enabled = true,
+			path = workbench_config.chat.path
+		}
+	end
+
+	local plan = nil
+	if not is_null(workbench_config.plan) and workbench_config.plan.enabled ~= false then
+		plan = {
+			enabled = true,
+			dir = workbench_config.plan.dir,
+			path = workbench_config.plan.path,
+			rules_path = workbench_config.plan.rules_path
+		}
+	end
+
+	local spec = nil
+	if not is_null(workbench_config.spec) and workbench_config.spec.enabled ~= false then
+		spec = {
+			enabled = true,
+			path = workbench_config.spec.path,
+			rules_path = workbench_config.spec.rules_path,
+			context_path = workbench_config.spec.context_path or workbench_config.spec.path
+		}
+	end
+
 	return {
 		dir = dir,
 		cache_dir = cache_dir,
 		prompt_cache_dir = prompt_cache_dir,
-		chat = clone_config_section(workbench_config.chat),
-		plan = clone_config_section(workbench_config.plan),
-		spec = clone_config_section(workbench_config.spec)
+		chat = chat,
+		plan = plan,
+		spec = spec
 	}
 end
 
