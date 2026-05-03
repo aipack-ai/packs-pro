@@ -190,10 +190,22 @@ local function prepare_workbench(agent_config, coder_params, options)
 		spec = nil
 	end
 
-	if chat == nil and plan == nil and spec == nil then
+	local data_enabled = agent_config.data == true
+
+	if chat == nil and plan == nil and spec == nil and not data_enabled then
 		return {
 			coder_params = {}
 		}
+	end
+
+	local data_dir_path = nil
+	if data_enabled then
+		local base_dir = agent_config.dir
+		if is_null(base_dir) or base_dir == "" then
+			base_dir = u_common.resolve_workbench_root_dir(options)
+		end
+		data_dir_path = base_dir .. "/data"
+		aip.file.ensure_dir(data_dir_path)
 	end
 
 	local next_context_globs_post = coder_params.context_globs_post
@@ -312,7 +324,8 @@ local function prepare_workbench(agent_config, coder_params, options)
 		coder_params = updated_coder_params,
 		agent_result = {
 			workbench_content_globs = dev_content_globs,
-			dev_content_globs = dev_content_globs
+			dev_content_globs = dev_content_globs,
+			data_dir = data_dir_path
 		}
 	}
 end
@@ -372,13 +385,19 @@ local function build_coder_workbench(workbench_config, options)
 		}
 	end
 
+	local data_dir = nil
+	if workbench_config.data == true then
+		data_dir = (dir or prompt_cache_dir) .. "/data"
+	end
+
 	return {
 		dir = dir,
 		cache_dir = cache_dir,
 		prompt_cache_dir = prompt_cache_dir,
 		chat = chat,
 		plan = plan,
-		spec = spec
+		spec = spec,
+		data_dir = data_dir
 	}
 end
 
@@ -403,6 +422,7 @@ local function new_workbench_sub_agent_config(workbench, options)
 	elseif type(workbench) == "table" then
 		local base = aip.lua.merge({ name = "pro@coder/workbench", enabled = true }, workbench)
 		base.dir = normalize_workbench_dir(base.dir)
+		base.data = workbench.data == true
 		local resolve_options = aip.lua.merge({}, options, { workbench_dir = base.dir })
 		base.chat = normalize_workbench_chat_config(base.chat, resolve_options)
 		base.plan = normalize_workbench_plan_config(base.plan, resolve_options)
