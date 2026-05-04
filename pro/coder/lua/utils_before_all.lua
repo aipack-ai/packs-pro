@@ -343,7 +343,7 @@ local function resolve_refs(meta, coder_workbench)
 		end
 
 		local wb_data_globs = meta.workbench_data_globs
-		if not u_utils.is_not_empty(wb_data_globs) and coder_workbench and coder_workbench.data_dir then
+		if is_null(wb_data_globs) and coder_workbench and coder_workbench.data_dir then
 			wb_data_globs = "data/**/*.*"
 		end
 

@@ -650,8 +650,8 @@ local coder_params = { context_globs = new_context_globs }
 if new_knowledge_globs then
 	coder_params.knowledge_globs = new_knowledge_globs
 end
-if data.workbench_data_enabled and new_workbench_data_globs and #new_workbench_data_globs > 0 then
-	coder_params.workbench_data_globs = new_workbench_data_globs
+if data.workbench_data_enabled then
+	coder_params.workbench_data_globs = new_workbench_data_globs or {}
 end
 
 return {
