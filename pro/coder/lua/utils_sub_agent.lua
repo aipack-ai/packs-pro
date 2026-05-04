@@ -206,7 +206,7 @@ local function run_sub_agents_dispatch(dispatch_item, coder_meta, inst, coder_op
 
 	local agent_configs = extract_sub_agent_configs(coder_meta.sub_agents, { coder_prompt_dir = coder_prompt_dir })
 	if #agent_configs == 0 then
-		return coder_meta, inst, nil, false
+		return coder_meta, inst, nil, false, {}
 	end
 
 	local current_params = aip.lua.merge_deep({}, coder_meta)
@@ -230,6 +230,7 @@ local function run_sub_agents_dispatch(dispatch_item, coder_meta, inst, coder_op
 
 	local steps = 0
 	local coder_redo_requested = false
+	local agent_results = {}
 
 	while #event_queue > 0 do
 		steps = steps + 1
@@ -278,11 +279,15 @@ local function run_sub_agents_dispatch(dispatch_item, coder_meta, inst, coder_op
 					coder_redo_requested = true
 				end
 
-				table.insert(executed, {
+				local executed_entry = {
+					event = dispatch_event,
+					stage = dispatch_stage,
 					config = clone_shallow(config),
 					sub_agent_result = agent_result,
 					agent_result = agent_result
-				})
+				}
+				table.insert(executed, executed_entry)
+				table.insert(agent_results, executed_entry)
 
 				if returned_next ~= nil then
 					local rebuilt = {}
@@ -312,7 +317,7 @@ local function run_sub_agents_dispatch(dispatch_item, coder_meta, inst, coder_op
 	-- put back the sub_agents
 	new_coder_meta.sub_agents = agent_configs
 
-	return new_coder_meta, current_coder_prompt, nil, coder_redo_requested
+	return new_coder_meta, current_coder_prompt, nil, coder_redo_requested, agent_results
 end
 
 -- === /Support Functions

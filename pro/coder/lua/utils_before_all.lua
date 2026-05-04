@@ -42,6 +42,34 @@ local function collect_working_refs(working_refs_list)
 	return merged
 end
 
+local function append_agent_results(target, source)
+	if type(target) ~= "table" or type(source) ~= "table" then
+		return target
+	end
+
+	for _, result in ipairs(source) do
+		table.insert(target, result)
+	end
+
+	return target
+end
+
+local function extract_workbench_data_selection(agent_results)
+	if type(agent_results) ~= "table" then
+		return nil
+	end
+
+	local selection = nil
+	for _, result in ipairs(agent_results) do
+		local agent_result = result and (result.agent_result or result.sub_agent_result)
+		if type(agent_result) == "table" and agent_result.workbench_data_selection_attempted == true then
+			selection = agent_result
+		end
+	end
+
+	return selection
+end
+
 -- Checks if the current AIPack version meets the minimum required version for this agent.
 -- Returns true if OK, or false and an error message if an update is needed.
 local function check_version()
@@ -317,7 +345,7 @@ end
 
 -- Resolves knowledge, structure, context, and working file globs from metadata into file lists.
 -- Uses the metadata 'base_dir' for workspace-relative lookups.
-local function resolve_refs(meta, coder_workbench)
+local function resolve_refs(meta, coder_workbench, workbench_data_selection)
 	local u_utils = require("utils_data")
 	local knowledge_refs = nil
 	if u_utils.is_not_empty(meta.knowledge_globs) then
@@ -345,46 +373,22 @@ local function resolve_refs(meta, coder_workbench)
 		-- Workbench data selection has three states:
 		-- nil means no selection decision and may use the default data glob, an empty table means explicit none, and a non-empty table means selected files.
 		-- Selected workbench data paths are intended to be workspace-relative like context refs.
-		local wb_data_globs = meta.workbench_data_globs
-		local wb_data_uses_default = false
-		if is_null(wb_data_globs) and coder_workbench and coder_workbench.data_dir then
-			wb_data_globs = "data/**/*.*"
-			wb_data_uses_default = true
+		local wb_data_globs = nil
+		if type(workbench_data_selection) == "table" and workbench_data_selection.workbench_data_selection_attempted == true then
+			wb_data_globs = workbench_data_selection.workbench_data_globs or {}
+		elseif not is_null(meta.workbench_data_globs) then
+			wb_data_globs = meta.workbench_data_globs
+		elseif coder_workbench and coder_workbench.data_dir then
+			local default_workbench_data_glob = u_workbench.derive_workbench_data_glob(coder_workbench.dir)
+			if not is_null(default_workbench_data_glob) and default_workbench_data_glob ~= "" then
+				wb_data_globs = { default_workbench_data_glob }
+			end
 		end
 
-		if u_utils.is_not_empty(wb_data_globs) then
-			local wb_base_dir = base_dir
-			local globs = wb_data_globs
-			local list_base_dir = base_dir
-			if wb_data_uses_default then
-				wb_base_dir = (coder_workbench and coder_workbench.dir) or base_dir
-				list_base_dir = CTX.WORKSPACE_DIR
-				if wb_base_dir ~= "" and wb_base_dir ~= "." then
-					if type(globs) == "string" then
-						globs = wb_base_dir .. "/" .. globs
-					else
-						local next_globs = {}
-						for _, g in ipairs(globs) do
-							table.insert(next_globs, wb_base_dir .. "/" .. g)
-						end
-						globs = next_globs
-					end
-				end
-			end
-
-			local wb_files = u_common.list_likely_text(globs, { base_dir = list_base_dir })
-			if #wb_files == 0 and wb_data_uses_default and wb_base_dir ~= base_dir then
-				local fallback_base_dir = (base_dir == "" or base_dir == ".") and CTX.WORKSPACE_DIR or base_dir
-				wb_files = u_common.list_likely_text(wb_data_globs, { base_dir = fallback_base_dir })
-
-				-- Ensure paths are relative to workspace root for consistency
-				if fallback_base_dir ~= CTX.WORKSPACE_DIR then
-					for _, f in ipairs(wb_files) do
-						f.path = aip.path.join(fallback_base_dir, f.path)
-					end
-				end
-			end
-			workbench_data_refs = wb_files
+		if type(wb_data_globs) == "table" and #wb_data_globs == 0 then
+			workbench_data_refs = {}
+		elseif u_utils.is_not_empty(wb_data_globs) then
+			workbench_data_refs = u_common.list_likely_text(wb_data_globs, { base_dir = CTX.WORKSPACE_DIR })
 		end
 
 		if u_utils.is_not_empty(meta.working_globs) then
@@ -605,6 +609,7 @@ function run_before_all(inputs)
 
 	local builtin_sub_agents = {}
 	local coder_workbench = nil
+	local pre_agent_results = {}
 
 	-- === Initialize workbench directly before the start event
 	local workbench_err = nil
@@ -639,12 +644,14 @@ function run_before_all(inputs)
 	-- === Run Sub Agents
 	if not is_null(meta.sub_agents) and #meta.sub_agents > 0 then
 		local err
-		meta, inst, err = u_sub_agent.run_sub_agents_pre(meta, inst, aip.lua.merge_deep({}, options, {
+		local sub_agent_results
+		meta, inst, err, _coder_redo_requested, sub_agent_results = u_sub_agent.run_sub_agents_pre(meta, inst, aip.lua.merge_deep({}, options, {
 			coder_workbench = coder_workbench
 		}), coder_prompt_dir)
 		meta = meta or {} -- make the type nil check happy
 
 		if err then return nil, nil, err end
+		append_agent_results(pre_agent_results, sub_agent_results)
 		-- recompute options from the meta returned
 		options = build_agent_options(meta)
 	end
@@ -652,13 +659,15 @@ function run_before_all(inputs)
 	-- === Run post-workbench pre-stage sub-agents
 	if coder_workbench ~= nil and not is_null(meta.sub_agents) and #meta.sub_agents > 0 then
 		local err
-		meta, inst, err = u_sub_agent.run_sub_agents_pre_event("workbench::done", meta, inst,
+		local sub_agent_results
+		meta, inst, err, _coder_redo_requested, sub_agent_results = u_sub_agent.run_sub_agents_pre_event("workbench::done", meta, inst,
 			aip.lua.merge_deep({}, options, {
 				coder_workbench = coder_workbench
 			}), coder_prompt_dir)
 		meta = meta or {} -- make the type nil check happy
 
 		if err then return nil, nil, err end
+		append_agent_results(pre_agent_results, sub_agent_results)
 		-- recompute options from the meta returned
 		options = build_agent_options(meta)
 	end
@@ -683,7 +692,8 @@ function run_before_all(inputs)
 	-- === Prep the cache files
 	clean_and_init_cache(paths)
 
-	local knowledge_refs, structure_refs, context_refs, working_refs_list, base_dir, workbench_data_refs = resolve_refs(meta, coder_workbench)
+	local workbench_data_selection = extract_workbench_data_selection(pre_agent_results)
+	local knowledge_refs, structure_refs, context_refs, working_refs_list, base_dir, workbench_data_refs = resolve_refs(meta, coder_workbench, workbench_data_selection)
 
 	-- Resolve pinned pre/post separately (aip.file.list, not list_likely_text),
 	-- then do a single ordered merge per ref type.
