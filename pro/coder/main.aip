@@ -144,6 +144,7 @@ prompt_files_content = prompt_files_content .. build_workbench_data_files_sectio
 prompt_files_content = prompt_files_content .. build_section("Knowledge Files", base.knowledge_refs, base.knowledge_refs_pre, base.knowledge_refs_post)
 prompt_files_content = prompt_files_content .. build_section("Context Files", new_context_refs, new_context_refs_pre, new_context_refs_post)
 
+prompt_files_content = prompt_files_content .. "# Workbench Data Files (Resolved)"   .. "\n\n" .. p_utils.file_refs_to_md(base.workbench_data_refs) .. "\n\n"
 prompt_files_content = prompt_files_content .. "# Working Files"   .. "\n\n" .. p_utils.file_refs_to_md(working_refs) .. "\n\n"
 prompt_files_content = prompt_files_content .. "# Structure Files"  .. "\n\n" .. p_utils.file_refs_to_md(base.structure_refs, {
 			preamble = "(Only file paths, not their content)", 
@@ -156,6 +157,7 @@ aip.file.append(base.prompt_file_paths, prompt_files_content)
 -- Augment the base
 base.knowledge_files = p_utils.load_file_refs(CTX.WORKSPACE_DIR, base.knowledge_refs)
 base.context_files   = p_utils.load_file_refs(base.base_dir, new_context_refs)
+base.workbench_data_files = p_utils.load_file_refs(base.base_dir, base.workbench_data_refs)
 base.working_files   = p_utils.load_file_refs(base.base_dir, working_refs)
 base.structure_refs_md = p_utils.format_paths_as_single_nested(base.structure_refs)
 
@@ -167,7 +169,8 @@ end
 local knowledge_file_count = tostring(base.knowledge_files and #base.knowledge_files or 0)
 local working_file_count = tostring(base.working_files and #base.working_files or 0)
 local context_file_count = tostring(base.context_files and #base.context_files or 0)
-local task_info = "Context Files: " .. context_file_count .. " | Working Files: " .. working_file_count .. " | Knowledge Files: " .. knowledge_file_count
+local workbench_data_file_count = tostring(base.workbench_data_files and #base.workbench_data_files or 0)
+local task_info = "Context Files: " .. context_file_count .. " | Workbench Data: " .. workbench_data_file_count .. " | Working Files: " .. working_file_count .. " | Knowledge Files: " .. knowledge_file_count
 if attachments then
     task_info = task_info .. " | Attachments: " .. #attachments
 end
@@ -433,6 +436,21 @@ Now, here are the context source files that are related to the work to be done.
 {{/each}}
 
 Only write the files that need to be rewritten based on the user instruction.
+
+{{/if}}
+
+---
+
+{{#if data.workbench_data_files}}
+
+Here are the workbench data files providing additional context for this task:
+
+{{#each data.workbench_data_files}}
+<WORKBENCH_DATA_FILE file_path="{{this.path}}">
+{{{this.content}}}
+</WORKBENCH_DATA_FILE>
+
+{{/each}}
 
 {{/if}}
 
