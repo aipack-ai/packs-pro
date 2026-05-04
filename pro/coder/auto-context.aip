@@ -213,7 +213,8 @@ if workbench_data_selection_enabled then
 		workbench_data_map_config = {
 			name = "data",
 			globs = data_globs,
-			base_dir = "",
+			base_dir = CTX.WORKSPACE_DIR,
+			path_base_dir = CTX.WORKSPACE_DIR,
 			file_path = workbench_data_code_map_file_path,
 		}
 	end
@@ -339,10 +340,7 @@ if workbench_data_selection_enabled and workbench_data_code_map then
 	local wd_files = {}
 	local wd_file_map = workbench_data_code_map.file_map
 	for _, wdfile in ipairs(workbench_data_files) do
-		local mapped = find_file_map_entry(wd_file_map, wdfile.path, {
-			auto_context_config.workbench_dir,
-			auto_context_config.prompt_base_dir
-		})
+		local mapped = wd_file_map[wdfile.path]
 		if mapped then
 			table.insert(wd_files, mapped)
 		end
