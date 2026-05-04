@@ -5,11 +5,12 @@ local u_workbench               = require("workbench")
 -- CONSTS
 local LABEL_STATUS              = "          Status:"
 local LABEL_CFILES              = "   Context Files:"
-local LABEL_REASON              = "  Context Reason:"
-local LABEL_KFILES              = " Knowledge Files:"
-local LABEL_KREASON             = "Knowledge Reason:"
-local LABEL_HFILES              = "    Helper Files:"
 local LABEL_DFILES              = " Workbench Data:"
+local LABEL_KFILES              = " Knowledge Files:"
+local LABEL_HFILES              = "    Helper Files:"
+local LABEL_REASON              = "  Context Reason:"
+local LABEL_DREASON             = "     Data Reason:"
+local LABEL_KREASON             = "Knowledge Reason:"
 
 local DEFAULT_INPUT_CONCURRENCY = 8
 
@@ -197,6 +198,7 @@ end
 --    knowledge_files_size?: number,
 --    new_knowledge_globs?: string[],
 --    knowledge_reason?: string,
+--    workbench_data_reason?: string,
 -- }
 local function pin_status(auto_context_config, ctx)
 	local mode = auto_context_config.mode
@@ -340,25 +342,6 @@ local function pin_status(auto_context_config, ctx)
 		aip.task.pin("files", 2, files_pin)
 	end
 
-	-- === Pin Knowledge Files
-	if knowledge_done and auto_context_config.knowledge and new_knowledge_files then
-		msg = ""
-		if new_knowledge_files and #new_knowledge_files > 0 then
-			for _, file in ipairs(new_knowledge_files) do
-				msg = msg .. "  - " .. file.path .. "\n"
-			end
-			msg = aip.text.trim_end(msg)
-		else
-			msg = "(no knowledge files)"
-		end
-		local kfiles_pin = {
-			label = LABEL_KFILES,
-			content = msg
-		}
-		aip.run.pin("kfiles", 3, kfiles_pin)
-		aip.task.pin("kfiles", 3, kfiles_pin)
-	end
-
 	-- === Pin Workbench Data Files
 	if workbench_data_done and auto_context_config.workbench_data_enabled and new_workbench_data_files then
 		msg = ""
@@ -374,28 +357,27 @@ local function pin_status(auto_context_config, ctx)
 			label = LABEL_DFILES,
 			content = msg
 		}
-		aip.run.pin("dfiles", 4, dfiles_pin)
-		aip.task.pin("dfiles", 4, dfiles_pin)
+		aip.run.pin("dfiles", 3, dfiles_pin)
+		aip.task.pin("dfiles", 3, dfiles_pin)
 	end
 
-	-- === Pin Reason
-	if ctx.reason then
-		local reason_pin = {
-			label = LABEL_REASON,
-			content = aip.text.trim(ctx.reason)
+	-- === Pin Knowledge Files
+	if knowledge_done and auto_context_config.knowledge and new_knowledge_files then
+		msg = ""
+		if new_knowledge_files and #new_knowledge_files > 0 then
+			for _, file in ipairs(new_knowledge_files) do
+				msg = msg .. "  - " .. file.path .. "\n"
+			end
+			msg = aip.text.trim_end(msg)
+		else
+			msg = "(no knowledge files)"
+		end
+		local kfiles_pin = {
+			label = LABEL_KFILES,
+			content = msg
 		}
-		aip.run.pin("reason", 5, reason_pin)
-		aip.task.pin("reason", 5, reason_pin)
-	end
-
-	-- === Pin Knowledge Reason
-	if ctx.knowledge_reason then
-		local kreason_pin = {
-			label = LABEL_KREASON,
-			content = aip.text.trim(ctx.knowledge_reason)
-		}
-		aip.run.pin("kreason", 6, kreason_pin)
-		aip.task.pin("kreason", 6, kreason_pin)
+		aip.run.pin("kfiles", 4, kfiles_pin)
+		aip.task.pin("kfiles", 4, kfiles_pin)
 	end
 
 	-- === Helper  helper_files
@@ -409,8 +391,38 @@ local function pin_status(auto_context_config, ctx)
 			label = LABEL_HFILES,
 			content = content
 		}
-		aip.run.pin("helpers", 4, helpers_pin)
-		aip.task.pin("helpers", 4, helpers_pin)
+		aip.run.pin("helpers", 5, helpers_pin)
+		aip.task.pin("helpers", 5, helpers_pin)
+	end
+
+	-- === Pin Reason
+	if ctx.reason then
+		local reason_pin = {
+			label = LABEL_REASON,
+			content = aip.text.trim(ctx.reason)
+		}
+		aip.run.pin("reason", 6, reason_pin)
+		aip.task.pin("reason", 6, reason_pin)
+	end
+
+	-- === Pin Workbench Data Reason
+	if ctx.workbench_data_reason then
+		local dreason_pin = {
+			label = LABEL_DREASON,
+			content = aip.text.trim(ctx.workbench_data_reason)
+		}
+		aip.run.pin("dreason", 7, dreason_pin)
+		aip.task.pin("dreason", 7, dreason_pin)
+	end
+
+	-- === Pin Knowledge Reason
+	if ctx.knowledge_reason then
+		local kreason_pin = {
+			label = LABEL_KREASON,
+			content = aip.text.trim(ctx.knowledge_reason)
+		}
+		aip.run.pin("kreason", 8, kreason_pin)
+		aip.task.pin("kreason", 8, kreason_pin)
 	end
 end
 

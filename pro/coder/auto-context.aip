@@ -509,6 +509,12 @@ Then, for workbench data files, put the result under a `needed_workbench_data_fi
 _needed_workbench_data_files_as_json_array_
 </needed_workbench_data_files>
 
+Then, put the workbench data reasoning under a `workbench_data_reasoning` tag:
+
+<workbench_data_reasoning>
+_concise_reasoning_as_text_
+</workbench_data_reasoning>
+
 {{/if}}
 Then, for knowledge files, put the result under a `needed_knowledge_files` tag:
 
@@ -541,6 +547,12 @@ Then, for workbench data files, put the result under a `needed_workbench_data_fi
 <needed_workbench_data_files>
 _needed_workbench_data_files_as_json_array_
 </needed_workbench_data_files>
+
+Then, put the workbench data reasoning under a `workbench_data_reasoning` tag:
+
+<workbench_data_reasoning>
+_concise_reasoning_as_text_
+</workbench_data_reasoning>
 
 {{/if}}
 {{/if}}
@@ -633,6 +645,7 @@ local mode = data.auto_context_config.mode
 local tag_names = {"needed_context_files", "context_reasoning"}
 if data.workbench_data_enabled then
 	table.insert(tag_names, "needed_workbench_data_files")
+	table.insert(tag_names, "workbench_data_reasoning")
 end
 if data.knowledge_enabled then
 	table.insert(tag_names, "needed_knowledge_files")
@@ -753,6 +766,12 @@ if data.knowledge_enabled and res_map.needed_knowledge_files then
 	end
 end
 
+-- === Process workbench data reasoning
+local workbench_data_reasoning = nil
+if data.workbench_data_enabled and res_map.workbench_data_reasoning then
+	workbench_data_reasoning = res_map.workbench_data_reasoning.content
+end
+
 _ac.pin_status(data.auto_context_config, {
 	context_files_count = data.context_files_count,
 	context_files_size  = data.context_files_size,
@@ -763,6 +782,7 @@ _ac.pin_status(data.auto_context_config, {
 	knowledge_files_size  = data.knowledge_files_size,
 	new_knowledge_globs   = new_knowledge_globs,
 	knowledge_reason      = knowledge_reasoning,
+	workbench_data_reason = workbench_data_reasoning,
 	workbench_data_files_count = data.workbench_data_files_count,
 	workbench_data_mapped_files_count = data.workbench_data_mapped_files_count,
 	workbench_data_files_size  = data.workbench_data_files_size,
