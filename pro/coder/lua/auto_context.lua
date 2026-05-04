@@ -43,6 +43,10 @@ local function append_helper_globs_from_sub_agents(helper_globs, sub_agents_prev
 	return helper_globs
 end
 
+local function has_no_globs(globs)
+	return is_null(globs) or (type(globs) == "table" and #globs == 0)
+end
+
 
 -- return: {
 --  user_prompt: string,
@@ -144,6 +148,13 @@ local function extract_auto_context_config(sub_input)
 		workbench_dir = workbench.dir
 		workbench_data_dir = workbench.data_dir
 		workbench_cache_dir = workbench.cache_dir
+	end
+
+	if workbench_data_enabled and has_no_globs(workbench_data_globs) then
+		local default_workbench_data_glob = u_workbench.derive_workbench_data_glob(workbench_dir)
+		if not is_null(default_workbench_data_glob) and default_workbench_data_glob ~= "" then
+			workbench_data_globs = { default_workbench_data_glob }
+		end
 	end
 
 	return {

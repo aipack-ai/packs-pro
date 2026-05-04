@@ -158,13 +158,13 @@ if auto_context_config.workbench_data_enabled
 	and not is_null(auto_context_config.workbench_cache_dir)
 	and auto_context_config.workbench_cache_dir ~= "" then
 	local data_globs = auto_context_config.workbench_data_globs
-	local list_base_dir = auto_context_config.workbench_dir
 	if is_null(data_globs) or (type(data_globs) == "table" and #data_globs == 0) then
-		data_globs = { "data/**/*.*" }
-	else
-		list_base_dir = auto_context_config.prompt_base_dir
+		data_globs = {}
 	end
-	local listed_workbench_data_files = aip.file.list(data_globs, { base_dir = list_base_dir, absolute = true })
+	local listed_workbench_data_files = {}
+	if not (type(data_globs) == "table" and #data_globs == 0) then
+		listed_workbench_data_files = aip.file.list(data_globs)
+	end
 	local filtered_workbench_data_files = _cm.filter_text_files(listed_workbench_data_files)
 	workbench_data_files = filtered_workbench_data_files.files or {}
 	for _, dfile in ipairs(workbench_data_files) do
@@ -205,16 +205,18 @@ local workbench_data_map_config = nil
 if workbench_data_selection_enabled then
 	local data_globs = auto_context_config.workbench_data_globs
 	if is_null(data_globs) or (type(data_globs) == "table" and #data_globs == 0) then
-		data_globs = { "data/**/*.*" }
+		data_globs = {}
 	end
-	local workbench_code_map_dir = auto_context_config.workbench_cache_dir .. "/code-map"
-	workbench_data_code_map_file_path = workbench_code_map_dir .. "/data-code-map.json"
-	workbench_data_map_config = {
-		name = "data",
-		globs = data_globs,
-		base_dir = auto_context_config.workbench_dir,
-		file_path = workbench_data_code_map_file_path,
-	}
+	if not (type(data_globs) == "table" and #data_globs == 0) then
+		local workbench_code_map_dir = auto_context_config.workbench_cache_dir .. "/code-map"
+		workbench_data_code_map_file_path = workbench_code_map_dir .. "/data-code-map.json"
+		workbench_data_map_config = {
+			name = "data",
+			globs = data_globs,
+			base_dir = "",
+			file_path = workbench_data_code_map_file_path,
+		}
+	end
 end
 
 local code_map_agent_config = {
