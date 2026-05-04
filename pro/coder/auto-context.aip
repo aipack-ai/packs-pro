@@ -6,6 +6,112 @@ local _cm = require("code_map")
 local _ac = require("auto_context")
 local u_common = require("utils_common")
 
+local function append_unique_path(list, value)
+	if type(value) ~= "string" or value == "" then
+		return
+	end
+	for _, existing in ipairs(list) do
+		if existing == value then
+			return
+		end
+	end
+	table.insert(list, value)
+end
+
+local function collect_path_lookup_keys(file_path, base_dirs)
+	local keys = {}
+	local seen = {}
+
+	local function add_key(key)
+		if type(key) ~= "string" or key == "" then
+			return
+		end
+		if not seen[key] then
+			seen[key] = true
+			table.insert(keys, key)
+		end
+		local normalized = key:gsub("^%./", "")
+		if normalized ~= key and not seen[normalized] then
+			seen[normalized] = true
+			table.insert(keys, normalized)
+		end
+	end
+
+	add_key(file_path)
+
+	for _, base_dir in ipairs(base_dirs or {}) do
+		if not is_null(base_dir) and base_dir ~= "" then
+			local ok_diff, diff = pcall(aip.path.diff, file_path, base_dir)
+			if ok_diff then
+				add_key(diff)
+			end
+
+			local ok_file, resolved_file_path = pcall(aip.path.resolve, file_path)
+			local ok_base, resolved_base_dir = pcall(aip.path.resolve, base_dir)
+			if ok_file and ok_base and not is_null(resolved_file_path) and not is_null(resolved_base_dir) then
+				local ok_resolved_diff, resolved_diff = pcall(aip.path.diff, resolved_file_path, resolved_base_dir)
+				if ok_resolved_diff then
+					add_key(resolved_diff)
+				end
+			end
+		end
+	end
+
+	return keys
+end
+
+local function find_file_map_entry(file_map, file_path, base_dirs)
+	if type(file_map) ~= "table" then
+		return nil
+	end
+
+	for _, key in ipairs(collect_path_lookup_keys(file_path, base_dirs)) do
+		local mapped = file_map[key]
+		if mapped ~= nil then
+			return mapped
+		end
+	end
+
+	return nil
+end
+
+local function build_workbench_data_map_miss_content(workbench_data_files, wd_file_map)
+	local lines = {
+		"No mapped workbench data file descriptions were available.",
+		"",
+		"Detected workbench data files:"
+	}
+
+	for i, file in ipairs(workbench_data_files or {}) do
+		if i > 20 then
+			table.insert(lines, "- ...")
+			break
+		end
+		table.insert(lines, "- " .. file.path)
+	end
+
+	table.insert(lines, "")
+	table.insert(lines, "Sample code-map keys:")
+
+	local key_count = 0
+	if type(wd_file_map) == "table" then
+		for key, _ in pairs(wd_file_map) do
+			key_count = key_count + 1
+			if key_count > 20 then
+				table.insert(lines, "- ...")
+				break
+			end
+			table.insert(lines, "- " .. tostring(key))
+		end
+	end
+
+	if key_count == 0 then
+		table.insert(lines, "- (none)")
+	end
+
+	return table.concat(lines, "\n")
+end
+
 aip.run.set_label("auto-context")
 
 local sub_agent_input = input
@@ -224,11 +330,15 @@ end
 local wd_files_txt = ""
 local wd_files_count = 0
 local wd_files_txt_for_selection = wd_files_txt
+local wd_files_map_miss_content = nil
 if workbench_data_selection_enabled and workbench_data_code_map then
 	local wd_files = {}
 	local wd_file_map = workbench_data_code_map.file_map
 	for _, wdfile in ipairs(workbench_data_files) do
-		local mapped = wd_file_map[wdfile.path]
+		local mapped = find_file_map_entry(wd_file_map, wdfile.path, {
+			auto_context_config.workbench_dir,
+			auto_context_config.prompt_base_dir
+		})
 		if mapped then
 			table.insert(wd_files, mapped)
 		end
@@ -243,6 +353,9 @@ if workbench_data_selection_enabled and workbench_data_code_map then
 	end)
 
 	wd_files_count = #wd_files
+	if wd_files_count == 0 and #workbench_data_files > 0 then
+		wd_files_map_miss_content = build_workbench_data_map_miss_content(workbench_data_files, wd_file_map)
+	end
 	for _, wdfile in ipairs(wd_files) do
 		local txt = "- " .. wdfile.file_path .. "\n"
 		txt = txt .. "    - Summary: " .. wdfile.summary .. "\n"
@@ -289,7 +402,11 @@ if auto_context_config.workbench_data_enabled
 		if wd_files_count > 0 and not is_null(wd_files_txt) and wd_files_txt:find("%S") then
 			wd_cache_content = "# Workbench Data Files Descriptions (Sent to AI for selection)\n\n" .. wd_files_txt
 		elseif workbench_data_selection_enabled then
-			wd_cache_content = "# Workbench Data Files Descriptions (Not sent to AI)\n\nNo mapped workbench data files were available.\n"
+			if wd_files_map_miss_content then
+				wd_cache_content = "# Workbench Data Files Descriptions (Not sent to AI)\n\n" .. wd_files_map_miss_content .. "\n"
+			else
+				wd_cache_content = "# Workbench Data Files Descriptions (Not sent to AI)\n\nNo mapped workbench data files were available.\n"
+			end
 		else
 			wd_cache_content = "# Workbench Data Files Descriptions (Not sent to AI)\n\nNone\n"
 		end
@@ -319,9 +436,9 @@ return aip.flow.data_response({
 		knowledge_globs     = knowledge_globs,
 		knowledge_files_count = #knowledge_files,
 		knowledge_files_size  = knowledge_files_size,
-		workbench_data_enabled = wd_files_count > 0,
+		workbench_data_enabled = workbench_data_selection_enabled,
 		workbench_data_files_txt = wd_files_txt_for_selection,
-		workbench_data_files_count = wd_files_count,
+		workbench_data_files_count = #workbench_data_files,
 		workbench_data_files_size  = workbench_data_files_size,
 		mode                = auto_context_config.mode,
 	},

@@ -343,27 +343,34 @@ local function resolve_refs(meta, coder_workbench)
 		end
 
 		local wb_data_globs = meta.workbench_data_globs
+		local wb_data_uses_default = false
 		if is_null(wb_data_globs) and coder_workbench and coder_workbench.data_dir then
 			wb_data_globs = "data/**/*.*"
+			wb_data_uses_default = true
 		end
 
 		if u_utils.is_not_empty(wb_data_globs) then
-			local wb_base_dir = (coder_workbench and coder_workbench.dir) or base_dir
+			local wb_base_dir = base_dir
 			local globs = wb_data_globs
-			if wb_base_dir ~= "" and wb_base_dir ~= "." then
-				if type(globs) == "string" then
-					globs = wb_base_dir .. "/" .. globs
-				else
-					local next_globs = {}
-					for _, g in ipairs(globs) do
-						table.insert(next_globs, wb_base_dir .. "/" .. g)
+			local list_base_dir = base_dir
+			if wb_data_uses_default then
+				wb_base_dir = (coder_workbench and coder_workbench.dir) or base_dir
+				list_base_dir = CTX.WORKSPACE_DIR
+				if wb_base_dir ~= "" and wb_base_dir ~= "." then
+					if type(globs) == "string" then
+						globs = wb_base_dir .. "/" .. globs
+					else
+						local next_globs = {}
+						for _, g in ipairs(globs) do
+							table.insert(next_globs, wb_base_dir .. "/" .. g)
+						end
+						globs = next_globs
 					end
-					globs = next_globs
 				end
 			end
 
-			local wb_files = u_common.list_likely_text(globs, { base_dir = CTX.WORKSPACE_DIR })
-			if #wb_files == 0 and wb_base_dir ~= base_dir then
+			local wb_files = u_common.list_likely_text(globs, { base_dir = list_base_dir })
+			if #wb_files == 0 and wb_data_uses_default and wb_base_dir ~= base_dir then
 				local fallback_base_dir = (base_dir == "" or base_dir == ".") and CTX.WORKSPACE_DIR or base_dir
 				wb_files = u_common.list_likely_text(wb_data_globs, { base_dir = fallback_base_dir })
 
