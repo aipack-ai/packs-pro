@@ -342,6 +342,9 @@ local function resolve_refs(meta, coder_workbench)
 			context_refs = u_common.list_likely_text(meta.context_globs, { base_dir = base_dir })
 		end
 
+		-- Workbench data selection has three states:
+		-- nil means no selection decision and may use the default data glob, an empty table means explicit none, and a non-empty table means selected files.
+		-- Selected workbench data paths are intended to be workspace-relative like context refs.
 		local wb_data_globs = meta.workbench_data_globs
 		local wb_data_uses_default = false
 		if is_null(wb_data_globs) and coder_workbench and coder_workbench.data_dir then

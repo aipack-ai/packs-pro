@@ -147,6 +147,8 @@ if auto_context_config.knowledge and knowledge_globs then
 end
 
 -- === Compute workbench data file stats
+-- Workbench data is intended to follow the same workspace-relative path model as context globs.
+-- Later steps will make discovery globs, data code-map keys, selector paths, and selected paths share that representation.
 local workbench_data_files = {}
 local workbench_data_files_size = 0
 local workbench_data_selection_enabled = false

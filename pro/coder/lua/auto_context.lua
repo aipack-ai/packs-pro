@@ -128,6 +128,10 @@ local function extract_auto_context_config(sub_input)
 	-- workbench_data_globs
 	local workbench_data_globs = sub_input.coder_params.workbench_data_globs
 
+	-- Canonical workbench data path flow:
+	-- workbench_dir/data/**/*.* -> data-code-map keys -> selector prompt paths -> selected data paths.
+	-- Existing fields remain pass-through until the later implementation steps replace legacy resolution.
+
 	-- workbench data info
 	local workbench = sub_input.coder_workbench
 	local workbench_data_enabled = false

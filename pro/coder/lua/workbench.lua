@@ -21,6 +21,16 @@ local function normalize_workbench_dir(workbench_dir)
 	return normalized
 end
 
+-- Derives the canonical default workbench data candidate glob.
+-- The glob is rooted at the resolved workbench directory so data files can follow the same workspace-relative model as context globs.
+local function derive_workbench_data_glob(workbench_dir)
+	local normalized_dir = normalize_workbench_dir(workbench_dir)
+	if is_null(normalized_dir) or normalized_dir == "" then
+		return nil
+	end
+	return normalized_dir .. "/data/**/*.*"
+end
+
 local function normalize_workbench_chat_config(workbench_chat, options)
 	local chat = nil
 	if workbench_chat == true then
@@ -454,6 +464,7 @@ end
 return {
 	new_workbench_sub_agent_config = new_workbench_sub_agent_config,
 	build_coder_workbench = build_coder_workbench,
+	derive_workbench_data_glob = derive_workbench_data_glob,
 	prepare_workbench = prepare_workbench,
 	normalize_workbench_chat_config = normalize_workbench_chat_config,
 	resolve_workbench_chat_path = resolve_workbench_chat_path,
