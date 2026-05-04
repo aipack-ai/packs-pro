@@ -299,9 +299,6 @@ local function pin_status(auto_context_config, ctx)
 		local wd_status = workbench_data_done and "✅" or ".."
 		msg = msg .. '\n' .. wd_status
 		local wd_label = " Reducing " .. (ctx.workbench_data_files_count or 0) .. " workbench data files"
-		if ctx.workbench_data_mapped_files_count ~= nil then
-			wd_label = wd_label .. ", " .. ctx.workbench_data_mapped_files_count .. " mapped descriptions"
-		end
 		msg = msg .. string.format("%-35s", wd_label)
 		msg = msg .. " (" .. workbench_data_files_size_fmt .. ")"
 
