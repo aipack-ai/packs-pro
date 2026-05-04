@@ -123,7 +123,7 @@ local function build_workbench_data_files_section(workbench)
         return ""
     end
 
-    local data_files = aip.file.list("**/*", { base_dir = workbench.data_dir })
+    local data_files = aip.file.list("**/*", { base_dir = workbench.data_dir, absolute = true })
     if not data_files or #data_files == 0 then
         return ""
     end
@@ -133,7 +133,7 @@ local function build_workbench_data_files_section(workbench)
         ""
     }
     for _, f in ipairs(data_files) do
-        table.insert(lines, "- " .. f.path)
+        table.insert(lines, "- " .. aip.path.diff(f.path, CTX.WORKSPACE_DIR))
     end
     table.insert(lines, "\n")
 

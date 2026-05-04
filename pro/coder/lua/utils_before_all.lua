@@ -348,8 +348,9 @@ local function resolve_refs(meta, coder_workbench)
 			if #wb_files == 0 and wb_base_dir ~= base_dir then
 				wb_files = u_common.list_likely_text(meta.workbench_data_globs, { base_dir = base_dir, absolute = true })
 			end
+			local diff_anchor = (base_dir == "") and CTX.WORKSPACE_DIR or aip.path.resolve(base_dir)
 			for _, f in ipairs(wb_files) do
-				f.path = aip.path.diff(f.path, base_dir)
+				f.path = aip.path.diff(f.path, diff_anchor)
 			end
 			workbench_data_refs = wb_files
 		end
