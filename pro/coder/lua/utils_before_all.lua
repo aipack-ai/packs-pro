@@ -349,13 +349,30 @@ local function resolve_refs(meta, coder_workbench)
 
 		if u_utils.is_not_empty(wb_data_globs) then
 			local wb_base_dir = (coder_workbench and coder_workbench.dir) or base_dir
-			local wb_files = u_common.list_likely_text(wb_data_globs, { base_dir = wb_base_dir, absolute = true })
-			if #wb_files == 0 and wb_base_dir ~= base_dir then
-				wb_files = u_common.list_likely_text(wb_data_globs, { base_dir = base_dir, absolute = true })
+			local globs = wb_data_globs
+			if wb_base_dir ~= "" and wb_base_dir ~= "." then
+				if type(globs) == "string" then
+					globs = wb_base_dir .. "/" .. globs
+				else
+					local next_globs = {}
+					for _, g in ipairs(globs) do
+						table.insert(next_globs, wb_base_dir .. "/" .. g)
+					end
+					globs = next_globs
+				end
 			end
-			local diff_anchor = (base_dir == "") and CTX.WORKSPACE_DIR or aip.path.resolve(base_dir)
-			for _, f in ipairs(wb_files) do
-				f.path = aip.path.diff(f.path, diff_anchor)
+
+			local wb_files = u_common.list_likely_text(globs, { base_dir = CTX.WORKSPACE_DIR })
+			if #wb_files == 0 and wb_base_dir ~= base_dir then
+				local fallback_base_dir = (base_dir == "" or base_dir == ".") and CTX.WORKSPACE_DIR or base_dir
+				wb_files = u_common.list_likely_text(wb_data_globs, { base_dir = fallback_base_dir })
+
+				-- Ensure paths are relative to workspace root for consistency
+				if fallback_base_dir ~= CTX.WORKSPACE_DIR then
+					for _, f in ipairs(wb_files) do
+						f.path = aip.path.join(fallback_base_dir, f.path)
+					end
+				end
 			end
 			workbench_data_refs = wb_files
 		end
