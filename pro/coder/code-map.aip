@@ -89,28 +89,51 @@ for _, mdef in ipairs(code_map_config.map_defs) do
 	non_text_file_count = non_text_file_count + filtered_result.non_text_file_count
 	
 	for _, orig_file in ipairs(map_files) do
-		local fpath = orig_file.path
-		if not file_status_by_path[fpath] then
-			file_status_by_path[fpath] = {
+		local source_path = orig_file.path
+		local code_map_path = _cm.normalize_code_map_path(source_path, mdef.path_base_dir)
+		if not file_status_by_path[code_map_path] then
+			file_status_by_path[code_map_path] = {
 				file = orig_file,
+				source_path = source_path,
+				code_map_path = code_map_path,
 				maps_to_process_for = {},
 				maps_up_to_date_for = {},
 				map_names = {},
 				cached_data = nil
 			}
 		end
-		local fstatus = file_status_by_path[fpath]
+		local fstatus = file_status_by_path[code_map_path]
 		if mdef.name then
 			table.insert(fstatus.map_names, mdef.name)
 		end
 
-		local file_map_file = file_map[fpath]
+		local file_map_file = file_map[code_map_path]
+		local code_map_entry_migrated = false
+		if mdef.path_base_dir then
+			local legacy_file_map_file = nil
+			local legacy_file_map_paths = {}
+			for existing_path, existing_info in pairs(file_map) do
+				if existing_path ~= code_map_path and _cm.normalize_code_map_path(existing_path, mdef.path_base_dir) == code_map_path then
+					if not legacy_file_map_file then legacy_file_map_file = existing_info end
+					table.insert(legacy_file_map_paths, existing_path)
+				end
+			end
+			if not file_map_file and legacy_file_map_file then
+				file_map_file = legacy_file_map_file
+				file_map[code_map_path] = file_map_file
+			end
+			for _, legacy_path in ipairs(legacy_file_map_paths) do
+				file_map[legacy_path] = nil
+				code_map_entry_migrated = true
+			end
+		end
+
 		if file_map_file and file_map_file.mtime >= orig_file.mtime then
 			-- mtime is up to date; check if hash exists (backfill for older code map files)
 			if file_map_file.hash then
 				-- check if file_path is missing and backfill if needed
-				if not file_map_file.file_path then
-					file_map_file.file_path = fpath
+				if code_map_entry_migrated or file_map_file.file_path ~= code_map_path then
+					file_map_file.file_path = code_map_path
 					fstatus.maps_up_to_date_for[mdef.file_path] = HASH_MTIME_UPDATED_MARKER
 				else
 					fstatus.maps_up_to_date_for[mdef.file_path] = true
@@ -118,23 +141,26 @@ for _, mdef in ipairs(code_map_config.map_defs) do
 				fstatus.cached_data = file_map_file
 			else
 				-- No hash in cached data, compute and backfill
-				local current_hash = aip.file.hash_blake3(fpath)
+				local current_hash = aip.file.hash_blake3(source_path)
 				file_map_file.hash = current_hash
 				file_map_file.mtime = orig_file.mtime
-				file_map_file.file_path = fpath
+				file_map_file.file_path = code_map_path
 				fstatus.maps_up_to_date_for[mdef.file_path] = HASH_MTIME_UPDATED_MARKER
 				fstatus.cached_data = file_map_file
 			end
 		else
 			-- mtime changed or new file; compute hash and compare
-			local current_hash = aip.file.hash_blake3(fpath)
+			local current_hash = aip.file.hash_blake3(source_path)
 			if file_map_file and file_map_file.hash and file_map_file.hash == current_hash then
 				-- Content unchanged, just update mtime in the cached entry
 				file_map_file.mtime = orig_file.mtime
-				file_map_file.file_path = fpath
+				file_map_file.file_path = code_map_path
 				fstatus.maps_up_to_date_for[mdef.file_path] = HASH_MTIME_UPDATED_MARKER
 				fstatus.cached_data = file_map_file
 			else
+				if file_map_file and file_map_file.file_path ~= code_map_path then
+					file_map_file.file_path = code_map_path
+				end
 				fstatus.maps_to_process_for[mdef.file_path] = true
 				fstatus.cached_data = file_map_file or fstatus.cached_data
 				fstatus.current_hash = current_hash
@@ -157,8 +183,10 @@ for fpath, fstatus in pairs(file_status_by_path) do
 			new_count = new_count + 1
 		end
 		table.insert(files_to_process, {
-			_display      = fpath,
+			_display      = fstatus.code_map_path or fpath,
 			file          = fstatus.file,
+			source_path    = fstatus.source_path,
+			code_map_path  = fstatus.code_map_path or fpath,
 			file_map_file = fstatus.cached_data,
 			map_names     = fstatus.map_names,
 			maps_to_process_for = fstatus.maps_to_process_for,
@@ -238,7 +266,7 @@ if input then
 	end
 	
 	return {
-		_display = file.path,
+		_display = input.code_map_path or file.path,
 		file = file,
 		file_map_file_txt = file_map_file_txt
 	}
@@ -298,7 +326,8 @@ Here is the preview previous file info
 
 ```lua
 if ai_response then
-	local file_path = data.file.path
+	local source_file_path = data.file.path
+	local code_map_path = input.code_map_path or source_file_path
 	local output_content = ai_response.content or ""
 	local tag_map = aip.tag.extract_as_map(output_content, "FILE_INFO")
 
@@ -308,7 +337,7 @@ if ai_response then
 		local ok, json_content_res = pcall(aip.json.parse, raw_content)
 		if ok then
 			local mtime_val = input.file.mtime
-			local hash_val = input.current_hash or aip.file.hash_blake3(file_path)
+			local hash_val = input.current_hash or aip.file.hash_blake3(source_file_path)
 
 			-- Build maps_to_process_for and maps_up_to_date_for as lists for jsonl
 			local maps_to_process_list = {}
@@ -321,7 +350,7 @@ if ai_response then
 			end
 
 			local jsonl_entry = {
-				file_path = file_path,
+				file_path = code_map_path,
 				mtime = mtime_val,
 				hash = hash_val,
 				maps_to_process_for = maps_to_process_list,
@@ -338,25 +367,25 @@ if ai_response then
 
 			return {
 				success = true,
-				file_path = file_path,
+				file_path = code_map_path,
 				had_previous = input.file_map_file ~= nil,
-				_display = "code map file updated for file:\n- " .. file_path
+				_display = "code map file updated for file:\n- " .. code_map_path
 			}
 		else
-			print("Error while parsing FILE_INFO json for file\n" .. file_path)
+			print("Error while parsing FILE_INFO json for file\n" .. code_map_path)
 			print(output_content)
 			return {
 				success = false,
-				file_path = file_path,
+				file_path = code_map_path,
 				error = "JSON parse error",
-				_display = "code map parse error for file:\n- " .. file_path
+				_display = "code map parse error for file:\n- " .. code_map_path
 			}
 		end
 	else
-		print("No FILE_INFO tag for " .. file_path .. "\nAI Response:\n" .. output_content)
+		print("No FILE_INFO tag for " .. code_map_path .. "\nAI Response:\n" .. output_content)
 		if input.file_map_file then
 			local mtime_val = input.file.mtime
-			local hash_val = input.current_hash or aip.file.hash_blake3(file_path)
+			local hash_val = input.current_hash or aip.file.hash_blake3(source_file_path)
 
 			-- Build maps_to_process_for and maps_up_to_date_for as lists for jsonl
 			local maps_to_process_list = {}
@@ -370,7 +399,7 @@ if ai_response then
 
 			local jsonl_entry = {
 				same_no_file_info = true,
-				file_path = file_path,
+				file_path = code_map_path,
 				mtime = mtime_val,
 				hash = hash_val,
 				maps_to_process_for = maps_to_process_list,
@@ -389,8 +418,8 @@ if ai_response then
 			success = true,
 			same = true,
 			same_no_file_info = true,
-			file_path = file_path,
-			_display = "code map same (no change) for file:\n- " .. file_path
+			file_path = code_map_path,
+			_display = "code map same (no change) for file:\n- " .. code_map_path
 		}
 	end
 else

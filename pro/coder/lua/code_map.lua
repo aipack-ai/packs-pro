@@ -29,6 +29,7 @@ local WORKBENCH_DATA_MAP_GLOBS  = { "**/*.*" }
 --   globs: string[],
 --   file_path: string,
 --   base_dir?: string,
+--   path_base_dir?: string,
 -- }
 
 -- type CodeMapConfig = {
@@ -53,6 +54,29 @@ local function clone_array(values)
 		table.insert(out, value)
 	end
 	return out
+end
+
+local function normalize_code_map_path(file_path, path_base_dir)
+	if not has_text(file_path) or not has_text(path_base_dir) then
+		return file_path
+	end
+
+	local resolved_file_path = aip.path.resolve(file_path)
+	local resolved_base_dir = aip.path.resolve(path_base_dir)
+	if not has_text(resolved_file_path) or not has_text(resolved_base_dir) then
+		return file_path
+	end
+
+	local normalized_base_dir = resolved_base_dir:gsub("/+$", "")
+	local base_prefix = normalized_base_dir .. "/"
+	if resolved_file_path:sub(1, #base_prefix) == base_prefix then
+		local relative_path = aip.path.diff(resolved_file_path, normalized_base_dir)
+		if has_text(relative_path) then
+			return relative_path
+		end
+	end
+
+	return file_path
 end
 
 local function new_workbench_data_named_map(workbench_data_config)
@@ -85,11 +109,17 @@ local function new_workbench_data_named_map(workbench_data_config)
 		globs = clone_array(WORKBENCH_DATA_MAP_GLOBS)
 	end
 
+	local path_base_dir = workbench_data_config.path_base_dir
+	if not has_text(path_base_dir) and type(CTX) == "table" then
+		path_base_dir = CTX.WORKSPACE_DIR
+	end
+
 	return {
 		name = map_name,
 		globs = globs,
 		file_path = file_path,
 		base_dir = data_dir,
+		path_base_dir = path_base_dir,
 	}
 end
 
@@ -149,6 +179,7 @@ local function extract_code_map_config(sub_input)
 				globs = nm.globs,
 				file_path = nm.file_path or (code_map_dir .. "/" .. nm.name .. "-code-map.json"),
 				base_dir = nm.base_dir or base_dir,
+				path_base_dir = nm.path_base_dir,
 			})
 			add_globs(nm.globs)
 		end
@@ -214,6 +245,7 @@ return {
 	load_code_map_file      = load_code_map_file,
 	filter_text_files       = filter_text_files,
 	new_workbench_data_named_map = new_workbench_data_named_map,
+	normalize_code_map_path = normalize_code_map_path,
 
 	-- consts
 	LABEL_STATUS            = LABEL_STATUS,
