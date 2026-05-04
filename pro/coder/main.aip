@@ -61,7 +61,8 @@ local total_size = 0
 local all_refs  = {
   base.knowledge_refs or {}, -- making sure it is not nil, otherwise, loop below stops
   new_context_refs or {},
-  working_refs or {}
+  working_refs or {},
+  base.workbench_data_refs or {}
 }
 
 for _, file_list in ipairs(all_refs) do
