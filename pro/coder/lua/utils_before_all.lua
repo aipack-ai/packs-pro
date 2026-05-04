@@ -342,11 +342,16 @@ local function resolve_refs(meta, coder_workbench)
 			context_refs = u_common.list_likely_text(meta.context_globs, { base_dir = base_dir })
 		end
 
-		if u_utils.is_not_empty(meta.workbench_data_globs) then
+		local wb_data_globs = meta.workbench_data_globs
+		if not u_utils.is_not_empty(wb_data_globs) and coder_workbench and coder_workbench.data_dir then
+			wb_data_globs = "data/**/*.*"
+		end
+
+		if u_utils.is_not_empty(wb_data_globs) then
 			local wb_base_dir = (coder_workbench and coder_workbench.dir) or base_dir
-			local wb_files = u_common.list_likely_text(meta.workbench_data_globs, { base_dir = wb_base_dir, absolute = true })
+			local wb_files = u_common.list_likely_text(wb_data_globs, { base_dir = wb_base_dir, absolute = true })
 			if #wb_files == 0 and wb_base_dir ~= base_dir then
-				wb_files = u_common.list_likely_text(meta.workbench_data_globs, { base_dir = base_dir, absolute = true })
+				wb_files = u_common.list_likely_text(wb_data_globs, { base_dir = base_dir, absolute = true })
 			end
 			local diff_anchor = (base_dir == "") and CTX.WORKSPACE_DIR or aip.path.resolve(base_dir)
 			for _, f in ipairs(wb_files) do
