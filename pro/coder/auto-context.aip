@@ -769,12 +769,17 @@ local coder_params = { context_globs = new_context_globs }
 if new_knowledge_globs then
 	coder_params.knowledge_globs = new_knowledge_globs
 end
+local agent_result = nil
 if data.workbench_data_enabled then
-	coder_params.workbench_data_globs = new_workbench_data_globs or {}
+	agent_result = {
+		workbench_data_globs = new_workbench_data_globs or {},
+		workbench_data_selection_attempted = true,
+	}
 end
 
 return {
 	_display = "" .. data.context_files_count .. " context files",
 	coder_params = coder_params,
+	agent_result = agent_result,
 }
 ```
