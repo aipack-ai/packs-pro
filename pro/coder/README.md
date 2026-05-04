@@ -1117,3 +1117,59 @@ You can then prompt the agent with requests such as:
 - `Following the spec rules, create or update the project spec for ...`
 - `Following the spec and the current plan, implement the next step`
 
+
+## Workbench Data Manual Validation
+
+If no automated test harness is available, validate the simplified workbench data flow manually with a small workbench directory.
+
+Recommended setup:
+
+```yaml
+base_dir: ""
+auto_context:
+  model: flash
+  enabled: true
+workbench:
+  dir: _workbench/with-adapter
+  chat: false
+  plan: false
+  spec: false
+  data: true
+```
+
+Create one or more data files under:
+
+```text
+_workbench/with-adapter/data/
+```
+
+Validation checklist:
+
+- Run a prompt that clearly needs one of the data files, for example a summary request for a named PR stored in the data directory.
+
+- Confirm the data code-map exists at:
+
+  ```text
+  _workbench/with-adapter/.cache/code-map/data-code-map.json
+  ```
+
+- Confirm data code-map keys use workspace-relative paths, for example:
+
+  ```text
+  _workbench/with-adapter/data/pr-212-description.md
+  ```
+
+- Confirm the data descriptions cache exists at:
+
+  ```text
+  _workbench/with-adapter/.cache/auto-context/last_data_file_descriptions.md
+  ```
+
+- Confirm the data descriptions cache reports detected and mapped data counts, and includes mapped descriptions when matching data files exist.
+
+- Confirm an empty auto-context data selection results in no workbench data files in the main prompt.
+
+- Confirm disabling auto-context, while keeping `workbench.data: true`, defaults to all workbench data files.
+
+- Confirm selected data files appear under the workbench data section in `last_prompt_file_paths.md`.
+
