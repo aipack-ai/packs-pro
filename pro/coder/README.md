@@ -451,6 +451,16 @@ Supported `workbench.data` values:
 
 When `workbench.data` is `true`, the resolved `coder_workbench.data_dir` is created under the workbench directory. Auto-context can then summarize matching data files through the same existing `pro@coder/code-map` agent run used for context and knowledge maps.
 
+Workbench data uses the same workspace-relative path model as normal context files. The default candidate glob is derived from the resolved workbench directory:
+
+```text
+$workbench_dir/data/**/*.*
+```
+
+For example, a workbench directory of `_workbench/with-adapter` produces `_workbench/with-adapter/data/**/*.*`.
+
+Auto-context data selection is runtime state returned by the auto-context sub-agent, not a user-facing `coder_params.workbench_data_globs` parameter. If auto-context makes no data decision, the main coder flow can default to all enabled workbench data files. If auto-context returns an empty data selection, no workbench data files are sent. If it returns selected files, only those workspace-relative files are sent.
+
 ### Default Workbench Behavior
 
 `pro@coder` provides an out-of-the-box workbench. By default, helper files are organized in a `workbench-default/` directory located in the same folder as your `coder-prompt.md` (the prompt's directory).
@@ -497,7 +507,13 @@ Default data directory when `workbench.data` is true:
 When auto-context processes workbench data, generated artifacts use the workbench cache directory:
 
 - `<workbench-cache-dir>/code-map/data-code-map.json`
-- `<workbench-cache-dir>/auto-context/last_data_file_descriptions`
+- `<workbench-cache-dir>/auto-context/last_data_file_descriptions.md`
+
+Diagnostics are split by stage:
+
+- Detected data files and mapped data descriptions are reported in `<workbench-cache-dir>/auto-context/last_data_file_descriptions.md`.
+- Selected data files are reported by the auto-context status pins.
+- Final data files sent to the main AI are reported in `last_prompt_file_paths.md`.
 
 For string/table path values, relative paths are passed through unchanged.
 
@@ -821,7 +837,7 @@ workbench:
 
 Workbench runs before the `start` event, so all pre-stage sub-agents, including auto-context, can receive `input.coder_workbench` when workbench is enabled. The resolved chat, plan, and spec context files are also added as auto-context helper files. After the normal `start` event, `pro@coder` dispatches `workbench::done` for sub-agents that need to react after the regular start-stage pipeline has seen resolved workbench state.
 
-When `workbench.data` is enabled, auto-context uses the existing code-map agent run to include an additional data named map. The map is written to `<workbench-cache-dir>/code-map/data-code-map.json`, and the data descriptions cache is written to `<workbench-cache-dir>/auto-context/last_data_file_descriptions`. The data descriptions are then used for workbench data selection, rather than adding a separate data-specific code-map sub-agent.
+When `workbench.data` is enabled, auto-context uses the existing code-map agent run to include an additional data named map. The map is written to `<workbench-cache-dir>/code-map/data-code-map.json`, and the data descriptions cache is written to `<workbench-cache-dir>/auto-context/last_data_file_descriptions.md`. The data descriptions are then used for workbench data selection, rather than adding a separate data-specific code-map sub-agent. The selected workbench data files are returned as runtime sub-agent result state and consumed by the main before-all flow.
 
 Selected workbench data files are returned by auto-context via `workbench_data_globs` (using context-style relative paths) and are automatically merged into the final coder context by the main agent during prompt assembly.
 

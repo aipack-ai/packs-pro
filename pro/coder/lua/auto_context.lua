@@ -9,6 +9,7 @@ local LABEL_REASON              = "  Context Reason:"
 local LABEL_KFILES              = " Knowledge Files:"
 local LABEL_KREASON             = "Knowledge Reason:"
 local LABEL_HFILES              = "    Helper Files:"
+local LABEL_DFILES              = " Workbench Data:"
 
 local DEFAULT_INPUT_CONCURRENCY = 8
 
@@ -297,7 +298,11 @@ local function pin_status(auto_context_config, ctx)
 		local workbench_data_files_size_fmt = aip.text.format_size(ctx.workbench_data_files_size or 0)
 		local wd_status = workbench_data_done and "✅" or ".."
 		msg = msg .. '\n' .. wd_status
-		msg = msg .. string.format("%-35s", " Reducing " .. (ctx.workbench_data_files_count or 0) .. " workbench data files")
+		local wd_label = " Reducing " .. (ctx.workbench_data_files_count or 0) .. " workbench data files"
+		if ctx.workbench_data_mapped_files_count ~= nil then
+			wd_label = wd_label .. ", " .. ctx.workbench_data_mapped_files_count .. " mapped descriptions"
+		end
+		msg = msg .. string.format("%-35s", wd_label)
 		msg = msg .. " (" .. workbench_data_files_size_fmt .. ")"
 
 		if ctx.new_workbench_data_globs then
@@ -355,6 +360,25 @@ local function pin_status(auto_context_config, ctx)
 		}
 		aip.run.pin("kfiles", 3, kfiles_pin)
 		aip.task.pin("kfiles", 3, kfiles_pin)
+	end
+
+	-- === Pin Workbench Data Files
+	if workbench_data_done and auto_context_config.workbench_data_enabled and new_workbench_data_files then
+		msg = ""
+		if new_workbench_data_files and #new_workbench_data_files > 0 then
+			for _, file in ipairs(new_workbench_data_files) do
+				msg = msg .. "  - " .. file.path .. "\n"
+			end
+			msg = aip.text.trim_end(msg)
+		else
+			msg = "(no workbench data files selected)"
+		end
+		local dfiles_pin = {
+			label = LABEL_DFILES,
+			content = msg
+		}
+		aip.run.pin("dfiles", 4, dfiles_pin)
+		aip.task.pin("dfiles", 4, dfiles_pin)
 	end
 
 	-- === Pin Reason
