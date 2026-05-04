@@ -361,23 +361,7 @@ local function resolve_refs(meta, coder_workbench)
 	else
 		print("INFO: No base_dir, update in place.")
 	end
-
-	-- Merge workbench data refs into context_refs
-	if workbench_data_refs then
-		context_refs = context_refs or {}
-		local seen = {}
-		for _, ref in ipairs(context_refs) do
-			seen[ref.path] = true
-		end
-		for _, ref in ipairs(workbench_data_refs) do
-			if not seen[ref.path] then
-				seen[ref.path] = true
-				table.insert(context_refs, ref)
-			end
-		end
-	end
-
-	return knowledge_refs, structure_refs, context_refs, working_refs_list, base_dir
+	return knowledge_refs, structure_refs, context_refs, working_refs_list, base_dir, workbench_data_refs
 end
 
 -- Determines the file modification strategy (whole, search_replace_auto, udiffx) based on metadata.
@@ -463,6 +447,7 @@ local function build_input_base(params)
 		context_refs                       = params.context_refs,
 		context_refs_pre                   = params.context_refs_pre,
 		context_refs_post                  = params.context_refs_post,
+		workbench_data_refs                = params.workbench_data_refs,
 		coder_params                       = params.coder_params,
 		coder_workbench                    = params.coder_workbench,
 		coder_prompt                       = params.coder_prompt,
@@ -666,7 +651,7 @@ function run_before_all(inputs)
 	-- === Prep the cache files
 	clean_and_init_cache(paths)
 
-	local knowledge_refs, structure_refs, context_refs, working_refs_list, base_dir = resolve_refs(meta, coder_workbench)
+	local knowledge_refs, structure_refs, context_refs, working_refs_list, base_dir, workbench_data_refs = resolve_refs(meta, coder_workbench)
 
 	-- Resolve pinned pre/post separately (aip.file.list, not list_likely_text),
 	-- then do a single ordered merge per ref type.
@@ -761,6 +746,7 @@ function run_before_all(inputs)
 		context_refs                       = context_refs,
 		context_refs_pre                   = context_refs_pre,
 		context_refs_post                  = context_refs_post,
+		workbench_data_refs                = workbench_data_refs,
 		coder_params                       = coder_params,
 		coder_workbench                    = coder_workbench,
 		coder_prompt                       = inst,
