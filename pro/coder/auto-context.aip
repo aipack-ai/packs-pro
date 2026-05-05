@@ -112,6 +112,42 @@ local function build_workbench_data_map_miss_content(workbench_data_files, wd_fi
 	return table.concat(lines, "\n")
 end
 
+local function build_description_cache_content(options)
+	options = options or {}
+	local title = options.title or "File Descriptions"
+	local detected_count = tonumber(nil_if_null(options.detected_count) or 0) or 0
+	local mapped_count = tonumber(nil_if_null(options.mapped_count) or 0) or 0
+	local lines = {
+		"# " .. title,
+		"",
+		"Detected files: " .. tostring(detected_count),
+		"Mapped descriptions: " .. tostring(mapped_count)
+	}
+
+	if type(options.code_map_file_path) == "string" and options.code_map_file_path ~= "" then
+		table.insert(lines, "Code map: " .. options.code_map_file_path)
+	end
+
+	table.insert(lines, "")
+	if options.sent == true then
+		table.insert(lines, "## Descriptions Sent to AI")
+	else
+		table.insert(lines, "## Descriptions Not Sent to AI")
+	end
+	table.insert(lines, "")
+
+	local body = options.descriptions_txt
+	if type(body) ~= "string" or not body:find("%S") then
+		body = options.fallback_content
+	end
+	if type(body) ~= "string" or not body:find("%S") then
+		body = "None"
+	end
+	table.insert(lines, body)
+
+	return table.concat(lines, "\n") .. "\n"
+end
+
 aip.run.set_label("auto-context")
 
 local sub_agent_input = input
@@ -246,8 +282,9 @@ local code_map        = _cm.load_code_map_file(code_map_file_path)
 
 -- === Extract knowledge code map (if enabled)
 local knowledge_code_map = nil
+local knowledge_code_map_file_path = nil
 if auto_context_config.knowledge and knowledge_globs then
-	local knowledge_code_map_file_path = code_map_dir .. "/knowledge-code-map.json"
+	knowledge_code_map_file_path = code_map_dir .. "/knowledge-code-map.json"
 	knowledge_code_map = _cm.load_code_map_file(knowledge_code_map_file_path)
 end
 
@@ -388,21 +425,25 @@ end
 local ac_cache_dir = sub_agent_input.coder_prompt_dir .. "/.cache/auto-context"
 -- Save context file descs
 local ctx_cache_file = ac_cache_dir .. "/last_context_file_descriptions.md"
-local ctx_cache_content = ""
-if not is_null(c_files_txt) and c_files_txt:find("%S") then
-	ctx_cache_content = "# Context Files Descriptions (Sent to AI for selection)\n\n" .. c_files_txt
-else
-	ctx_cache_content = "# Context Files Descriptions (Not sent to AI)\n\nNone\n"
-end
+local ctx_cache_content = build_description_cache_content({
+	title = "Context Files Descriptions",
+	descriptions_txt = c_files_txt,
+	detected_count = #context_files,
+	mapped_count = #c_files,
+	code_map_file_path = code_map_file_path,
+	sent = not is_null(c_files_txt) and c_files_txt:find("%S") ~= nil,
+})
 aip.file.save(ctx_cache_file, ctx_cache_content)
 -- Save knowledge file descs
 local knl_cache_file = ac_cache_dir .. "/last_knowledge_file_descriptions.md"
-local knl_cache_content = ""
-if k_files_count > 0 then
-	knl_cache_content = knl_cache_content .. "\n# Knowledge Files Descriptions (Sent to AI for selection)\n\n" .. k_files_txt
-elseif aip.path.exists(knl_cache_file) then
-	knl_cache_content = knl_cache_content .. "\n# Knowledge Files Descriptions (Not sent to AI)\n\nNone\n"
-end
+local knl_cache_content = build_description_cache_content({
+	title = "Knowledge Files Descriptions",
+	descriptions_txt = k_files_txt,
+	detected_count = #knowledge_files,
+	mapped_count = k_files_count,
+	code_map_file_path = knowledge_code_map_file_path,
+	sent = k_files_count > 0 and not is_null(k_files_txt) and k_files_txt:find("%S") ~= nil,
+})
 aip.file.save(knl_cache_file, knl_cache_content)
 
 if auto_context_config.workbench_data_enabled
@@ -412,18 +453,19 @@ if auto_context_config.workbench_data_enabled
 	local ensure_wd_cache_dir_res = aip.file.ensure_dir(wd_cache_dir)
 	if not (type(ensure_wd_cache_dir_res) == "table" and ensure_wd_cache_dir_res.error) then
 		local wd_cache_file = wd_cache_dir .. "/last_data_file_descriptions.md"
-		local wd_cache_content = ""
-		if wd_files_count > 0 and not is_null(wd_files_txt) and wd_files_txt:find("%S") then
-			wd_cache_content = "# Workbench Data Files Descriptions (Sent to AI for selection)\n\n" .. wd_files_txt
-		elseif workbench_data_selection_enabled then
-			if wd_files_map_miss_content then
-				wd_cache_content = "# Workbench Data Files Descriptions (Not sent to AI)\n\n" .. wd_files_map_miss_content .. "\n"
-			else
-				wd_cache_content = "# Workbench Data Files Descriptions (Not sent to AI)\n\nNo mapped workbench data files were available.\n"
-			end
-		else
-			wd_cache_content = "# Workbench Data Files Descriptions (Not sent to AI)\n\nNone\n"
+		local wd_fallback_content = nil
+		if workbench_data_selection_enabled then
+			wd_fallback_content = wd_files_map_miss_content or "No mapped workbench data files were available."
 		end
+		local wd_cache_content = build_description_cache_content({
+			title = "Workbench Data Files Descriptions",
+			descriptions_txt = wd_files_txt,
+			detected_count = #workbench_data_files,
+			mapped_count = wd_files_count,
+			code_map_file_path = workbench_data_code_map_file_path,
+			fallback_content = wd_fallback_content,
+			sent = wd_files_count > 0 and not is_null(wd_files_txt) and wd_files_txt:find("%S") ~= nil,
+		})
 		aip.file.save(wd_cache_file, wd_cache_content)
 	end
 end
