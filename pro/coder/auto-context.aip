@@ -648,6 +648,90 @@ local function append_unique_path(list, value)
 	table.insert(list, value)
 end
 
+local function has_text(value)
+	return type(value) == "string" and value ~= ""
+end
+
+local function is_absolute_path(value)
+	return has_text(value) and (value:sub(1, 1) == "/" or value:match("^%a:[/\\]") ~= nil)
+end
+
+local function path_exists(path)
+	if not has_text(path) then
+		return false
+	end
+	local ok, exists = pcall(aip.path.exists, path)
+	return ok and exists == true
+end
+
+local function safe_join_path(base_dir, file_path)
+	if not has_text(base_dir) then
+		return file_path
+	end
+	local ok, joined = pcall(aip.path.join, base_dir, file_path)
+	if ok and has_text(joined) then
+		return joined
+	end
+	return base_dir:gsub("/+$", "") .. "/" .. file_path:gsub("^/+", "")
+end
+
+local function safe_diff_path(file_path, base_dir)
+	if not has_text(base_dir) then
+		return file_path
+	end
+	local ok, diff = pcall(aip.path.diff, file_path, base_dir)
+	if ok and has_text(diff) then
+		return diff
+	end
+	return file_path
+end
+
+local function normalize_workbench_data_path_to_prompt_base(file_path, auto_context_config, fallback_base_dir)
+	if not has_text(file_path) then
+		return nil
+	end
+
+	local cfg = auto_context_config or {}
+	local prompt_base_dir = cfg.prompt_base_dir
+	if not has_text(prompt_base_dir) then
+		return file_path
+	end
+
+	local candidates = {}
+	if is_absolute_path(file_path) then
+		append_unique_path(candidates, file_path)
+	else
+		if has_text(fallback_base_dir) then
+			append_unique_path(candidates, safe_join_path(fallback_base_dir, file_path))
+		end
+		append_unique_path(candidates, safe_join_path(prompt_base_dir, file_path))
+		if type(CTX) == "table" and has_text(CTX.WORKSPACE_DIR) then
+			append_unique_path(candidates, safe_join_path(CTX.WORKSPACE_DIR, file_path))
+		end
+		append_unique_path(candidates, safe_join_path(cfg.workbench_dir, file_path))
+		append_unique_path(candidates, safe_join_path(cfg.workbench_data_dir, file_path))
+		append_unique_path(candidates, file_path)
+	end
+
+	local selected_path = candidates[1]
+	for _, candidate in ipairs(candidates) do
+		if path_exists(candidate) then
+			selected_path = candidate
+			break
+		end
+	end
+
+	return safe_diff_path(selected_path, prompt_base_dir)
+end
+
+local function normalize_workbench_data_paths_to_prompt_base(file_paths, auto_context_config, fallback_base_dir)
+	local normalized_paths = {}
+	for _, file_path in ipairs(file_paths or {}) do
+		append_unique_path(normalized_paths, normalize_workbench_data_path_to_prompt_base(file_path, auto_context_config, fallback_base_dir))
+	end
+	return normalized_paths
+end
+
 local mode = data.auto_context_config.mode
 
 local tag_names = {"needed_context_files", "context_reasoning"}
@@ -683,28 +767,28 @@ if data.workbench_data_enabled and res_map.needed_workbench_data_files and res_m
 end
 local new_workbench_data_globs = nil
 if data.workbench_data_enabled then
+	local normalized_needed_workbench_data_files = normalize_workbench_data_paths_to_prompt_base(needed_workbench_data_files, data.auto_context_config)
 	if mode == "reduce" then
-		new_workbench_data_globs = _ac.sort_files_by_mtime(needed_workbench_data_files)
+		new_workbench_data_globs = _ac.sort_files_by_mtime(normalized_needed_workbench_data_files)
 	else -- augment
 		new_workbench_data_globs = {}
 		local existing_globs = data.auto_context_config.workbench_data_globs or { "data/**/*.*" }
-		table.move(existing_globs, 1, #existing_globs, 1, new_workbench_data_globs)
-
 		local list_base_dir = data.auto_context_config.workbench_dir
 		if data.auto_context_config.workbench_data_globs and #data.auto_context_config.workbench_data_globs > 0 then
 			list_base_dir = data.auto_context_config.prompt_base_dir
 		end
+		local normalized_existing_globs = normalize_workbench_data_paths_to_prompt_base(existing_globs, data.auto_context_config, list_base_dir)
+		table.move(normalized_existing_globs, 1, #normalized_existing_globs, 1, new_workbench_data_globs)
 
-		local orig_files = aip.file.list(existing_globs, { base_dir = list_base_dir })
+		local orig_files = aip.file.list(normalized_existing_globs, { base_dir = data.auto_context_config.prompt_base_dir })
 		local orig_file_map = {}
 		for _, file in ipairs(orig_files) do
 			orig_file_map[file.path] = true
 		end
 
 		local addl_files = {}
-		for _, file_path in ipairs(needed_workbench_data_files) do
-			local rel_path = aip.path.diff(file_path, list_base_dir)
-			if not orig_file_map[rel_path] then
+		for _, file_path in ipairs(normalized_needed_workbench_data_files) do
+			if not orig_file_map[file_path] then
 				append_unique_path(addl_files, file_path)
 			end
 		end
@@ -720,14 +804,8 @@ if new_workbench_data_globs and #new_workbench_data_globs > 0 then
 	for _, glob in ipairs(new_workbench_data_globs) do
 		local abs_path = glob
 		-- If it's not absolute, it must be relative to the workbench (default or existing glob)
-		if not (glob:sub(1,1) == "/" or glob:match("^%a:")) then
-			local list_base_dir = data.auto_context_config.workbench_dir
-			if data.auto_context_config.workbench_data_globs and #data.auto_context_config.workbench_data_globs > 0 then
-				list_base_dir = prompt_base_dir
-			end
-			abs_path = aip.path.join(list_base_dir, glob)
-		end
-		append_unique_path(normalized_globs, aip.path.diff(abs_path, prompt_base_dir))
+		local normalized_path = normalize_workbench_data_path_to_prompt_base(glob, data.auto_context_config, prompt_base_dir)
+		append_unique_path(normalized_globs, normalized_path or abs_path)
 	end
 	new_workbench_data_globs = normalized_globs
 end
