@@ -334,7 +334,6 @@ end
 -- === Build/Format the workbench data files text (md format)
 local wd_files_txt = ""
 local wd_files_count = 0
-local wd_files_txt_for_selection = wd_files_txt
 local wd_files_map_miss_content = nil
 if workbench_data_selection_enabled and workbench_data_code_map then
 	local wd_files = {}
@@ -416,29 +415,32 @@ if auto_context_config.workbench_data_enabled
 	end
 end
 
+
+local data = {
+	auto_context_config   = auto_context_config,
+	user_prompt         = user_prompt,
+	c_files_txt         = c_files_txt,
+	c_files_count       = #c_files,
+	k_files_txt         = k_files_txt,
+	k_files_count       = k_files_count,
+	knowledge_enabled   = auto_context_config.knowledge,
+	helper_files        = helper_files,
+	context_globs       = context_globs,
+	context_files_count = #context_files,
+	context_files_size  = context_files_size,
+	knowledge_globs     = knowledge_globs,
+	knowledge_files_count = #knowledge_files,
+	knowledge_files_size  = knowledge_files_size,
+	workbench_data_enabled = workbench_data_selection_enabled,
+	workbench_data_files_txt = wd_files_txt,
+	workbench_data_files_count = #workbench_data_files,
+	workbench_data_mapped_files_count = wd_files_count,
+	workbench_data_files_size  = workbench_data_files_size,
+	mode                = auto_context_config.mode,
+}
+
 return aip.flow.data_response({
-	data = {
-		auto_context_config   = auto_context_config,
-		user_prompt         = user_prompt,
-		c_files_txt         = c_files_txt,
-		c_files_count       = #c_files,
-		k_files_txt         = k_files_txt,
-		k_files_count       = k_files_count,
-		knowledge_enabled   = auto_context_config.knowledge,
-		helper_files        = helper_files,
-		context_globs       = context_globs,
-		context_files_count = #context_files,
-		context_files_size  = context_files_size,
-		knowledge_globs     = knowledge_globs,
-		knowledge_files_count = #knowledge_files,
-		knowledge_files_size  = knowledge_files_size,
-		workbench_data_enabled = workbench_data_selection_enabled,
-		workbench_data_files_txt = wd_files_txt_for_selection,
-		workbench_data_files_count = #workbench_data_files,
-		workbench_data_mapped_files_count = wd_files_count,
-		workbench_data_files_size  = workbench_data_files_size,
-		mode                = auto_context_config.mode,
-	},
+	data = data,
 	options = {
 		model = auto_context_config.model
 	}
@@ -619,6 +621,7 @@ Here is the user prompt:
 
 ```lua
 local _ac = require("auto_context")
+
 
 local function append_unique_path(list, value)
 	if type(value) ~= "string" or value == "" then
