@@ -162,6 +162,105 @@ local function find_file_map_entry(file_map, file_path, base_dirs)
 	return nil
 end
 
+local function file_map_record_score(record)
+	if type(record) ~= "table" then
+		return 0
+	end
+
+	local score = 0
+	if has_text(record.hash) then
+		score = score + 4
+	end
+	if type(record.mtime) == "number" then
+		score = score + 2
+	end
+	if has_text(record.summary) then
+		score = score + 1
+	end
+	return score
+end
+
+local function file_map_record_mtime(record)
+	if type(record) == "table" and type(record.mtime) == "number" then
+		return record.mtime
+	end
+	return 0
+end
+
+local function choose_file_map_record(existing, incoming)
+	if type(existing) ~= "table" then
+		return incoming
+	end
+	if type(incoming) ~= "table" then
+		return existing
+	end
+
+	local existing_mtime = file_map_record_mtime(existing)
+	local incoming_mtime = file_map_record_mtime(incoming)
+	if incoming_mtime > existing_mtime then
+		return incoming
+	end
+	if incoming_mtime < existing_mtime then
+		return existing
+	end
+
+	if file_map_record_score(incoming) > file_map_record_score(existing) then
+		return incoming
+	end
+
+	return existing
+end
+
+local function migrate_file_map_keys(file_map, path_base_dir)
+	local result = {
+		migrated_count = 0,
+		conflict_count = 0,
+	}
+
+	if type(file_map) ~= "table" or not has_text(path_base_dir) then
+		return result
+	end
+
+	local moves = {}
+	for existing_path, existing_info in pairs(file_map) do
+		local canonical_path = normalize_code_map_path(existing_path, path_base_dir)
+		if has_text(canonical_path) and canonical_path ~= existing_path then
+			table.insert(moves, {
+				from = existing_path,
+				to = canonical_path,
+				record = existing_info,
+			})
+		end
+	end
+
+	table.sort(moves, function(a, b)
+		return a.from < b.from
+	end)
+
+	for _, move in ipairs(moves) do
+		local record = move.record
+		if type(record) == "table" then
+			record.file_path = move.to
+		end
+
+		local existing = file_map[move.to]
+		if existing ~= nil and existing ~= record then
+			result.conflict_count = result.conflict_count + 1
+			file_map[move.to] = choose_file_map_record(existing, record)
+			if type(file_map[move.to]) == "table" then
+				file_map[move.to].file_path = move.to
+			end
+		else
+			file_map[move.to] = record
+		end
+
+		file_map[move.from] = nil
+		result.migrated_count = result.migrated_count + 1
+	end
+
+	return result
+end
+
 local function new_workbench_data_named_map(workbench_data_config)
 	if is_null(workbench_data_config) or type(workbench_data_config) ~= "table" then
 		return nil
@@ -337,4 +436,5 @@ return {
 	WORKBENCH_DATA_MAP_GLOBS = WORKBENCH_DATA_MAP_GLOBS,
 	collect_path_lookup_keys = collect_path_lookup_keys,
 	find_file_map_entry = find_file_map_entry,
+	migrate_file_map_keys = migrate_file_map_keys,
 }

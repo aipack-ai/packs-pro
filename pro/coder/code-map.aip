@@ -13,8 +13,16 @@ local tmp_in_progress_path = code_map_config.code_map_dir .. "/" .. TMP_IN_PROGR
 
 -- Load all code maps
 local loaded_maps = {}
+local legacy_path_migrated_count = 0
 for _, mdef in ipairs(code_map_config.map_defs) do
-	loaded_maps[mdef.file_path] = _cm.load_code_map_file(mdef.file_path)
+	local map_data = _cm.load_code_map_file(mdef.file_path)
+	if mdef.path_base_dir then
+		local migrate_res = _cm.migrate_file_map_keys(map_data.file_map, mdef.path_base_dir)
+		if migrate_res and migrate_res.migrated_count then
+			legacy_path_migrated_count = legacy_path_migrated_count + migrate_res.migrated_count
+		end
+	end
+	loaded_maps[mdef.file_path] = map_data
 end
 
 -- Recover from previous interrupted run
@@ -210,11 +218,18 @@ local total_files = to_process_count + up_to_date_count
 local status_msg = ""
 if to_process_count == 0 then
 	status_msg = "✅ Total code-map files: " .. total_files .. " (" .. up_to_date_count .. " already processed)"
+	local details = {}
+	if legacy_path_migrated_count > 0 then table.insert(details, legacy_path_migrated_count .. " legacy path entries migrated") end
+	if non_text_file_count > 0 then table.insert(details, non_text_file_count .. " non text files ignored") end
+	if #details > 0 then
+		status_msg = status_msg .. "\n   " .. table.concat(details, " | ")
+	end
 else 
 	status_msg = ".. Total code-map files: " .. total_files .. " (" .. to_process_count .. " to process, " .. up_to_date_count .. " already processed)"
 	local details = {}
 	if new_count > 0 then table.insert(details, new_count .. " creation") end
 	if update_count > 0 then table.insert(details, update_count .. " updating") end
+	if legacy_path_migrated_count > 0 then table.insert(details, legacy_path_migrated_count .. " legacy path entries migrated") end
 	if non_text_file_count > 0 then table.insert(details, non_text_file_count .. " non text files ignored") end
 	if #details > 0 then
 		status_msg = status_msg .. "\n   " .. table.concat(details, " | ")
@@ -224,7 +239,7 @@ end
 aip.run.pin("status", 1, { label = _cm.LABEL_STATUS, content = status_msg })
 
 -- If all files resolved via hash comparison (none need AI), save updated mtime values now
-if #files_to_process == 0 and (hash_mtime_updated or recovered_count > 0) then
+if #files_to_process == 0 and (hash_mtime_updated or recovered_count > 0 or legacy_path_migrated_count > 0) then
 	for map_path, map_data in pairs(loaded_maps) do
 		local content = aip.json.stringify_pretty(map_data)
 		aip.file.save(map_path, content)
@@ -251,6 +266,7 @@ return aip.flow.before_all_response({
 		tmp_in_progress_path = tmp_in_progress_path,
 		recovered_count    = recovered_count,
 		non_text_file_count = non_text_file_count,
+		legacy_path_migrated_count = legacy_path_migrated_count,
 	}
 })
 ```
@@ -440,6 +456,7 @@ local updated_count = 0
 local created_count = 0
 local same_count = 0
 local same_no_file_info_count = 0
+local legacy_path_migrated_count = before_all.legacy_path_migrated_count or 0
 
 if before_all.to_process_count > 0 then 
 	-- Load entries written during this run from the tmp jsonl file
@@ -522,6 +539,7 @@ if before_all.to_process_count > 0 then
 	end
 	if same_count > 0 then table.insert(details, same_count .. " same (no change)") end
 	if same_no_file_info_count > 0 then table.insert(details, same_no_file_info_count .. " same-marker persisted") end
+	if legacy_path_migrated_count > 0 then table.insert(details, legacy_path_migrated_count .. " legacy path entries migrated") end
 	if before_all.non_text_file_count and before_all.non_text_file_count > 0 then table.insert(details, before_all.non_text_file_count .. " non text files ignored") end
 	if #details > 0 then
 		status_msg = status_msg .. "\n   " .. table.concat(details, " | ")
