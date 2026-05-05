@@ -266,7 +266,10 @@ local available_files = u_common.list_likely_text(auto_context_config.code_map_g
 local c_files = {}
 local file_map = code_map.file_map
 for _, bfile in ipairs(available_files) do
-	local cfile = file_map[bfile.path]
+	local cfile = _cm.find_file_map_entry(file_map, bfile.path, {
+		CTX.WORKSPACE_DIR,
+		auto_context_config.prompt_base_dir,
+	})
 	if cfile then
 		table.insert(c_files, cfile)
 	end
@@ -304,7 +307,10 @@ if auto_context_config.knowledge and knowledge_code_map then
 	local k_files = {}
 	local k_file_map = knowledge_code_map.file_map
 	for _, kfile in ipairs(available_knowledge_files) do
-		local mapped = k_file_map[kfile.path]
+		local mapped = _cm.find_file_map_entry(k_file_map, kfile.path, {
+			CTX.WORKSPACE_DIR,
+			auto_context_config.prompt_base_dir,
+		})
 		if mapped then
 			table.insert(k_files, mapped)
 		end
@@ -341,7 +347,12 @@ if workbench_data_selection_enabled and workbench_data_code_map then
 	local wd_files = {}
 	local wd_file_map = workbench_data_code_map.file_map
 	for _, wdfile in ipairs(workbench_data_files) do
-		local mapped = wd_file_map[wdfile.path]
+		local mapped = _cm.find_file_map_entry(wd_file_map, wdfile.path, {
+			CTX.WORKSPACE_DIR,
+			auto_context_config.prompt_base_dir,
+			auto_context_config.workbench_dir,
+			auto_context_config.workbench_data_dir,
+		})
 		if mapped then
 			table.insert(wd_files, mapped)
 		end
