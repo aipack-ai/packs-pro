@@ -401,26 +401,18 @@ if auto_context_config.workbench_data_enabled
 	if not (type(ensure_wd_cache_dir_res) == "table" and ensure_wd_cache_dir_res.error) then
 		local wd_cache_file = wd_cache_dir .. "/last_data_file_descriptions.md"
 		local wd_cache_content = ""
-		local wd_cache_summary = "Detected data files: " .. tostring(#workbench_data_files) .. "\n"
-		wd_cache_summary = wd_cache_summary .. "Mapped data descriptions: " .. tostring(wd_files_count) .. "\n\n"
 		if wd_files_count > 0 and not is_null(wd_files_txt) and wd_files_txt:find("%S") then
-			wd_cache_content = "# Workbench Data Files Descriptions (Sent to AI for selection)\n\n" .. wd_cache_summary .. wd_files_txt
+			wd_cache_content = "# Workbench Data Files Descriptions (Sent to AI for selection)\n\n" .. wd_files_txt
 		elseif workbench_data_selection_enabled then
 			if wd_files_map_miss_content then
-				wd_cache_content = "# Workbench Data Files Descriptions (Not sent to AI)\n\n" .. wd_cache_summary .. wd_files_map_miss_content .. "\n"
+				wd_cache_content = "# Workbench Data Files Descriptions (Not sent to AI)\n\n" .. wd_files_map_miss_content .. "\n"
 			else
-				wd_cache_content = "# Workbench Data Files Descriptions (Not sent to AI)\n\n" .. wd_cache_summary .. "No mapped workbench data files were available.\n"
+				wd_cache_content = "# Workbench Data Files Descriptions (Not sent to AI)\n\nNo mapped workbench data files were available.\n"
 			end
 		else
-			wd_cache_content = "# Workbench Data Files Descriptions (Not sent to AI)\n\n" .. wd_cache_summary .. "None\n"
+			wd_cache_content = "# Workbench Data Files Descriptions (Not sent to AI)\n\nNone\n"
 		end
 		aip.file.save(wd_cache_file, wd_cache_content)
-		local saved_wd_cache = aip.file.load(wd_cache_file)
-		if type(saved_wd_cache) == "table" and type(saved_wd_cache.content) == "string" and saved_wd_cache.content:find("%S") then
-			wd_files_txt_for_selection = saved_wd_cache.content
-		elseif not is_null(wd_cache_content) and wd_cache_content:find("%S") then
-			wd_files_txt_for_selection = wd_cache_content
-		end
 	end
 end
 
