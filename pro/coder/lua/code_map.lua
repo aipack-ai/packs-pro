@@ -79,6 +79,86 @@ local function normalize_code_map_path(file_path, path_base_dir)
 	return file_path
 end
 
+local function append_path_lookup_key(keys, seen, key)
+	if not has_text(key) then
+		return
+	end
+	if not seen[key] then
+		seen[key] = true
+		table.insert(keys, key)
+	end
+
+	local normalized = key:gsub("^%./", "")
+	if normalized ~= key and not seen[normalized] then
+		seen[normalized] = true
+		table.insert(keys, normalized)
+	end
+end
+
+local function collect_path_lookup_keys(file_path, base_dirs)
+	local keys = {}
+	local seen = {}
+
+	append_path_lookup_key(keys, seen, file_path)
+
+	local lookup_base_dirs = {}
+	local lookup_base_dirs_seen = {}
+	local function append_base_dir(base_dir)
+		if not has_text(base_dir) or lookup_base_dirs_seen[base_dir] then
+			return
+		end
+		lookup_base_dirs_seen[base_dir] = true
+		table.insert(lookup_base_dirs, base_dir)
+	end
+
+	if type(CTX) == "table" then
+		append_base_dir(CTX.WORKSPACE_DIR)
+	end
+
+	if type(base_dirs) == "string" then
+		append_base_dir(base_dirs)
+	elseif type(base_dirs) == "table" then
+		for _, base_dir in ipairs(base_dirs) do
+			append_base_dir(base_dir)
+		end
+	end
+
+	for _, base_dir in ipairs(lookup_base_dirs) do
+		append_path_lookup_key(keys, seen, normalize_code_map_path(file_path, base_dir))
+
+		local ok_diff, diff = pcall(aip.path.diff, file_path, base_dir)
+		if ok_diff then
+			append_path_lookup_key(keys, seen, diff)
+		end
+
+		local ok_file, resolved_file_path = pcall(aip.path.resolve, file_path)
+		local ok_base, resolved_base_dir = pcall(aip.path.resolve, base_dir)
+		if ok_file and ok_base and has_text(resolved_file_path) and has_text(resolved_base_dir) then
+			local ok_resolved_diff, resolved_diff = pcall(aip.path.diff, resolved_file_path, resolved_base_dir)
+			if ok_resolved_diff then
+				append_path_lookup_key(keys, seen, resolved_diff)
+			end
+		end
+	end
+
+	return keys
+end
+
+local function find_file_map_entry(file_map, file_path, base_dirs)
+	if type(file_map) ~= "table" then
+		return nil
+	end
+
+	for _, key in ipairs(collect_path_lookup_keys(file_path, base_dirs)) do
+		local mapped = file_map[key]
+		if mapped ~= nil then
+			return mapped
+		end
+	end
+
+	return nil
+end
+
 local function new_workbench_data_named_map(workbench_data_config)
 	if is_null(workbench_data_config) or type(workbench_data_config) ~= "table" then
 		return nil
@@ -252,4 +332,6 @@ return {
 	LABEL_RECOVERED         = LABEL_RECOVERED,
 	WORKBENCH_DATA_MAP_NAME = WORKBENCH_DATA_MAP_NAME,
 	WORKBENCH_DATA_MAP_GLOBS = WORKBENCH_DATA_MAP_GLOBS,
+	collect_path_lookup_keys = collect_path_lookup_keys,
+	find_file_map_entry = find_file_map_entry,
 }
