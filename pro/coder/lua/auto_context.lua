@@ -5,7 +5,7 @@ local u_workbench               = require("workbench")
 -- CONSTS
 local LABEL_STATUS              = "          Status:"
 local LABEL_CFILES              = "   Context Files:"
-local LABEL_DFILES              = " Workbench Data:"
+local LABEL_DFILES              = "  Workbench Data:"
 local LABEL_KFILES              = " Knowledge Files:"
 local LABEL_HFILES              = "    Helper Files:"
 local LABEL_REASON              = "  Context Reason:"
