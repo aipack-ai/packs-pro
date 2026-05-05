@@ -61,8 +61,11 @@ local function normalize_code_map_path(file_path, path_base_dir)
 		return file_path
 	end
 
-	local resolved_file_path = aip.path.resolve(file_path)
-	local resolved_base_dir = aip.path.resolve(path_base_dir)
+	local ok_file, resolved_file_path = pcall(aip.path.resolve, file_path)
+	local ok_base, resolved_base_dir = pcall(aip.path.resolve, path_base_dir)
+	if not ok_file or not ok_base then
+		return file_path
+	end
 	if not has_text(resolved_file_path) or not has_text(resolved_base_dir) then
 		return file_path
 	end

@@ -188,7 +188,8 @@ _ac.pin_status(auto_context_config, {
 local named_maps = {
 	{ 
 		name = "context", 
-		globs = auto_context_config.code_map_globs 
+		globs = auto_context_config.code_map_globs,
+		path_base_dir = CTX.WORKSPACE_DIR,
 	}
 }
 
@@ -196,7 +197,8 @@ local named_maps = {
 if auto_context_config.knowledge and knowledge_globs then
 	table.insert(named_maps, {
 		name = "knowledge",
-		globs = knowledge_globs
+		globs = knowledge_globs,
+		path_base_dir = CTX.WORKSPACE_DIR,
 	})
 end
 
