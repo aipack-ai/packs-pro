@@ -451,6 +451,21 @@ Supported `workbench.data` values:
   - `false`: Disable workbench data.
 - If omitted, workbench data defaults to enabled when workbench is enabled.
 
+A defined `workbench:` table enables workbench by default, even when it only defines shared properties such as `dir`. For example:
+
+```yaml
+workbench:
+  dir: _workbench/my-feature
+```
+
+With this configuration, workbench data is enabled by default and the runtime creates:
+
+```text
+_workbench/my-feature/data/
+```
+
+Set `workbench.data: false` to disable data directory creation and workbench data flow.
+
 When workbench data is enabled, the resolved `coder_workbench.data_dir` is created under the workbench directory. Auto-context can then summarize matching data files through the same existing `pro@coder/code-map` agent run used for context and knowledge maps.
 
 Workbench data uses the same workspace-relative path model as normal context files. The default candidate glob is derived from the resolved workbench directory:
@@ -807,6 +822,11 @@ workbench:
   plan: true
   spec: true
 
+# or enable the workbench with only a custom directory
+# data is enabled by default unless data: false is set
+workbench:
+  dir: _workbench/my-feature
+
 # or set individual paths
 workbench:
   chat: .aipack/.prompt/pro@coder/workbench-default/chat.md
@@ -830,6 +850,7 @@ workbench:
 - `workbench.plan: true` enables plan with the default directory.
 - `workbench.spec: true` enables spec with the default path.
 - Workbench data is enabled by default and allows auto-context to select data files from generated descriptions; set `workbench.data: false` to disable it.
+- A defined `workbench:` table enables workbench by default. If only `dir` is set, the runtime still enables workbench data and creates the `data/` directory under that workbench directory.
 - `workbench.dir` sets a shared fallback directory for boolean `true` usage and table configs that omit their own path or dir.
 - When `workbench.dir` is omitted, the shared fallback directory defaults to `$coder_prompt_dir/workbench-default`.
 - A string sets the corresponding directory directly for plan, while spec strings can be either a directory or the spec file path.
