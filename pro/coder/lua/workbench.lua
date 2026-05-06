@@ -430,7 +430,8 @@ local function new_workbench_sub_agent_config(workbench, options)
 	elseif workbench == true then
 		workbench_config = {
 			name = "pro@coder/workbench",
-			enabled = true
+			enabled = true,
+			data = true
 		}
 	elseif workbench == false then
 		workbench_config = {
@@ -443,7 +444,7 @@ local function new_workbench_sub_agent_config(workbench, options)
 		if is_null(base.dir) or base.dir == "" then
 			base.dir = u_common.resolve_workbench_root_dir(options)
 		end
-		base.data = workbench.data == true
+		base.data = workbench.data ~= false
 		local resolve_options = aip.lua.merge({}, options, { workbench_dir = base.dir })
 		base.chat = normalize_workbench_chat_config(base.chat, resolve_options)
 		base.plan = normalize_workbench_plan_config(base.plan, resolve_options)

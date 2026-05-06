@@ -164,7 +164,7 @@ workbench:
   # spec:
   #   enabled: true
   #   path: .aipack/.prompt/pro@coder/workbench-default/spec.md
-  data: false                # true creates workbench data dir and lets auto-context select data files
+  data: true                 # enabled by default when workbench is enabled; set false to disable
 
 ## Legacy alias still supported:
 dev:
@@ -408,7 +408,8 @@ Behavior:
 - `chat` ensures the dev chat markdown file exists, then appends its path to `context_globs_post` (deduped).
 - `plan` ensures `_plan-rules.md` and `plan.md` exist in the plan directory, appends the rules file to `knowledge_globs_post` (deduped), and appends `plan.md` to `context_globs_post` (deduped).
 - `spec` ensures `_spec-rules.md` exists, appends this rules file to `knowledge_globs_post` (deduped), and appends the resolved spec context file path to `context_globs_post` (deduped).
-- `data: true` ensures the workbench data directory exists. When auto-context is enabled, data files can be summarized through the existing code-map agent and selected from generated descriptions.
+- `data` is enabled by default when workbench is enabled; set `data: false` to disable it.
+- Enabled workbench data ensures the workbench data directory exists. When auto-context is enabled, data files can be summarized through the existing code-map agent and selected from generated descriptions.
 - Enabled workbench content files are also added as auto-context helper files, so chat, plan, and spec context can guide auto-context selection.
 - Sub-agents receive the resolved runtime state at `input.coder_workbench`.
 - After the normal `start` event, `pro@coder` dispatches `workbench::done` so sub-agents can subscribe when they need resolved workbench state.
@@ -448,8 +449,9 @@ Supported `workbench.data` values:
 - **A boolean**:
   - `true`: Enable the workbench data directory.
   - `false`: Disable workbench data.
+- If omitted, workbench data defaults to enabled when workbench is enabled.
 
-When `workbench.data` is `true`, the resolved `coder_workbench.data_dir` is created under the workbench directory. Auto-context can then summarize matching data files through the same existing `pro@coder/code-map` agent run used for context and knowledge maps.
+When workbench data is enabled, the resolved `coder_workbench.data_dir` is created under the workbench directory. Auto-context can then summarize matching data files through the same existing `pro@coder/code-map` agent run used for context and knowledge maps.
 
 Workbench data uses the same workspace-relative path model as normal context files. The default candidate glob is derived from the resolved workbench directory:
 
@@ -459,6 +461,8 @@ $workbench_dir/data/**/*.*
 
 For example, a workbench directory of `_workbench/with-adapter` produces `_workbench/with-adapter/data/**/*.*`.
 
+If the data directory is empty, no data files are summarized into code maps, selected by auto-context, shown as workbench data content in pins, or added to the final prompt context.
+
 Auto-context data selection is runtime state returned by the auto-context sub-agent, not a user-facing `coder_params.workbench_data_globs` parameter. If auto-context makes no data decision, the main coder flow can default to all enabled workbench data files. If auto-context returns an empty data selection, no workbench data files are sent. If it returns selected files, only those workspace-relative files are sent.
 
 ### Default Workbench Behavior
@@ -467,7 +471,7 @@ Auto-context data selection is runtime state returned by the auto-context sub-ag
 
 - **`workbench.dir`**: Defines a custom shared workbench directory. If omitted, it defaults to `workbench-default/` relative to the prompt file.
 - **Explicit Paths**: If `path` or `dir` is provided for a specific capability (chat, plan, or spec), it takes precedence over the shared `dev.dir`.
-- **Auto-Creation**: Files and directories are created only for enabled capabilities. For example, if `dev.plan` is `false`, no plan files are created in the workbench.
+- **Auto-Creation**: Files and directories are created only for enabled capabilities. Enabled workbench data may create the `data/` directory by default. If the directory is empty, it does not add files to code maps, workbench data pins, or prompt context. For example, if `dev.plan` is `false`, no plan files are created in the workbench.
 
 Examples:
 
@@ -476,7 +480,7 @@ workbench:
   chat: true
   plan: true
   spec: true
-  data: true
+  # data is enabled by default; set data: false to disable it
 ```
 
 This resolves to a flat layout:
@@ -500,7 +504,7 @@ Default spec file path when `workbench.spec.path` is omitted:
 
 `$coder_prompt_dir/workbench-default/spec.md`
 
-Default data directory when `workbench.data` is true:
+Default data directory when workbench data is enabled:
 
 `$coder_prompt_dir/workbench-default/data`
 
@@ -825,12 +829,12 @@ workbench:
 - `workbench.chat: true` enables chat with the default path.
 - `workbench.plan: true` enables plan with the default directory.
 - `workbench.spec: true` enables spec with the default path.
-- `workbench.data: true` enables a workbench data directory and allows auto-context to select data files from generated descriptions.
+- Workbench data is enabled by default and allows auto-context to select data files from generated descriptions; set `workbench.data: false` to disable it.
 - `workbench.dir` sets a shared fallback directory for boolean `true` usage and table configs that omit their own path or dir.
 - When `workbench.dir` is omitted, the shared fallback directory defaults to `$coder_prompt_dir/workbench-default`.
 - A string sets the corresponding directory directly for plan, while spec strings can be either a directory or the spec file path.
 - A table maps to the chat, plan, or spec config shape.
-- If all capabilities are disabled via table config (`enabled: false`) and `workbench.data` is not `true`, workbench is disabled.
+- If all capabilities are disabled via table config (`enabled: false`) and `workbench.data` is `false`, workbench is disabled.
 - For table mode, `workbench.plan.dir` is strict and must be a directory path.
 - Legacy root `dev:` config is still accepted and normalized to the canonical workbench surface.
 - Explicit `sub_agents` entries named `pro@coder/workbench` or `pro@coder/dev` fail with a clear error. Root `workbench:` is the supported configuration surface.
