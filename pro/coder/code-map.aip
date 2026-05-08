@@ -87,6 +87,9 @@ local files_to_process = {}
 
 local file_status_by_path = {}
 local non_text_file_count = 0
+local oversized_file_count = 0
+local oversized_paths = {}
+local max_file_size_bytes = code_map_config.max_file_size_kb * 1024
 
 for _, mdef in ipairs(code_map_config.map_defs) do
 	local map_data = loaded_maps[mdef.file_path]
@@ -99,79 +102,87 @@ for _, mdef in ipairs(code_map_config.map_defs) do
 	for _, orig_file in ipairs(map_files) do
 		local source_path = orig_file.path
 		local code_map_path = _cm.normalize_code_map_path(source_path, mdef.path_base_dir)
-		if not file_status_by_path[code_map_path] then
-			file_status_by_path[code_map_path] = {
-				file = orig_file,
-				source_path = source_path,
-				code_map_path = code_map_path,
-				maps_to_process_for = {},
-				maps_up_to_date_for = {},
-				map_names = {},
-				cached_data = nil
-			}
-		end
-		local fstatus = file_status_by_path[code_map_path]
-		if mdef.name then
-			table.insert(fstatus.map_names, mdef.name)
-		end
 
-		local file_map_file = file_map[code_map_path]
-		local code_map_entry_migrated = false
-		if mdef.path_base_dir then
-			local legacy_file_map_file = nil
-			local legacy_file_map_paths = {}
-			for existing_path, existing_info in pairs(file_map) do
-				if existing_path ~= code_map_path and _cm.normalize_code_map_path(existing_path, mdef.path_base_dir) == code_map_path then
-					if not legacy_file_map_file then legacy_file_map_file = existing_info end
-					table.insert(legacy_file_map_paths, existing_path)
-				end
-			end
-			if not file_map_file and legacy_file_map_file then
-				file_map_file = legacy_file_map_file
-				file_map[code_map_path] = file_map_file
-			end
-			for _, legacy_path in ipairs(legacy_file_map_paths) do
-				file_map[legacy_path] = nil
-				code_map_entry_migrated = true
-			end
-		end
-
-		if file_map_file and file_map_file.mtime >= orig_file.mtime then
-			-- mtime is up to date; check if hash exists (backfill for older code map files)
-			if file_map_file.hash then
-				-- check if file_path is missing and backfill if needed
-				if code_map_entry_migrated or file_map_file.file_path ~= code_map_path then
-					file_map_file.file_path = code_map_path
-					fstatus.maps_up_to_date_for[mdef.file_path] = HASH_MTIME_UPDATED_MARKER
-				else
-					fstatus.maps_up_to_date_for[mdef.file_path] = true
-				end
-				fstatus.cached_data = file_map_file
-			else
-				-- No hash in cached data, compute and backfill
-				local current_hash = aip.file.hash_blake3(source_path)
-				file_map_file.hash = current_hash
-				file_map_file.mtime = orig_file.mtime
-				file_map_file.file_path = code_map_path
-				fstatus.maps_up_to_date_for[mdef.file_path] = HASH_MTIME_UPDATED_MARKER
-				fstatus.cached_data = file_map_file
+		if orig_file.size and orig_file.size > max_file_size_bytes then
+			if not oversized_paths[code_map_path] then
+				oversized_paths[code_map_path] = true
+				oversized_file_count = oversized_file_count + 1
 			end
 		else
-			-- mtime changed or new file; compute hash and compare
-			local current_hash = aip.file.hash_blake3(source_path)
-			if file_map_file and file_map_file.hash and file_map_file.hash == current_hash then
-				-- Content unchanged, just update mtime in the cached entry
-				file_map_file.mtime = orig_file.mtime
-				file_map_file.file_path = code_map_path
-				fstatus.maps_up_to_date_for[mdef.file_path] = HASH_MTIME_UPDATED_MARKER
-				fstatus.cached_data = file_map_file
-			else
-				if file_map_file and file_map_file.file_path ~= code_map_path then
-					file_map_file.file_path = code_map_path
+			if not file_status_by_path[code_map_path] then
+				file_status_by_path[code_map_path] = {
+					file = orig_file,
+					source_path = source_path,
+					code_map_path = code_map_path,
+					maps_to_process_for = {},
+					maps_up_to_date_for = {},
+					map_names = {},
+					cached_data = nil
+				}
+			end
+			local fstatus = file_status_by_path[code_map_path]
+			if mdef.name then
+				table.insert(fstatus.map_names, mdef.name)
+			end
+
+			local file_map_file = file_map[code_map_path]
+			local code_map_entry_migrated = false
+			if mdef.path_base_dir then
+				local legacy_file_map_file = nil
+				local legacy_file_map_paths = {}
+				for existing_path, existing_info in pairs(file_map) do
+					if existing_path ~= code_map_path and _cm.normalize_code_map_path(existing_path, mdef.path_base_dir) == code_map_path then
+						if not legacy_file_map_file then legacy_file_map_file = existing_info end
+						table.insert(legacy_file_map_paths, existing_path)
+					end
 				end
-				fstatus.maps_to_process_for[mdef.file_path] = true
-				fstatus.cached_data = file_map_file or fstatus.cached_data
-				fstatus.current_hash = current_hash
+				if not file_map_file and legacy_file_map_file then
+					file_map_file = legacy_file_map_file
+					file_map[code_map_path] = file_map_file
+				end
+				for _, legacy_path in ipairs(legacy_file_map_paths) do
+					file_map[legacy_path] = nil
+					code_map_entry_migrated = true
+				end
+			end
+
+			if file_map_file and file_map_file.mtime >= orig_file.mtime then
+				-- mtime is up to date; check if hash exists (backfill for older code map files)
+				if file_map_file.hash then
+					-- check if file_path is missing and backfill if needed
+					if code_map_entry_migrated or file_map_file.file_path ~= code_map_path then
+						file_map_file.file_path = code_map_path
+						fstatus.maps_up_to_date_for[mdef.file_path] = HASH_MTIME_UPDATED_MARKER
+					else
+						fstatus.maps_up_to_date_for[mdef.file_path] = true
+					end
+					fstatus.cached_data = file_map_file
+				else
+					-- No hash in cached data, compute and backfill
+					local current_hash = aip.file.hash_blake3(source_path)
+					file_map_file.hash = current_hash
+					file_map_file.mtime = orig_file.mtime
+					file_map_file.file_path = code_map_path
+					fstatus.maps_up_to_date_for[mdef.file_path] = HASH_MTIME_UPDATED_MARKER
+					fstatus.cached_data = file_map_file
+				end
+			else
+				-- mtime changed or new file; compute hash and compare
+				local current_hash = aip.file.hash_blake3(source_path)
+				if file_map_file and file_map_file.hash and file_map_file.hash == current_hash then
+					-- Content unchanged, just update mtime in the cached entry
+					file_map_file.mtime = orig_file.mtime
+					file_map_file.file_path = code_map_path
+					fstatus.maps_up_to_date_for[mdef.file_path] = HASH_MTIME_UPDATED_MARKER
+					fstatus.cached_data = file_map_file
+				else
+					if file_map_file and file_map_file.file_path ~= code_map_path then
+						file_map_file.file_path = code_map_path
+					end
+					fstatus.maps_to_process_for[mdef.file_path] = true
+					fstatus.cached_data = file_map_file or fstatus.cached_data
+					fstatus.current_hash = current_hash
+				end
 			end
 		end
 	end
@@ -221,6 +232,7 @@ if to_process_count == 0 then
 	local details = {}
 	if legacy_path_migrated_count > 0 then table.insert(details, legacy_path_migrated_count .. " legacy path entries migrated") end
 	if non_text_file_count > 0 then table.insert(details, non_text_file_count .. " non text files ignored") end
+	if oversized_file_count > 0 then table.insert(details, oversized_file_count .. " oversized files skipped") end
 	if #details > 0 then
 		status_msg = status_msg .. "\n   " .. table.concat(details, " | ")
 	end
@@ -231,6 +243,7 @@ else
 	if update_count > 0 then table.insert(details, update_count .. " updating") end
 	if legacy_path_migrated_count > 0 then table.insert(details, legacy_path_migrated_count .. " legacy path entries migrated") end
 	if non_text_file_count > 0 then table.insert(details, non_text_file_count .. " non text files ignored") end
+	if oversized_file_count > 0 then table.insert(details, oversized_file_count .. " oversized files skipped") end
 	if #details > 0 then
 		status_msg = status_msg .. "\n   " .. table.concat(details, " | ")
 	end
@@ -266,6 +279,7 @@ return aip.flow.before_all_response({
 		tmp_in_progress_path = tmp_in_progress_path,
 		recovered_count    = recovered_count,
 		non_text_file_count = non_text_file_count,
+		oversized_file_count = oversized_file_count,
 		legacy_path_migrated_count = legacy_path_migrated_count,
 	}
 })
@@ -457,6 +471,7 @@ local created_count = 0
 local same_count = 0
 local same_no_file_info_count = 0
 local legacy_path_migrated_count = before_all.legacy_path_migrated_count or 0
+local oversized_file_count = before_all.oversized_file_count or 0
 
 if before_all.to_process_count > 0 then 
 	-- Load entries written during this run from the tmp jsonl file
@@ -541,6 +556,7 @@ if before_all.to_process_count > 0 then
 	if same_no_file_info_count > 0 then table.insert(details, same_no_file_info_count .. " same-marker persisted") end
 	if legacy_path_migrated_count > 0 then table.insert(details, legacy_path_migrated_count .. " legacy path entries migrated") end
 	if before_all.non_text_file_count and before_all.non_text_file_count > 0 then table.insert(details, before_all.non_text_file_count .. " non text files ignored") end
+	if oversized_file_count > 0 then table.insert(details, oversized_file_count .. " oversized files skipped") end
 	if #details > 0 then
 		status_msg = status_msg .. "\n   " .. table.concat(details, " | ")
 	end

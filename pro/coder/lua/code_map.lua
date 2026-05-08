@@ -1,5 +1,6 @@
 -- === Consts
 local DEFAULT_INPUT_CONCURRENCY = 8
+local DEFAULT_MAX_FILE_SIZE_KB = 1500
 local u_common = require("utils_common")
 
 local LABEL_STATUS              = "   Status:"
@@ -331,6 +332,8 @@ local function extract_code_map_config(sub_input)
 
 	local user_prompt = sub_input.coder_prompt:find("%S") and sub_input.coder_prompt or nil
 
+	local code_map_max_file_size_kb = agent_config.max_file_size_kb or DEFAULT_MAX_FILE_SIZE_KB
+
 	local map_defs = {}
 	local all_globs_set = {}
 	local all_globs = {}
@@ -385,6 +388,7 @@ local function extract_code_map_config(sub_input)
 		model             = code_map_model,
 		input_concurrency = code_map_input_concurrency,
 		base_dir          = base_dir,
+		max_file_size_kb  = code_map_max_file_size_kb,
 	}
 end
 
