@@ -21,7 +21,8 @@ write_mode: true
 
 ## Optimize context files selection (other properties: code_map_model, helper_globs, ..)
 auto_context: 
-  model: flash           # (Use a small or inexpensive model)
+  model: flash           # Medium model used to select which files for that prompt
+  code_map_model: lite   # Small/good model used to code map each individual file
   input_concurrency: 16  # (default 8)
   enabled: false         # (Default true) Comment or set to true to enable.
 
