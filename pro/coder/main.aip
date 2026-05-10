@@ -287,7 +287,7 @@ Here are some some general language best practices to follow when providing code
 
 ### Markdown 
 
-- Ensure there is an empty line after any markdown headings (lines starting with one or more `#`).
+- Ensure there is always an empty blank line after any markdown headings (headings that start with any number of #).
 - Unless told otherwise, use - for bullet points (rather than *).
 - Include empty lines before and after lists of bullet points.
 - When showing code, always place it in a code block with the appropriate language.
