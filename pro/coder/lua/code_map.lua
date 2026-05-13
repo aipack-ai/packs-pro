@@ -36,7 +36,6 @@ local WORKBENCH_DATA_MAP_GLOBS  = { "**/*.*" }
 -- type CodeMapConfig = {
 --   code_map_dir: string,
 --   map_defs: MapDef[],
---   all_globs: string[],
 --   user_prompt: string
 --   model: string,
 --   input_concurrency: number,
@@ -335,17 +334,6 @@ local function extract_code_map_config(sub_input)
 	local code_map_max_file_size_kb = agent_config.max_file_size_kb or DEFAULT_MAX_FILE_SIZE_KB
 
 	local map_defs = {}
-	local all_globs_set = {}
-	local all_globs = {}
-
-	local function add_globs(globs)
-		for _, g in ipairs(globs) do
-			if not all_globs_set[g] then
-				all_globs_set[g] = true
-				table.insert(all_globs, g)
-			end
-		end
-	end
 
 	if agent_config.globs then
 		table.insert(map_defs, {
@@ -354,7 +342,6 @@ local function extract_code_map_config(sub_input)
 			file_path = code_map_dir .. "/code-map.json",
 			base_dir = base_dir,
 		})
-		add_globs(agent_config.globs)
 	end
 
 	if agent_config.named_maps then
@@ -366,7 +353,6 @@ local function extract_code_map_config(sub_input)
 				base_dir = nm.base_dir or base_dir,
 				path_base_dir = nm.path_base_dir,
 			})
-			add_globs(nm.globs)
 		end
 	end
 
@@ -377,13 +363,11 @@ local function extract_code_map_config(sub_input)
 	local workbench_data_map = new_workbench_data_named_map(workbench_data_config)
 	if workbench_data_map then
 		table.insert(map_defs, workbench_data_map)
-		add_globs(workbench_data_map.globs)
 	end
 
 	return {
 		code_map_dir      = code_map_dir,
 		map_defs          = map_defs,
-		all_globs         = all_globs,
 		user_prompt       = user_prompt,
 		model             = code_map_model,
 		input_concurrency = code_map_input_concurrency,
