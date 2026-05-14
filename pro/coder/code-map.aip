@@ -329,7 +329,7 @@ Here is the `_file_raw_json_format_` schema
 }
 ```
 
-`_file_raw_json_format_` should jsut be the json, no need to put it in markdown codel bock. 
+`_file_raw_json_format_` should just be the json, no need to put it in markdown code bock. 
 
 Here is the file content
 
