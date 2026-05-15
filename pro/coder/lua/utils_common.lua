@@ -331,20 +331,9 @@ local function ensure_workbench_plan_file(workbench_plan_dir, options)
 	if is_null(resolved_dir) or resolved_dir == "" then
 		return nil, nil, resolve_err or "Invalid workbench.plan.dir"
 	end
-	local _cached_rules_path, cached_rules_err = ensure_workbench_plan_rules_file(options)
+	local cached_rules_path, cached_rules_err = ensure_workbench_plan_rules_file(options)
 	if cached_rules_err then
 		return nil, nil, nil, cached_rules_err
-	end
-
-	local ensure_res
-	if aip.file.exists(rules_path) then
-		ensure_res = aip.file.info(rules_path)
-	else
-		ensure_res = aip.file.ensure_exists(rules_path, load_dev_plan_rules_template_content())
-	end
-
-	if type(ensure_res) == "table" and ensure_res.error then
-		return nil, nil, ensure_res.error
 	end
 
 	local ensure_plan_res
@@ -358,7 +347,7 @@ local function ensure_workbench_plan_file(workbench_plan_dir, options)
 		return nil, nil, nil, ensure_plan_res.error
 	end
 
-	return resolved_dir, rules_path, plan_path
+	return resolved_dir, cached_rules_path, plan_path
 end
 
 local function load_dev_spec_rules_template_content()
@@ -391,20 +380,9 @@ local function ensure_workbench_spec_file(workbench_spec_path, options)
 		end
 		spec_path = spec_dir .. "/spec.md"
 	end
-	local _cached_rules_path, cached_rules_err = ensure_workbench_spec_rules_file(options)
+	local cached_rules_path, cached_rules_err = ensure_workbench_spec_rules_file(options)
 	if cached_rules_err then
 		return nil, nil, nil, cached_rules_err
-	end
-
-	local ensure_spec_res
-	if aip.file.exists(rules_path) then
-		ensure_spec_res = aip.file.info(rules_path)
-	else
-		ensure_spec_res = aip.file.ensure_exists(rules_path, load_dev_spec_rules_template_content())
-	end
-
-	if type(ensure_spec_res) == "table" and ensure_spec_res.error then
-		return nil, nil, nil, ensure_spec_res.error
 	end
 
 	local ensure_context_res
@@ -418,7 +396,7 @@ local function ensure_workbench_spec_file(workbench_spec_path, options)
 		return nil, nil, nil, ensure_context_res.error
 	end
 
-	return rules_path, spec_path, spec_path
+	return cached_rules_path, spec_path, spec_path
 end
 
 local function workbench_legacy_file_migrate(options)
