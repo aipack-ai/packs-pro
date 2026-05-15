@@ -10,6 +10,57 @@ function M.load_template(rel_path)
 	return aip.file.load(TEMPLATES_DIR .. "/" .. rel_path)
 end
 
+local function load_existing_file(path)
+	if is_null(path) or path == "" or not aip.file.exists(path) then
+		return nil
+	end
+
+	local file = aip.file.load(path)
+	if type(file) == "table" and file.error then
+		return nil, file.error
+	end
+
+	return file
+end
+
+function M.load_user_template(prompt_dir, rel_path, options)
+	options = options or {}
+	if is_null(rel_path) or rel_path == "" then
+		return nil, "Invalid user template path"
+	end
+
+	local normalized_rel_path = tostring(rel_path):gsub("^/+", "")
+	if not is_null(prompt_dir) and prompt_dir ~= "" then
+		local prompt_user_template_path = tostring(prompt_dir):gsub("/+$", "") .. "/user-templates/" .. normalized_rel_path
+		local prompt_template, prompt_template_err = load_existing_file(prompt_user_template_path)
+		if prompt_template_err then
+			return nil, prompt_template_err
+		end
+		if prompt_template then
+			return prompt_template
+		end
+	end
+
+	local fallback_path = options.fallback_path
+	if not is_null(fallback_path) and fallback_path ~= "" then
+		local fallback_template, fallback_template_err = load_existing_file(fallback_path)
+		if fallback_template_err then
+			return nil, fallback_template_err
+		end
+		if fallback_template then
+			return fallback_template
+		end
+	end
+
+	return nil, "User template not found: " .. normalized_rel_path
+end
+
+function M.load_suggest_commit_template(prompt_dir)
+	return M.load_user_template(prompt_dir, "suggest-commit.md", {
+		fallback_path = TEMPLATES_DIR .. "/suggest-commit.md"
+	})
+end
+
 -- Save a prompt file
 -- `prompt_path`    - the destination file path
 function M.save_prompt_file(prompt_path)
