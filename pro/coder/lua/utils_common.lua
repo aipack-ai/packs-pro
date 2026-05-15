@@ -188,9 +188,78 @@ local function load_workbench_chat_template_content()
 	"# Dev Chat\n\nAdd a new `## Request: _user_ask_title_concise_` with the answer below (concise title). Use markdown sub-headings for sub sections. Keep this top instruction in this file. \n"
 end
 
+local function load_prompt_user_template_content(template_names, options)
+	options = options or {}
+	if type(template_names) == "string" then
+		template_names = { template_names }
+	end
+	if type(template_names) ~= "table" then
+		return nil
+	end
+
+	local coder_prompt_dir = options.coder_prompt_dir or "."
+	if is_null(coder_prompt_dir) or coder_prompt_dir == "" then
+		return nil
+	end
+
+	local user_templates_dir = tostring(coder_prompt_dir):gsub("/+$", "") .. "/user-templates"
+	for _, template_name in ipairs(template_names) do
+		if not is_null(template_name) and template_name ~= "" then
+			local template_path = user_templates_dir .. "/" .. tostring(template_name):gsub("^/+", "")
+			if aip.file.exists(template_path) then
+				local template_file = aip.file.load(template_path)
+				if type(template_file) == "table" and type(template_file.content) == "string" and template_file.content ~= "" then
+					return template_file.content
+				end
+			end
+		end
+	end
+
+	return nil
+end
+
+local function resolve_workbench_rules_cache_path(file_name, options)
+	local cache_dir = resolve_work_cache_dir(options)
+	if is_null(cache_dir) or cache_dir == "" then
+		return nil
+	end
+	return cache_dir .. "/" .. file_name
+end
+
+local function ensure_workbench_cached_rules_file(file_name, template_names, fallback_content, options)
+	local rules_path = resolve_workbench_rules_cache_path(file_name, options)
+	if is_null(rules_path) or rules_path == "" then
+		return nil, "Invalid workbench rules cache path"
+	end
+	if aip.file.exists(rules_path) then
+		return rules_path
+	end
+
+	local content = load_prompt_user_template_content(template_names, options)
+	if is_null(content) or content == "" then
+		content = fallback_content
+	end
+
+	local ensure_res = aip.file.ensure_exists(rules_path, content)
+	if type(ensure_res) == "table" and ensure_res.error then
+		return nil, ensure_res.error
+	end
+
+	return rules_path
+end
+
+local function ensure_workbench_chat_rules_file(options)
+	return ensure_workbench_cached_rules_file("_chat-rules.md", { "_chat-rules.md", "workbench-chat-rules.md" },
+		"# Chat Rules\n\n- Keep chat entries concise and append new requests at the end.\n", options)
+end
+
 local function ensure_workbench_chat_file(workbench_chat_path, options)
 	options = options or {}
 	local resolved_path = resolve_workbench_chat_path(workbench_chat_path, options)
+	local _rules_path, rules_err = ensure_workbench_chat_rules_file(options)
+	if rules_err then
+		return nil, rules_err
+	end
 
 	if aip.file.exists(resolved_path) then
 		return resolved_path
@@ -250,12 +319,21 @@ local function load_dev_plan_rules_template_content()
 	return "# Plan Rules\n\n- Keep plans concise and actionable.\n"
 end
 
+local function ensure_workbench_plan_rules_file(options)
+	return ensure_workbench_cached_rules_file("_plan-rules.md", { "workbench-plan-rules.md", "_plan-rules.md" },
+		load_dev_plan_rules_template_content(), options)
+end
+
 local function ensure_workbench_plan_file(workbench_plan_dir, options)
 	options = options or {}
 	local resolved_dir, rules_path, plan_path = resolve_workbench_plan_paths(workbench_plan_dir, options)
 	local resolve_err = nil
 	if is_null(resolved_dir) or resolved_dir == "" then
 		return nil, nil, resolve_err or "Invalid workbench.plan.dir"
+	end
+	local _cached_rules_path, cached_rules_err = ensure_workbench_plan_rules_file(options)
+	if cached_rules_err then
+		return nil, nil, nil, cached_rules_err
 	end
 
 	local ensure_res
@@ -292,6 +370,11 @@ local function load_dev_spec_rules_template_content()
 	return "# Spec Rules\n\n- Keep specs clear and code-focused.\n"
 end
 
+local function ensure_workbench_spec_rules_file(options)
+	return ensure_workbench_cached_rules_file("_spec-rules.md", { "workbench-spec-rules.md", "_spec-rules.md" },
+		load_dev_spec_rules_template_content(), options)
+end
+
 local function ensure_workbench_spec_file(workbench_spec_path, options)
 	options = options or {}
 	local resolved_rules_path, resolved_spec_path = resolve_workbench_spec_path(workbench_spec_path, options)
@@ -307,6 +390,10 @@ local function ensure_workbench_spec_file(workbench_spec_path, options)
 			spec_dir = "."
 		end
 		spec_path = spec_dir .. "/spec.md"
+	end
+	local _cached_rules_path, cached_rules_err = ensure_workbench_spec_rules_file(options)
+	if cached_rules_err then
+		return nil, nil, nil, cached_rules_err
 	end
 
 	local ensure_spec_res
@@ -367,10 +454,14 @@ return {
 	resolve_workbench_plan_dir = resolve_workbench_plan_dir,
 	resolve_workbench_plan_paths = resolve_workbench_plan_paths,
 	resolve_workbench_spec_path = resolve_workbench_spec_path,
+	resolve_workbench_rules_cache_path = resolve_workbench_rules_cache_path,
 	load_workbench_chat_template_content = load_workbench_chat_template_content,
 	ensure_workbench_chat_file = ensure_workbench_chat_file,
+	ensure_workbench_chat_rules_file = ensure_workbench_chat_rules_file,
 	ensure_workbench_plan_file = ensure_workbench_plan_file,
+	ensure_workbench_plan_rules_file = ensure_workbench_plan_rules_file,
 	ensure_workbench_spec_file = ensure_workbench_spec_file,
+	ensure_workbench_spec_rules_file = ensure_workbench_spec_rules_file,
 	workbench_legacy_file_migrate = workbench_legacy_file_migrate,
 	resolve_dev_root_dir = resolve_workbench_root_dir,
 	resolve_dev_chat_path = resolve_workbench_chat_path,
