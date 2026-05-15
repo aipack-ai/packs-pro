@@ -436,7 +436,8 @@ local function get_file_content_mode(meta, write_mode)
 end
 
 -- Loads the appropriate Markdown templates for file changes and git commit suggestions.
-local function prepare_instructions(file_content_mode, suggest_git_commit, udiffx_inst_debug)
+-- Git commit suggestions prefer prompt-local user templates with bundled fallback.
+local function prepare_instructions(file_content_mode, suggest_git_commit, udiffx_inst_debug, prompt_dir)
 	local u_tmpl = require("utils_tmpl")
 	local instructions = {}
 
@@ -456,7 +457,11 @@ local function prepare_instructions(file_content_mode, suggest_git_commit, udiff
 	end
 
 	if suggest_git_commit then
-		instructions.suggest_commit = u_tmpl.load_template("suggest-commit.md").content
+		local suggest_commit_template, suggest_commit_err = u_tmpl.load_suggest_commit_template(prompt_dir)
+		if suggest_commit_err then
+			error(suggest_commit_err)
+		end
+		instructions.suggest_commit = suggest_commit_template.content
 	end
 
 	return instructions
@@ -765,7 +770,7 @@ function run_before_all(inputs)
 	end
 
 	local udiffx_inst_debug = meta.udiffx_inst_debug
-	local instructions = prepare_instructions(file_content_mode, suggest_git_commit, udiffx_inst_debug)
+	local instructions = prepare_instructions(file_content_mode, suggest_git_commit, udiffx_inst_debug, coder_prompt_dir)
 	local coder_params = aip.lua.merge_deep({}, meta)
 	local coder_context_file_refs = clone_ref_list(context_refs)
 	local coder_knowledge_file_refs = clone_ref_list(knowledge_refs)
