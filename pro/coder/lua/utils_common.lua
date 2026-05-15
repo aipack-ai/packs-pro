@@ -178,12 +178,6 @@ local function resolve_workbench_plan_dir(workbench_plan_dir, options)
 end
 
 local function load_workbench_chat_template_content()
-	local template_path = CTX.AGENT_FILE_DIR .. "/workbench-templates/chat.md"
-	local template_file = aip.file.load(template_path)
-	if type(template_file) == "table" and type(template_file.content) == "string" and template_file.content ~= "" then
-		return template_file.content
-	end
-
 	return
 	"# Dev Chat\n\nAdd a new `## Request: _user_ask_title_concise_` with the answer below (concise title). Use markdown sub-headings for sub sections. Keep this top instruction in this file. \n"
 end
@@ -311,11 +305,6 @@ local function ensure_workbench_chat_file(workbench_chat_path, options)
 end
 
 local function load_dev_plan_rules_template_content()
-	local template_path = CTX.AGENT_FILE_DIR .. "/workbench-templates/_plan-rules.md"
-	local template_file = aip.file.load(template_path)
-	if type(template_file) == "table" and type(template_file.content) == "string" and template_file.content ~= "" then
-		return template_file.content
-	end
 	return "# Plan Rules\n\n- Keep plans concise and actionable.\n"
 end
 
@@ -351,11 +340,6 @@ local function ensure_workbench_plan_file(workbench_plan_dir, options)
 end
 
 local function load_dev_spec_rules_template_content()
-	local template_path = CTX.AGENT_FILE_DIR .. "/workbench-templates/_spec-rules.md"
-	local template_file = aip.file.load(template_path)
-	if type(template_file) == "table" and type(template_file.content) == "string" and template_file.content ~= "" then
-		return template_file.content
-	end
 	return "# Spec Rules\n\n- Keep specs clear and code-focused.\n"
 end
 

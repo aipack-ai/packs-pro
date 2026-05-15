@@ -56,9 +56,7 @@ function M.load_user_template(prompt_dir, rel_path, options)
 end
 
 function M.load_suggest_commit_template(prompt_dir)
-	return M.load_user_template(prompt_dir, "suggest-commit.md", {
-		fallback_path = TEMPLATES_DIR .. "/suggest-commit.md"
-	})
+	return M.load_user_template(prompt_dir, "suggest-commit.md")
 end
 
 -- Save a prompt file
