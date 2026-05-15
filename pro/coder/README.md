@@ -6,7 +6,7 @@ The `pro@coder` pack provides AI-powered coding assistance through parametric pr
 
 The key concept of `pro@coder` is to give you full control over the AI context, enabling you to guide the AI to code the way you want, rather than adapting to the AI's default approach. This is done in part by splitting files into `knowledge`, `context`, and `working` (for concurrency) categories.
 
-[Coder Parameters](#coder-parameters) | [Auto Context](#auto_context) | [Workbench](#workbench) | [Workflow](#setup--workflow) | [Coder Intro](#coder-promptmd) | [Coder Parameters](#parametric-block-format) | [AIPack config override](#aipack-config-override) | [Plan Development](#plan-based-development)
+[Coder Parameters](#coder-parameters) | [Auto Context](#auto_context) | [Workbench](#workbench) | [Workflow](#setup--workflow) | [Coder Intro](#coder-promptmd) | [User Templates](#prompt-local-user-templates) | [Coder Parameters](#parametric-block-format) | [AIPack config override](#aipack-config-override) | [Plan Development](#plan-based-development)
 
 ---
 
@@ -52,6 +52,39 @@ A coder prompt file consists of three main sections:
 3. **AI Info Section** - Below the `====` separator. Lines prefixed with `>` are meta information about the AI execution (additional info is also available), followed by AI responses and generated code.
 
 Also, when `write_mode: true`, the file content will be removed from the AI response section (below the `====`) and saved to its corresponding file path.
+
+### Prompt-Local User Templates
+
+When a prompt directory is initialized, `pro@coder` also initializes a prompt-local `user-templates/` directory beside `coder-prompt.md`.
+
+Bundled files from `pro/coder/user-templates/template-*` are copied once into:
+
+```text
+$coder_prompt_dir/user-templates/
+```
+
+The leading `template-` prefix is removed from the copied filename. For example:
+
+```text
+pro/coder/user-templates/template-suggest-commit.md
+```
+
+is copied as:
+
+```text
+$coder_prompt_dir/user-templates/suggest-commit.md
+```
+
+Existing prompt-local templates are never overwritten. This lets you customize prompt instructions and workbench rule templates per prompt directory while preserving your edits across future runs.
+
+Current prompt-local templates include:
+
+- `suggest-commit.md`, used for git commit suggestion instructions.
+- `workbench-chat-rules.md`, used to seed generated chat rules.
+- `workbench-plan-rules.md`, used to seed generated plan rules.
+- `workbench-spec-rules.md`, used to seed generated spec rules.
+
+Workbench rules are generated into the workbench `.cache/` directory from these prompt-local templates. Treat the prompt-local files under `user-templates/` as the customization source, not the generated `.cache/_...-rules.md` files.
 
 ### Coder Parameters
 
@@ -405,9 +438,9 @@ First-class `pro@coder` runtime feature that enables a workbench with integrated
 Behavior:
 - Workbench initializes before the `start` event, so user sub-agents and auto-context receive resolved workbench state when workbench is enabled.
 - Because it runs before the `start` event, workbench configuration is effectively final for the duration of the run; sub-agents cannot customize the workbench setup for the current execution.
-- `chat` ensures the dev chat markdown file exists, then appends its path to `context_globs_post` (deduped).
-- `plan` ensures `_plan-rules.md` and `plan.md` exist in the plan directory, appends the rules file to `knowledge_globs_post` (deduped), and appends `plan.md` to `context_globs_post` (deduped).
-- `spec` ensures `_spec-rules.md` exists, appends this rules file to `knowledge_globs_post` (deduped), and appends the resolved spec context file path to `context_globs_post` (deduped).
+- `chat` ensures the dev chat markdown file exists, appends its path to `context_globs_post` (deduped), and appends the generated cached chat rules file to `knowledge_globs_post` (deduped).
+- `plan` ensures `plan.md` exists in the plan directory, appends the generated cached plan rules file to `knowledge_globs_post` (deduped), and appends `plan.md` to `context_globs_post` (deduped).
+- `spec` ensures the resolved spec context file exists, appends the generated cached spec rules file to `knowledge_globs_post` (deduped), and appends the resolved spec context file path to `context_globs_post` (deduped).
 - `data` is enabled by default when workbench is enabled; set `data: false` to disable it.
 - Enabled workbench data ensures the workbench data directory exists. When auto-context is enabled, data files can be summarized through the existing code-map agent and selected from generated descriptions.
 - Enabled workbench content files are also added as auto-context helper files, so chat, plan, and spec context can guide auto-context selection.
@@ -501,11 +534,17 @@ workbench:
 This resolves to a flat layout:
 
 - `.aipack/.prompt/pro@coder/workbench-default/chat.md`
-- `.aipack/.prompt/pro@coder/workbench-default/_plan-rules.md`
 - `.aipack/.prompt/pro@coder/workbench-default/plan.md`
-- `.aipack/.prompt/pro@coder/workbench-default/_spec-rules.md`
 - `.aipack/.prompt/pro@coder/workbench-default/spec.md`
 - `.aipack/.prompt/pro@coder/workbench-default/data/`
+
+Workbench rules are generated under the workbench cache directory:
+
+- `.aipack/.prompt/pro@coder/workbench-default/.cache/_chat-rules.md`
+- `.aipack/.prompt/pro@coder/workbench-default/.cache/_plan-rules.md`
+- `.aipack/.prompt/pro@coder/workbench-default/.cache/_spec-rules.md`
+
+These cached rules are seeded from prompt-local `user-templates/` files and are not overwritten once created.
 
 Default path when `workbench.chat.path` is omitted:
 
@@ -543,19 +582,19 @@ Plan path handling details:
 - `workbench.plan: "plan.md"` resolves to `.`.
 - Trailing slashes are normalized.
 - For table mode, `workbench.plan.dir` must be a directory path, `.md` file paths are rejected with a validation error.
-- When `dev.plan.dir` is omitted, the plan directory resolves directly to the shared workbench root, so `_plan-rules.md` and `plan-*.md` live flat in that directory.
+When `workbench.plan.dir` is omitted, the plan directory resolves directly to the shared workbench root, so `plan.md` lives flat in that directory. The generated plan rules file lives under the workbench `.cache/` directory.
 
 Example:
 
 Spec path handling details:
 
-- `workbench.spec: "some/dir"` resolves rules to `some/dir/_spec-rules.md` and context to `some/dir/spec.md`.
-- `workbench.spec: "some/spec.md"` resolves rules to `some/_spec-rules.md` and context to `some/spec.md`.
-- `workbench.spec: "spec.md"` resolves rules to `./_spec-rules.md` and context to `spec.md`.
+- `workbench.spec: "some/dir"` resolves context to `some/dir/spec.md` and generated rules under the workbench `.cache/` directory.
+- `workbench.spec: "some/spec.md"` resolves context to `some/spec.md` and generated rules under the workbench `.cache/` directory.
+- `workbench.spec: "spec.md"` resolves context to `spec.md` and generated rules under the workbench `.cache/` directory.
 - Trailing slashes are normalized.
 - When `workbench.spec.path` is a file path, it is treated as the spec context file, not the rules file.
-- When enabled, `pro@coder/workbench` also ensures a blank `spec.md` exists beside `_spec-rules.md`.
-- When `workbench.dir` is set and `workbench.spec` is `true`, spec resolves to `workbench.dir/_spec-rules.md` and `workbench.dir/spec.md`.
+- When enabled, `pro@coder/workbench` also ensures a blank `spec.md` exists at the resolved context path.
+- When `workbench.dir` is set and `workbench.spec` is `true`, spec context resolves to `workbench.dir/spec.md` and generated rules resolve under `workbench.dir/.cache/`.
 
 Spec file auto-context behavior:
 
@@ -862,6 +901,8 @@ workbench:
 
 Workbench runs before the `start` event, so all pre-stage sub-agents, including auto-context, can receive `input.coder_workbench` when workbench is enabled. The resolved chat, plan, and spec context files are also added as auto-context helper files. After the normal `start` event, `pro@coder` dispatches `workbench::done` for sub-agents that need to react after the regular start-stage pipeline has seen resolved workbench state.
 
+Workbench chat, plan, and spec rules are generated into the workbench `.cache/` directory from prompt-local `user-templates/` files. The visible workbench root keeps user-facing content files such as `chat.md`, `plan.md`, and `spec.md`; generated rule files are added to knowledge from cache paths.
+
 When `workbench.data` is enabled, auto-context uses the existing code-map agent run to include an additional data named map. The map is written to `<workbench-cache-dir>/code-map/data-code-map.json`, and the data descriptions cache is written to `<workbench-cache-dir>/auto-context/last_data_file_descriptions.md`. The data descriptions are then used for workbench data selection, rather than adding a separate data-specific code-map sub-agent. The selected workbench data files are returned as runtime sub-agent result state and consumed by the main before-all flow.
 
 Selected workbench data files are returned by auto-context via `workbench_data_globs` (using context-style relative paths) and are automatically merged into the final coder context by the main agent during prompt assembly.
@@ -988,9 +1029,9 @@ Note that only these four are AI Pack config properties and can be set in the co
 
 ## Plan-Based Development
 
-`pro@coder` facilitates **Plan-Based Development** by initializing the plan rules and current plan file within the prompt's workbench folder.
+`pro@coder` facilitates **Plan-Based Development** by initializing the current plan file within the prompt's workbench folder and generated plan rules within the workbench cache.
 
-- The foundational rules are in `_plan-rules.md`, located in the `workbench-default/` folder beside your `coder-prompt.md`. The plan flow uses a single `plan.md` file in the same directory.
+- The foundational rules are generated as `.cache/_plan-rules.md` under the resolved workbench directory. They are seeded from `coder_prompt_dir/user-templates/workbench-plan-rules.md` and are not overwritten once created. The plan flow uses a single `plan.md` file in the workbench directory.
 - By default, setting `workbench: { plan: true }` in your meta block automatically initializes these files and includes them in the prompt context.
 - To manually include them or use a custom folder, you can use `context_globs_post`:
   - `.aipack/.prompt/pro@coder/workbench-default/plan.md`
@@ -1120,10 +1161,10 @@ Redo behavior:
 
 `pro@coder` also supports **Spec-Based Development** through the `workbench.spec` capability.
 
-- The foundational rules live in `_spec-rules.md`, located in the `workbench-default/` folder beside your `coder-prompt.md`.
-- The main working spec file is `spec.md`, stored beside `_spec-rules.md` by default.
-- When `workbench.spec` is enabled, `pro@coder/workbench` ensures both files exist.
-- The rules file is added to `knowledge_globs_post`, and the `spec.md` file is added to `context_globs_post`.
+- The foundational rules are generated as `.cache/_spec-rules.md` under the resolved workbench directory. They are seeded from `coder_prompt_dir/user-templates/workbench-spec-rules.md` and are not overwritten once created.
+- The main working spec file is `spec.md`, stored in the workbench directory by default.
+- When `workbench.spec` is enabled, `pro@coder/workbench` ensures the spec context file and generated cached rules file exist.
+- The generated cached rules file is added to `knowledge_globs_post`, and the `spec.md` file is added to `context_globs_post`.
 - This lets you keep specification guidance in knowledge, while the evolving project spec stays in context.
 
 Typical setup:
