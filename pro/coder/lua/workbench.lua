@@ -169,6 +169,10 @@ local function prepare_workbench(agent_config, coder_params, options)
 	options = options or {}
 	agent_config = agent_config or {}
 	coder_params = coder_params or {}
+	local workbench_options = aip.lua.merge({}, options)
+	if not is_null(agent_config.dir) and agent_config.dir ~= "" then
+		workbench_options.workbench_dir = agent_config.dir
+	end
 
 	local chat = agent_config.chat
 	if type(chat) ~= "table" then
@@ -212,7 +216,7 @@ local function prepare_workbench(agent_config, coder_params, options)
 	if data_enabled then
 		local base_dir = agent_config.dir
 		if is_null(base_dir) or base_dir == "" then
-			base_dir = u_common.resolve_workbench_root_dir(options)
+			base_dir = u_common.resolve_workbench_root_dir(workbench_options)
 		end
 		data_dir_path = base_dir .. "/data"
 		aip.file.ensure_dir(data_dir_path)
@@ -234,7 +238,7 @@ local function prepare_workbench(agent_config, coder_params, options)
 	end
 
 	if chat ~= nil then
-		local path, ensure_err = u_common.ensure_workbench_chat_file(chat.path, options)
+		local path, ensure_err = u_common.ensure_workbench_chat_file(chat.path, workbench_options)
 		if is_null(path) or path == "" then
 			return {
 				success = false,
@@ -249,13 +253,25 @@ local function prepare_workbench(agent_config, coder_params, options)
 				error_details = ensure_err
 			}
 		end
+		local chat_rules_path, chat_rules_err = u_common.ensure_workbench_chat_rules_file(workbench_options)
+		if chat_rules_err then
+			return {
+				success = false,
+				error_msg = "Failed to initialize workbench chat rules file",
+				error_details = chat_rules_err
+			}
+		end
 
 		chat.path = path
+		chat.rules_path = chat_rules_path
 		append_unique(next_context_globs_post, path)
+		if not is_null(chat_rules_path) and chat_rules_path ~= "" then
+			append_unique(next_knowledge_globs_post, chat_rules_path)
+		end
 	end
 
 	if plan ~= nil then
-		local dir, _rules_path, plan_path, ensure_err = u_common.ensure_workbench_plan_file(plan.path or plan.dir, options)
+		local dir, _rules_path, plan_path, ensure_err = u_common.ensure_workbench_plan_file(plan.path or plan.dir, workbench_options)
 		if ensure_err then
 			aip.run.pin("workbench-plan", 3, {
 				label = CONST.LABEL_PLAN,
@@ -273,16 +289,28 @@ local function prepare_workbench(agent_config, coder_params, options)
 				error_msg = "Invalid workbench.plan.dir"
 			}
 		end
+		local plan_rules_path, plan_rules_err = u_common.ensure_workbench_plan_rules_file(workbench_options)
+		if plan_rules_err then
+			aip.run.pin("workbench-plan", 3, {
+				label = CONST.LABEL_PLAN,
+				content = "ERROR: " .. plan_rules_err
+			})
+			return {
+				success = false,
+				error_msg = "Failed to initialize workbench plan rules file",
+				error_details = plan_rules_err
+			}
+		end
 		plan.dir = dir
-		plan.rules_path = _rules_path
+		plan.rules_path = plan_rules_path
 		plan.path = plan_path
 
-		append_unique(next_knowledge_globs_post, _rules_path)
+		append_unique(next_knowledge_globs_post, plan_rules_path)
 		append_unique(next_context_globs_post, plan_path)
 	end
 
 	if spec ~= nil then
-		local spec_rules_path, spec_context_path, spec_path, ensure_err = u_common.ensure_workbench_spec_file(spec.path, options)
+		local spec_rules_path, spec_context_path, spec_path, ensure_err = u_common.ensure_workbench_spec_file(spec.path, workbench_options)
 		if ensure_err then
 			aip.run.pin("workbench-spec", 4, {
 				label = CONST.LABEL_SPEC,
@@ -300,11 +328,24 @@ local function prepare_workbench(agent_config, coder_params, options)
 				error_msg = "Invalid workbench.spec.path"
 			}
 		end
+		local cached_spec_rules_path, spec_rules_err = u_common.ensure_workbench_spec_rules_file(workbench_options)
+		if spec_rules_err then
+			aip.run.pin("workbench-spec", 4, {
+				label = CONST.LABEL_SPEC,
+				content = "ERROR: " .. spec_rules_err
+			})
+			return {
+				success = false,
+				error_msg = "Failed to initialize workbench spec rules file",
+				error_details = spec_rules_err
+			}
+		end
 		spec.rules_path = spec_rules_path
+		spec.rules_path = cached_spec_rules_path
 		spec.path = spec_path
 		spec.context_path = spec_context_path
 
-		append_unique(next_knowledge_globs_post, spec_rules_path)
+		append_unique(next_knowledge_globs_post, cached_spec_rules_path)
 		append_unique(next_context_globs_post, spec_context_path)
 	end
 
@@ -375,7 +416,8 @@ local function build_coder_workbench(workbench_config, options)
 	if not is_null(workbench_config.chat) and workbench_config.chat.enabled ~= false then
 		chat = {
 			enabled = true,
-			path = workbench_config.chat.path
+			path = workbench_config.chat.path,
+			rules_path = workbench_config.chat.rules_path
 		}
 	end
 

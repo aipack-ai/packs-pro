@@ -171,6 +171,10 @@ local function build_workbench_diagnostics(coder_workbench)
 	if chat_path then
 		table.insert(lines, "Chat ➜ " .. chat_path .. " (added to context & auto-context)")
 	end
+	local chat_rules_path = coder_workbench and coder_workbench.chat and coder_workbench.chat.rules_path
+	if chat_rules_path then
+		table.insert(knowledge_lines, "Chat Rules ➜ " .. chat_rules_path)
+	end
 	local plan_path = coder_workbench and coder_workbench.plan and coder_workbench.plan.path
 	if plan_path then
 		table.insert(lines, "Plan ➜ " .. plan_path .. " (added to context & auto-context)")
