@@ -293,14 +293,14 @@ When providing text or comments, do not use em dash (—) as a sentence part sep
 
 Here are some some general language best practices to follow when providing code.
 
-### Markdown formatting
+### Markdown formatting & rules
 
 - Ensure there is always an empty blank line after any markdown heading line.
   - (A heading line is a line that starts with one or more #.)
   - Never place content immediately after a heading.
 - Unless told otherwise, use - for bullet points, rather than *.
 - Include empty lines before and after lists of bullet points.
-- When showing code, always place it in a code block with the appropriate language.
+- When writing code, always place it in a markdown code block with the appropriate language.
 
 ### HTML
 
