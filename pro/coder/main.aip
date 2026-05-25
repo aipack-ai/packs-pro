@@ -136,6 +136,26 @@ base.context_files   = p_utils.load_file_refs(base.base_dir, new_context_refs)
 base.workbench_data_files = p_utils.load_file_refs(base.base_dir, base.workbench_data_refs)
 base.working_files   = p_utils.load_file_refs(base.base_dir, working_refs)
 base.structure_refs_md = p_utils.format_paths_as_single_nested(base.structure_refs)
+-- Build workbench context description
+local wb_context_desc = nil
+if base.coder_workbench then
+    local parts = {}
+    local function add_desc(cfg, label)
+        if cfg and cfg.path then
+            table.insert(parts, "- " .. label .. ": `" .. cfg.path .. "`")
+        end
+    end
+    add_desc(base.coder_workbench.chat, "Chat")
+    add_desc(base.coder_workbench.plan, "Plan")
+    add_desc(base.coder_workbench.spec, "Spec")
+    if #parts > 0 then
+        local desc = "Your workbench development files are included among the context files below. They are:\n"
+        desc = desc .. table.concat(parts, "\n") .. "\n\nUse them according to the associated knowledge rules for plan-based, chat, and spec-based development."
+        wb_context_desc = desc
+    end
+end
+base.workbench_context_describe = wb_context_desc
+
 
 -- Add time if available
 if aip.time.weekday_local and aip.time.now_iso_local then
@@ -409,6 +429,11 @@ Those are for your reference, in case there are referred somewhere.
 
 
 # User `cache = {{data.cache_context_files}}`
+
+{{#if data.workbench_context_describe}}
+{{{data.workbench_context_describe}}}
+
+{{/if}}
 
 {{#if data.context_files}}
 
