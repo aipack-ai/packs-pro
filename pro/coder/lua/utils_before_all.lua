@@ -570,7 +570,6 @@ function run_before_all(inputs)
 	})
 
 	local paths = prepare_paths(prompt_file.path)
-
 	-- Save the fixed template files only if not present
 	u_tmpl.init_fixed_files(paths.prompt_dir)
 
@@ -626,6 +625,12 @@ function run_before_all(inputs)
 		coder_prompt_dir)
 	if workbench_err then return nil, nil, workbench_err end
 	pin_workbench_diagnostics(coder_workbench)
+
+	-- Ensure the default workbench root directory exists when no explicit workbench is configured
+	if coder_workbench == nil then
+		u_workbench.ensure_default_workbench_root_dir({ coder_prompt_dir = paths.prompt_dir })
+	end
+
 
 	-- === Build auto_context sub agent if present
 	if not is_null(meta.auto_context) then

@@ -271,7 +271,8 @@ local function prepare_workbench(agent_config, coder_params, options)
 	end
 
 	if plan ~= nil then
-		local dir, _rules_path, plan_path, ensure_err = u_common.ensure_workbench_plan_file(plan.path or plan.dir, workbench_options)
+		local dir, _rules_path, plan_path, ensure_err = u_common.ensure_workbench_plan_file(plan.path or plan.dir,
+			workbench_options)
 		if ensure_err then
 			aip.run.pin("workbench-plan", 3, {
 				label = CONST.LABEL_PLAN,
@@ -310,7 +311,8 @@ local function prepare_workbench(agent_config, coder_params, options)
 	end
 
 	if spec ~= nil then
-		local spec_rules_path, spec_context_path, spec_path, ensure_err = u_common.ensure_workbench_spec_file(spec.path, workbench_options)
+		local spec_rules_path, spec_context_path, spec_path, ensure_err = u_common.ensure_workbench_spec_file(spec.path,
+			workbench_options)
 		if ensure_err then
 			aip.run.pin("workbench-spec", 4, {
 				label = CONST.LABEL_SPEC,
@@ -504,6 +506,31 @@ local function new_workbench_sub_agent_config(workbench, options)
 	return workbench_config
 end
 
+-- Ensure the default workbench root directory exists so future capabilities can rely on it.
+-- options may contain coder_prompt_dir and workbench_dir.
+local function ensure_default_workbench_root_dir(options)
+	options = options or {}
+	local dir = u_common.resolve_workbench_root_dir(options)
+	if is_null(dir) or dir == "" then
+		return nil
+	end
+	aip.file.ensure_dir(dir)
+	return dir
+end
+
+
+-- Ensure the default workbench root directory exists so future capabilities can rely on it.
+-- options may contain coder_prompt_dir and workbench_dir.
+local function ensure_default_workbench_root_dir(options)
+	options = options or {}
+	local dir = u_common.resolve_workbench_root_dir(options)
+	if is_null(dir) or dir == "" then
+		return nil
+	end
+	aip.file.ensure_dir(dir)
+	return dir
+end
+
 return {
 	new_workbench_sub_agent_config = new_workbench_sub_agent_config,
 	build_coder_workbench = build_coder_workbench,
@@ -521,5 +548,6 @@ return {
 	resolve_dev_chat_path = resolve_workbench_chat_path,
 	normalize_dev_plan_config = normalize_workbench_plan_config,
 	resolve_dev_plan_dir = resolve_workbench_plan_dir,
-	normalize_dev_spec_config = normalize_workbench_spec_config
+	normalize_dev_spec_config = normalize_workbench_spec_config,
+	ensure_default_workbench_root_dir = ensure_default_workbench_root_dir,
 }
