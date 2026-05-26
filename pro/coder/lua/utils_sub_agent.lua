@@ -82,8 +82,8 @@ local function validate_no_workbench_sub_agents(sub_agents)
 		local name = get_sub_agent_name(item)
 		if UNSUPPORTED_WORKBENCH_SUB_AGENT_NAMES[name] then
 			return "Unsupported workbench sub-agent `" ..
-			name ..
-			"` configured in `sub_agents`.\n\nRoot `workbench:` is the supported configuration surface. Explicit `pro@coder/workbench` and legacy `pro@coder/dev` sub-agent entries are not supported.\nLegacy root `dev:` remains supported only as root config compatibility."
+					name ..
+					"` configured in `sub_agents`.\n\nRoot `workbench:` is the supported configuration surface. Explicit `pro@coder/workbench` and legacy `pro@coder/dev` sub-agent entries are not supported.\nLegacy root `dev:` remains supported only as root config compatibility."
 		end
 	end
 
@@ -383,6 +383,7 @@ function run_sub_agent(config, stage, current_params, current_coder_prompt, code
 		agent_config     = config,
 		sub_agents_prev  = sub_agents_prev,
 		sub_agents_next  = sub_agents_next,
+		coder_redo_count = tonumber(CTX.RUN_FLOW_REDO_COUNT) or 0,
 	}
 	if type(extra_sub_input) == "table" then
 		sub_input = aip.lua.merge(sub_input, extra_sub_input)

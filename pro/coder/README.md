@@ -681,6 +681,7 @@ type SubAgentPreInput = {
   coder_workbench?: CoderWorkbench | nil, // Resolved workbench state when workbench is active
   coder_prompt: string,     // Current instruction text
   agent_config: AgentConfig,// The configuration object defined in the sub_agents list
+  coder_redo_count: number,   // 0 for initial run, or the redo count from CTX.RUN_FLOW_REDO_COUNT
 
   // Present for all stages
   sub_agents_prev?: SubAgentHistoryItem[],
@@ -699,6 +700,7 @@ type SubAgentPostInput = {
   coder_workbench?: CoderWorkbench | nil,
   coder_prompt: string,
   agent_config: AgentConfig,
+  coder_redo_count: number,   // 0 for initial run, or the redo count from CTX.RUN_FLOW_REDO_COUNT
   
   sub_agents_prev?: SubAgentHistoryItem[],
   sub_agents_next?: AgentConfig[],
