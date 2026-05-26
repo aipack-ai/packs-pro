@@ -764,6 +764,7 @@ type SubAgentPreOutput = {
   coder_params?: table,          // Optional: Merged into the current parameters during pre
   coder_prompt?: string,         // Optional: Replaces the current instruction during pre
   agent_result?: any,            // Optional: Pipeline payload exposed in sub_agents_prev
+  agent_on?: string | string[],  // Optional: Replaces this agent's event subscriptions for future dispatches
 
   sub_agents_next?: AgentConfig[], // Optional: Replaces the pending sub-agent tail
   emit_events?: string[],        // Optional: Queues follow-up events in FIFO order for the current stage
@@ -793,6 +794,7 @@ type SubAgentPostOutput = {
 - `coder_params`: If provided in `SubAgentPreOutput`, this table is shallow-merged into the current parameters. This means you only need to return the keys you wish to add or change.
 - `coder_prompt`: If provided in `SubAgentPreOutput`, this string replaces the current instruction for the remainder of the pipeline.
 - `agent_result`: If provided, this payload is exposed to downstream sub-agents through `sub_agents_prev[*].agent_result` (and `sub_agent_result` for compatibility).
+- `agent_on`: If provided from a pre-stage sub-agent, this replaces the normalized `on` value for that same agent in pipeline state. This affects future emitted pre events and the later post-stage `end` dispatch, so a start-only agent can subscribe itself to `end` by returning `agent_on: "end"` or `agent_on: ["start", "end"]`.
 - `sub_agents_next`: If provided, it replaces the pending tail of the pipeline for future dispatch only.
 - `emit_events`: If provided, the listed events are appended to the current stage event queue in order.
 - `coder_redo`: Honored only for post-stage sub-agents. If any post-stage sub-agent returns `coder_redo: true`, `pro@coder` requests one full rerun after all currently queued post-stage sub-agents and emitted post events complete. The redo request is cumulative for the post stage and capped at 20 redo-chain runs using `CTX.RUN_FLOW_REDO_COUNT`; when the cap is reached, `pro@coder` warns instead of rerunning.

@@ -81,7 +81,9 @@ local function validate_no_workbench_sub_agents(sub_agents)
 	for _, item in ipairs(sub_agents) do
 		local name = get_sub_agent_name(item)
 		if UNSUPPORTED_WORKBENCH_SUB_AGENT_NAMES[name] then
-			return "Unsupported workbench sub-agent `" .. name .. "` configured in `sub_agents`.\n\nRoot `workbench:` is the supported configuration surface. Explicit `pro@coder/workbench` and legacy `pro@coder/dev` sub-agent entries are not supported.\nLegacy root `dev:` remains supported only as root config compatibility."
+			return "Unsupported workbench sub-agent `" ..
+			name ..
+			"` configured in `sub_agents`.\n\nRoot `workbench:` is the supported configuration surface. Explicit `pro@coder/workbench` and legacy `pro@coder/dev` sub-agent entries are not supported.\nLegacy root `dev:` remains supported only as root config compatibility."
 		end
 	end
 
@@ -164,6 +166,30 @@ local function normalize_emit_events(emit_events)
 	end
 
 	return normalized
+end
+
+local function normalize_agent_on_response(agent_on)
+	if type(agent_on) == "string" then
+		if agent_on == "" then
+			return nil, "must be a non-empty string or array of non-empty strings"
+		end
+		return { agent_on }
+	end
+
+	if type(agent_on) == "table" then
+		local normalized = {}
+		for _, event_name in ipairs(agent_on) do
+			if type(event_name) == "string" and event_name ~= "" then
+				table.insert(normalized, event_name)
+			end
+		end
+		if #normalized == 0 then
+			return nil, "must contain at least one non-empty string"
+		end
+		return normalized
+	end
+
+	return nil, "must be a string or array of strings"
 end
 
 local function new_dispatch_item(event_name, stage_name, agent_configs, history)
@@ -326,6 +352,7 @@ end
 
 -- Runs a single sub-agent.
 -- Returns modified params, modified prompt, next configs, agent result, emitted events, error message, and post-stage redo flag.
+-- May mutate config.on when a pre-stage response includes agent_on.
 function run_sub_agent(config, stage, current_params, current_coder_prompt, coder_options, coder_prompt_dir)
 	local opts = coder_options or {}
 	local sub_agents_prev = opts.sub_agents_prev
@@ -384,7 +411,8 @@ function run_sub_agent(config, stage, current_params, current_coder_prompt, code
 	if res == nil then return current_params, current_coder_prompt, next_configs, nil, emit_events end
 
 	if type(res) ~= "table" then
-		return nil, nil, nil, nil, nil, "Sub-agent [" .. config.name .. "] failed: invalid response type, expected table or nil"
+		return nil, nil, nil, nil, nil,
+				"Sub-agent [" .. config.name .. "] failed: invalid response type, expected table or nil"
 	end
 
 	-- Validate the response structure
@@ -409,6 +437,14 @@ function run_sub_agent(config, stage, current_params, current_coder_prompt, code
 	end
 	if res.coder_prompt then
 		current_coder_prompt = res.coder_prompt
+	end
+
+	if stage == "pre" and not is_null(res.agent_on) then
+		local normalized_on, agent_on_err = normalize_agent_on_response(res.agent_on)
+		if agent_on_err then
+			return nil, nil, nil, nil, nil, "Sub-agent [" .. config.name .. "] failed: invalid agent_on, " .. agent_on_err
+		end
+		config.on = normalized_on
 	end
 
 	if res.sub_agents_next ~= nil then
@@ -468,13 +504,13 @@ end
 -- === /Public Interfaces
 
 return {
-	config_matches_event       = config_matches_event,
-	new_workbench_sub_agent_config = new_workbench_sub_agent_config,
-	new_dev_sub_agent_config   = new_workbench_sub_agent_config,
-	normalize_sub_agent_events = normalize_sub_agent_events,
+	config_matches_event             = config_matches_event,
+	new_workbench_sub_agent_config   = new_workbench_sub_agent_config,
+	new_dev_sub_agent_config         = new_workbench_sub_agent_config,
+	normalize_sub_agent_events       = normalize_sub_agent_events,
 	validate_no_workbench_sub_agents = validate_no_workbench_sub_agents,
-	run_sub_agent              = run_sub_agent,
-	run_sub_agents_pre_event   = run_sub_agents_pre_event,
-	run_sub_agents_post        = run_sub_agents_post,
-	run_sub_agents_pre         = run_sub_agents_pre
+	run_sub_agent                    = run_sub_agent,
+	run_sub_agents_pre_event         = run_sub_agents_pre_event,
+	run_sub_agents_post              = run_sub_agents_post,
+	run_sub_agents_pre               = run_sub_agents_pre
 }
