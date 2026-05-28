@@ -1,0 +1,191 @@
+# Options
+
+```toml
+model_aliases = {}
+input_concurrency = 1
+```
+
+# Data
+
+```lua
+-- The built-in auto-fix agent. It reads the latest udiffx failure diagnostics and asks the model
+-- for corrected <FILE_CHANGES>. It is an internal step run before user post-stage sub-agents.
+-- The main coder flow applies the returned response through the existing apply path.
+
+-- Uses shared auto-fix helpers from auto_fix.lua.
+local u_auto_fix = require("auto_fix")
+
+-- Resolve the auto-fix diagnostics directory from the input.
+-- The input provides an explicit `auto_fix_dir` pointing at the diagnostics directory.
+local auto_fix_dir = u_auto_fix.get_auto_fix_dir_from_input(input)
+if is_null(auto_fix_dir) or auto_fix_dir == "" then
+	return aip.flow.skip("Auto-fix skipped: no diagnostics directory available.")
+end
+
+local report_path = auto_fix_dir .. "/last_udiffx_fail_reports.md"
+local info_path = auto_fix_dir .. "/last_udiffx_fail_info.json"
+
+local report_content = u_auto_fix.load_text_file(report_path)
+local info_content = u_auto_fix.load_text_file(info_path)
+
+if is_null(report_content) or aip.text.trim(report_content) == "" then
+	return aip.flow.skip("Auto-fix skipped: missing or empty fail report.")
+end
+if is_null(info_content) or aip.text.trim(info_content) == "" then
+	return aip.flow.skip("Auto-fix skipped: missing or empty fail info.")
+end
+
+local failed_files = {}
+local info_data = aip.json.parse(info_content)
+if type(info_data) == "table" and type(info_data.failed_paths) == "table" then
+	for _, failed_path in ipairs(info_data.failed_paths) do
+		if not is_null(failed_path) and failed_path ~= "" then
+		local file_content = u_auto_fix.load_text_file(failed_path)
+			if not is_null(file_content) then
+				table.insert(failed_files, {
+					path = failed_path,
+					content = file_content
+				})
+			end
+		end
+	end
+end
+
+-- Pin the list of files and the number of hunks being fixed in both the run and task scopes,
+-- using the structured `failed_files` info (file_path, failed_hunks_count) when available.
+local fixing_lines = {}
+if type(info_data) == "table" and type(info_data.failed_files) == "table" then
+	for _, ff in ipairs(info_data.failed_files) do
+		if type(ff) == "table" and not is_null(ff.file_path) and ff.file_path ~= "" then
+			local count = tonumber(ff.failed_hunks_count) or 0
+			local hunk_txt = count == 1 and "1 hunk" or (tostring(count) .. " hunks")
+			table.insert(fixing_lines, "- " .. ff.file_path .. " (" .. hunk_txt .. ")")
+		end
+	end
+end
+if #fixing_lines == 0 and type(info_data) == "table" and type(info_data.failed_paths) == "table" then
+	for _, failed_path in ipairs(info_data.failed_paths) do
+		if not is_null(failed_path) and failed_path ~= "" then
+			table.insert(fixing_lines, "- " .. failed_path)
+		end
+	end
+end
+if #fixing_lines > 0 then
+	local fixing_content = ".. Fixing " .. #fixing_lines .. " file(s):\n" .. table.concat(fixing_lines, "\n")
+	aip.run.pin("auto_fix_files", 2, { label = "Auto-Fix:", content = fixing_content })
+	aip.task.pin("auto_fix_files", 2, { label = "Auto-Fix:", content = fixing_content })
+end
+
+-- udiffx file change instructions, preferring the runtime instruction with a bundled fallback.
+local file_changes_instruction = nil
+if aip.udiffx and aip.udiffx.file_changes_instruction then
+	file_changes_instruction = aip.udiffx.file_changes_instruction()
+end
+if is_null(file_changes_instruction) or file_changes_instruction == "" then
+	local tmpl_path = CTX.AGENT_FILE_DIR .. "/templates/file-content-udiffx.md"
+	file_changes_instruction = u_auto_fix.load_text_file(tmpl_path)
+end
+
+return aip.flow.data_response({
+	data = {
+		file_changes_instruction = file_changes_instruction,
+		report_content = report_content,
+		info_content = info_content,
+		failed_files = failed_files,
+		-- Pass-through context so the # Output stage can apply changes, update diagnostics, and pins.
+		base_dir = u_auto_fix.get_apply_base_dir_from_input(input),
+		auto_fix_dir = auto_fix_dir,
+		coder_workbench = input.coder_workbench
+	}
+})
+```
+
+# System
+
+Repair failed unified-diff style file changes.
+
+A previous attempt produced `<FILE_CHANGES>` directives, but some `udiffx` hunks failed to apply.
+
+Your task is to produce corrected `<FILE_CHANGES>` directives that will apply cleanly.
+
+Carefully analyze:
+
+- the failure report, which lists each failed file and failed hunk with its cause
+- the structured failure info, which provides failed file paths, change kinds, hunk counts, and failed hunk bodies
+
+Focus only on repairing the failed changes. Do not reintroduce changes that already applied successfully.
+
+{{#if data.file_changes_instruction}}
+{{data.file_changes_instruction}}
+{{/if}}
+
+# Instruction
+
+Here is the latest failure report:
+
+````md
+{{data.report_content}}
+````
+
+Here is the latest structured failure info (JSON):
+
+````json
+{{data.info_content}}
+````
+
+{{#if data.failed_files}}
+Here is the current content of each failed file. Use this exact content as the basis for your corrected hunks:
+
+{{#each data.failed_files}}
+<FAILED_FILE file_path="{{this.path}}">
+{{this.content}}
+</FAILED_FILE>
+
+{{/each}}
+{{/if}}
+
+Produce only corrected `<FILE_CHANGES>` directives that repair the failed hunks above.
+
+- Use exact context and removal lines that match the current file content.
+- Only emit directives for the files that had failed hunks.
+- Do not include any explanation outside the `<FILE_CHANGES>` block.
+
+# Output
+
+```lua
+-- Apply the AI's corrected <FILE_CHANGES> directly here so we know how many hunks got fixed or not.
+-- Then update the auto-fix task/run pins, and return the structured apply data to the parent run.
+local u_auto_fix = require("auto_fix")
+local u_output = require("utils_output")
+
+local auto_fix_content = ai_response.content or ""
+
+-- Apply the corrected changes through the existing apply path.
+local apply_data = {
+	base_dir          = data.base_dir,
+	write_mode        = true,
+	file_content_mode = { udiffx = true }
+}
+
+local files_changed = {}
+local files_changes_failed = {}
+local file_changes_status = nil
+local _second_part
+_second_part, files_changed, files_changes_failed, file_changes_status =
+	u_output.apply_changes(auto_fix_content, apply_data)
+
+-- Update the auto-fix pin (task and run scope) with the completion state.
+local pin_content = u_auto_fix.build_auto_fix_pin_content(files_changed, files_changes_failed)
+if pin_content ~= nil and pin_content ~= "" then
+	aip.run.pin("auto_fix_files", 2, { label = "Auto-Fix:", content = pin_content })
+	aip.task.pin("auto_fix_files", 2, { label = "Auto-Fix:", content = pin_content })
+end
+
+-- Return both the raw content and the structured apply result to the parent run.
+return {
+	auto_fix_content     = auto_fix_content,
+	files_changed        = files_changed,
+	files_changes_failed = files_changes_failed,
+	file_changes_status  = file_changes_status
+}
+```

@@ -159,6 +159,10 @@ file_content_mode: udiffx # default "udiffx" ("search_replace_auto" for legacy o
 ## Set to true to write the files (otherwise, they will be shown below the `====` separator)
 write_mode: true
 
+## Automatically attempt to repair failed udiffx hunks before post-stage sub-agents (default true)
+## First implementation only applies to udiffx, write_mode: true, and single-task runs
+auto_fix: true
+
 ## MODEL: Here you can use any full model name or model aliases defined above and in the config.toml
 ## such as ~/.aipack-base/config-default.toml
 ## For OpenAI and Gemini models, you can use the -low, -medium, or -high suffix for reasoning control
@@ -377,6 +381,56 @@ Controls how file content is returned:
 - `whole`: Returns entire file content
 
 Typically, leave this out to use the default.
+
+#### auto_fix
+
+_since v0.4.0_
+
+Enables a built-in auto-fix step that automatically attempts to repair failed `udiffx` hunk applications before user post-stage sub-agents run.
+
+- `auto_fix` defaults to `true`.
+- When eligible, `pro@coder` runs a built-in `pro@coder/auto-fix` agent that reads the latest failure diagnostics and asks the model for corrected `<FILE_CHANGES>`. The returned response is applied through the same existing file change apply path.
+- Auto-fix retries up to 3 times. Each retry uses only the latest normalized failure diagnostics.
+
+Auto-fix runs only when all eligibility checks pass:
+
+- `auto_fix == true`
+- `write_mode == true`
+- `file_content_mode` is `udiffx`
+- the coder run has a single task response (no multi-task `working_globs`)
+- at least one `udiffx` hunk apply failure occurred
+
+Defaulting `auto_fix` to `true` does not make a run eligible by itself; all the checks above must also pass.
+
+Diagnostics for the latest failure are written under the resolved workbench cache directory and overwritten on each attempt:
+
+- `$coder_workbench.cache_dir/auto-fix/last_udiffx_fail_reports.md`
+- `$coder_workbench.cache_dir/auto-fix/last_udiffx_fail_info.json`
+
+Behavior summary:
+
+- **Disabled** (`auto_fix: false`): failed hunks immediately use the existing warning and failure report behavior.
+- **Eligible success**: the failure state is repaired before post-stage sub-agents receive the final coder responses.
+- **Retry exhaustion** (after 3 failed attempts): the existing failure warning and `last_file_change_fails_report.md` behavior is used, based on the latest failure report.
+- **Non-udiffx** (`whole` or `search_replace_auto`): auto-fix is skipped and current failure behavior is preserved.
+- **Multi-task** (`working_globs` producing more than one task): auto-fix is skipped in this first implementation and current failure behavior is preserved.
+
+Example:
+
+```yaml
+auto_fix: true # default; set to false to disable built-in udiffx repair
+```
+
+##### Manual validation checklist
+
+Use a `udiffx`, `write_mode: true`, single-task setup with a workbench enabled, and intentionally produce a failing hunk to validate:
+
+- **Disabled**: with `auto_fix: false`, a failed hunk produces the same warning and report as before, and no auto-fix run occurs.
+- **Successful repair**: with default `auto_fix: true`, a failing hunk that the model can correct is repaired before post-stage sub-agents run, and the final report shows success.
+- **Retry exhaustion**: a hunk that cannot be repaired retries no more than 3 times, then falls back to the existing failure warning and `last_file_change_fails_report.md`.
+- **Non-udiffx failure**: with `file_content_mode: search_replace_auto` (or `whole`), a failed change keeps current failure behavior and does not enter auto-fix.
+- **Multi-task skip**: with `working_globs` producing more than one task, a failed hunk keeps current failure behavior and does not enter auto-fix.
+- **Diagnostics overwrite**: confirm `last_udiffx_fail_reports.md` and `last_udiffx_fail_info.json` under `$coder_workbench.cache_dir/auto-fix/` are overwritten on each failed attempt.
 
 #### write_mode
 

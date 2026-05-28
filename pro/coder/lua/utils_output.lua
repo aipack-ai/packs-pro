@@ -158,97 +158,38 @@ local function build_failed_hunk_searches_block(fc)
 	return table.concat(lines, "\n")
 end
 
-local function integer_or_nil(value)
-	local n = tonumber(value or nil)
-	if n == nil or n % 1 ~= 0 or n < 0 then
-		return nil
-	end
-	return n
-end
-
-local function parse_failed_hunk_counts_from_error_msg(error_msg)
-	if type(error_msg) ~= "string" or error_msg == "" then
-		return nil, nil
-	end
-
-	local normalized_error_msg = error_msg:lower()
-	local patterns = {
-		"(%d+)%s+of%s+(%d+)%s+hunks?%s+failed",
-		"(%d+)%s*/%s*(%d+)%s+hunks?%s+failed"
-	}
-
-	for _, pattern in ipairs(patterns) do
-		local failed_text, total_text = normalized_error_msg:match(pattern)
-		local failed_count = integer_or_nil(failed_text)
-		local total_count = integer_or_nil(total_text)
-		if failed_count ~= nil and total_count ~= nil then
-			return failed_count, total_count
-		end
-	end
-
-	return nil, nil
-end
-
-local function resolve_failed_hunk_total_count(item, failed_count)
-	if type(item) ~= "table" then
-		return nil
-	end
-
-	local field_names = {
-		"total_hunk_count",
-		"total_hunks",
-		"hunk_count",
-		"hunks_count",
-		"file_hunk_count",
-		"file_hunks_count"
-	}
-
-	for _, field_name in ipairs(field_names) do
-		local total_count = integer_or_nil(item[field_name])
-		if total_count ~= nil and total_count >= failed_count then
-			return total_count
-		end
-	end
-
-	local _parsed_failed_count, parsed_total_count = parse_failed_hunk_counts_from_error_msg(item.error_msg)
-	if parsed_total_count ~= nil and parsed_total_count >= failed_count then
-		return parsed_total_count
-	end
-
-	return nil
-end
-
+-- Returns the failed hunk count and total hunk count from a failed change item.
+-- Used by: format_failed_changes_for_tui, format_failed_changes_for_file_report, build_auto_fix_info (via auto_fix.lua)
 local function failed_hunk_counts(fc)
 	if type(fc) ~= "table" then
 		return 0, nil
 	end
-
 	local failed_count = 0
 	if type(fc.error_hunks) == "table" then
 		failed_count = #fc.error_hunks
 	end
-
-	local parsed_failed_count, parsed_total_count = parse_failed_hunk_counts_from_error_msg(fc.error_msg)
-	if failed_count == 0 and parsed_failed_count ~= nil then
-		failed_count = parsed_failed_count
-	end
-
-	local total_count = integer_or_nil(fc.total_count)
-	if total_count == nil then
-		total_count = parsed_total_count
-	end
-	if total_count ~= nil and total_count < failed_count then
-		total_count = failed_count
-	end
+	local total_count = fc.total_count
 	return failed_count, total_count
 end
 
-local function hunk_failure_count_text(failed_count, total_count)
-	if total_count ~= nil then
-		return tostring(failed_count) .. "/" .. tostring(total_count) .. " hunks"
+-- Resolves the total hunk count from a change status item.
+-- Used by: apply_changes
+local function resolve_failed_hunk_total_count(item, failed_count)
+	if type(item) ~= "table" then
+		return failed_count
 	end
-	if failed_count == 1 then
-		return "1 hunk"
+	local total = tonumber(item.total_count)
+	if total ~= nil then
+		return total
+	end
+	return failed_count
+end
+
+-- Formats a human-readable hunk failure count string.
+-- Used by: format_failed_changes_for_tui, format_failed_changes_for_file_report
+local function hunk_failure_count_text(failed_count, total_count)
+	if total_count and total_count > 0 then
+		return tostring(failed_count) .. "/" .. tostring(total_count) .. " hunks"
 	end
 	return tostring(failed_count) .. " hunks"
 end
@@ -539,7 +480,12 @@ function apply_changes(ai_content, data)
 		end
 		if changes_status.items then
 			for _, item in ipairs(changes_status.items) do
-				local f_path = aip.path.join(base_dir, item.file_path)
+				local f_path
+				if is_null(base_dir) or base_dir == "" then
+					f_path = item.file_path
+				else
+					f_path = aip.path.join(base_dir, item.file_path)
+				end
 				if item.success then
 					local status = file_change_status_letter(item.kind)
 					if status then
@@ -581,7 +527,11 @@ function apply_changes(ai_content, data)
 
 			local file_change_content = aip.md.outer_block_content_or_raw(aip.text.trim(elem.content))
 			if file_path then
-				file_path = aip.path.join(base_dir, file_path)
+				if is_null(base_dir) or base_dir == "" then
+					file_path = file_path
+				else
+					file_path = aip.path.join(base_dir, file_path)
+				end
 				if data.file_content_mode.search_replace_auto then
 					local _file_changed, changes_info = aip.file.save_changes(file_path, file_change_content)
 					if changes_info and changes_info.failed_changes then
@@ -664,5 +614,9 @@ return {
 	format_failed_changes_for_tui         = format_failed_changes_for_tui,
 	format_failed_changes_for_file_report = format_failed_changes_for_file_report,
 	apply_changes                         = apply_changes,
-	handle_failed_changes                 = handle_failed_changes
+	handle_failed_changes                 = handle_failed_changes,
+	failed_hunk_counts                    = failed_hunk_counts,
+	resolve_failed_hunk_total_count       = resolve_failed_hunk_total_count,
+	hunk_failure_count_text               = hunk_failure_count_text,
+	file_change_status_letter             = file_change_status_letter,
 }

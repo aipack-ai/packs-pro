@@ -435,6 +435,43 @@ local function get_file_content_mode(meta, write_mode)
 	return file_content_mode
 end
 
+local function build_auto_fix_state(meta, write_mode, file_content_mode, coder_workbench)
+	local auto_fix = meta.auto_fix
+	if is_null(auto_fix) then
+		auto_fix = true
+		meta.auto_fix = true
+	end
+
+	local udiffx = type(file_content_mode) == "table" and file_content_mode.udiffx == true
+	local cache_dir = nil
+	if type(coder_workbench) == "table" then
+		cache_dir = coder_workbench.cache_dir
+	end
+
+	local base_eligible = auto_fix == true and write_mode == true and udiffx == true
+	local ineligible_reason = nil
+	if auto_fix ~= true then
+		ineligible_reason = "disabled"
+	elseif write_mode ~= true then
+		ineligible_reason = "write_mode_false"
+	elseif udiffx ~= true then
+		ineligible_reason = "non_udiffx"
+	elseif is_null(cache_dir) or cache_dir == "" then
+		ineligible_reason = "missing_workbench_cache_dir"
+		base_eligible = false
+	end
+
+	return {
+		enabled = auto_fix == true,
+		write_mode = write_mode == true,
+		udiffx = udiffx,
+		cache_dir = cache_dir,
+		base_eligible = base_eligible,
+		eligible = base_eligible,
+		ineligible_reason = ineligible_reason
+	}
+end
+
 -- Loads the appropriate Markdown templates for file changes and git commit suggestions.
 -- Git commit suggestions prefer prompt-local user templates with bundled fallback.
 local function prepare_instructions(file_content_mode, suggest_git_commit, udiffx_inst_debug, prompt_dir)
@@ -477,6 +514,7 @@ local function build_input_base(params)
 		max_files_size_kb                  = meta.max_files_size_kb or CONST.DEFAULT_MAX_FILES_SIZE_KB,
 		write_mode                         = params.write_mode,
 		file_content_mode                  = params.file_content_mode,
+		auto_fix                           = params.auto_fix,
 		prompt_file_rel_path               = params.prompt_file_rel_path,
 		default_language                   = meta.default_language or "Python",
 		knowledge_refs                     = params.knowledge_refs,
@@ -773,6 +811,7 @@ function run_before_all(inputs)
 	-- === Compute file_content_mode
 	local file_content_mode, err = get_file_content_mode(meta, write_mode)
 	if err then return nil, nil, err end
+	local auto_fix = build_auto_fix_state(meta, write_mode, file_content_mode, coder_workbench)
 
 	-- Clean up pinned and normalized workbench keys from meta before downstream use
 	meta.context_globs_pre = nil
@@ -804,6 +843,7 @@ function run_before_all(inputs)
 		attachments                        = attachments,
 		write_mode                         = write_mode,
 		file_content_mode                  = file_content_mode,
+		auto_fix                           = auto_fix,
 		prompt_file_rel_path               = paths.prompt_file_rel_path,
 		knowledge_refs                     = knowledge_refs,
 		knowledge_refs_pre                 = knowledge_refs_pre,
