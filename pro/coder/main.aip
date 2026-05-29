@@ -274,10 +274,6 @@ if output_base then
 							label = CONST.LABEL_COMPLETED,
 							content = auto_fix_completed_msg
 						})
-						aip.task.pin("completed", 0, {
-							label = CONST.LABEL_COMPLETED,
-							content = auto_fix_completed_msg
-						})
 					end
 				end
 				if type(remaining_failed_changes) == "table" and #remaining_failed_changes > 0 then
