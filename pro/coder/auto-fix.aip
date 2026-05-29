@@ -175,6 +175,9 @@ _second_part, files_changed, files_changes_failed, file_changes_status =
 	u_output.apply_changes(auto_fix_content, apply_data)
 
 -- Update the auto-fix pin (task and run scope) with the completion state.
+-- Note: this sub-agent only drives the auto-fix run pin (`auto_fix_files`). The consolidated
+-- main run status pin (`completed_run`) is owned by `run_auto_fix_loop` in auto_fix.lua, which
+-- is the single source of truth for the main `Coding ▶▶▶▶:` status.
 local pin_content = u_auto_fix.build_auto_fix_pin_content(files_changed, files_changes_failed)
 if pin_content ~= nil and pin_content ~= "" then
 	aip.run.pin("auto_fix_files", 2, { label = "Auto-Fix:", content = pin_content })
