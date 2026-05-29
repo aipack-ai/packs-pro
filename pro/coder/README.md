@@ -391,15 +391,32 @@ _since v0.6.0_
 
 Automatically attempts to repair failed `udiffx` hunk applications before post-stage sub-agents run.
 
-- **Values**: `true` (default), `false`, or a model name string (e.g., `"flash"`).
-- **Model Resolution**: If `true`, the model is resolved from `auto_context` (`auto_context.code_map_model` if set, otherwise the `auto_context.model`). If `auto_context` is disabled, it falls back to the coder model.
-- **Eligibility**: Runs up to 3 times when `write_mode` is `true`, `file_content_mode` is `udiffx`, there is a single-task run, and at least one hunk failure occurs.
+- **Values**: `true` (default), `false`, a model name string (e.g., `"flash"`), or a table with optional `model` and `max_retries` fields.
+
+- **Model Resolution**: 
+  - If `true`, the model is resolved from `auto_context` (`auto_context.code_map_model` if set, otherwise the `auto_context.model`). 
+  - If `auto_context` is disabled, it falls back to the coder model.
+  -  When a string value is given, it is used directly. 
+  - When a table is used and includes a `model` field, that model is used; otherwise the same fallback as `true` applies.
+
+- **Retries**: Default max retries is 3. Can be overridden via `max_retries` in a table configuration.
+  0 **Eligibility**: Runs up to the configured max retries when `write_mode` is `true`, `file_content_mode` is `udiffx`, there is a single-task run, and at least one hunk failure occurs.
+
 - **Behavior**: Successfully repaired changes clear the failure state. If retries are exhausted, it falls back to normal failure warning and reporting.
 
-Example:
+Examples:
 
 ```yaml
-auto_fix: true # default; set to false to disable built-in udiffx repair
+auto_fix: "mini" # defaulttrue ; set to false, or to model name. 
+
+# or 
+auto_fix:
+  model: "flash"
+  max_retries: 5
+
+# or with max_retries and same default model logic. 
+auto_fix:
+  max_retries: 5
 ```
 
 #### write_mode

@@ -157,7 +157,11 @@ if base.coder_workbench then
 end
 base.workbench_context_describe = wb_context_desc
 
-base.auto_fix = u_auto_fix.resolve_auto_fix_config(base.auto_fix)
+local raw_auto_fix = base.auto_fix
+if type(base.coder_params) == "table" and not is_null(base.coder_params.auto_fix) then
+	raw_auto_fix = base.coder_params.auto_fix
+end
+base.auto_fix = u_auto_fix.resolve_auto_fix_config(raw_auto_fix, base)
 
 if type(base.auto_fix) == "table" then
 	local single_task = input.single_task == true

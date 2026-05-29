@@ -4,7 +4,7 @@
 local u_output = require("utils_output")
 
 -- Resolves the auto_fix configuration by normalizing different types.
-local function resolve_auto_fix_config(cfg)
+local function resolve_auto_fix_config(cfg, env)
 	local resolved = {
 		enabled = false,
 		model = nil,
@@ -28,7 +28,19 @@ local function resolve_auto_fix_config(cfg)
 	end
 
 	if resolved.base_eligible == nil then
-		resolved.base_eligible = resolved.enabled
+		if type(env) == "table" then
+			local has_cache = false
+			if type(env.coder_workbench) == "table" and not is_null(env.coder_workbench.cache_dir) and env.coder_workbench.cache_dir ~= "" then
+				has_cache = true
+			end
+			resolved.base_eligible = resolved.enabled == true
+				and env.write_mode == true
+				and type(env.file_content_mode) == "table"
+				and env.file_content_mode.udiffx == true
+				and has_cache
+		else
+			resolved.base_eligible = resolved.enabled
+		end
 	end
 
 	return resolved
