@@ -35,10 +35,10 @@ local function resolve_auto_fix_config(cfg, env)
 				has_cache = true
 			end
 			resolved.base_eligible = resolved.enabled == true
-				and env.write_mode == true
-				and type(env.file_content_mode) == "table"
-				and env.file_content_mode.udiffx == true
-				and has_cache
+					and env.write_mode == true
+					and type(env.file_content_mode) == "table"
+					and env.file_content_mode.udiffx == true
+					and has_cache
 		else
 			resolved.base_eligible = resolved.enabled
 		end
@@ -478,6 +478,22 @@ local function resolve_deferred_failed_changes(coder_response, base_dir)
 	end
 
 	return {}
+end
+
+-- Totals the failed hunk count across a list of failed change items.
+-- Used by: run_auto_fix_loop
+local function count_failed_hunks(files_changes_failed)
+	local total = 0
+	if type(files_changes_failed) ~= "table" then
+		return total
+	end
+	for _, fc in ipairs(files_changes_failed) do
+		local failed_count = u_output.failed_hunk_counts(fc)
+		if type(failed_count) == "number" then
+			total = total + failed_count
+		end
+	end
+	return total
 end
 
 local function update_auto_fix_completion_pin(auto_fix_result)
