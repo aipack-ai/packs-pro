@@ -274,9 +274,6 @@ if output_base then
 						-- with the auto-fix label (State 3 / State 4), overriding the `Coding Done:`
 						-- pin set by `# Output`. Otherwise keep the default completed label.
 						local completed_label = CONST.LABEL_COMPLETED
-						if tonumber(auto_fix_result.attempts or 0) > 0 then
-							completed_label = CONST.LABEL_COMPLETED_AUTO_FIX
-						end
 						aip.run.pin("completed_run", 0, {
 							label = completed_label,
 							content = auto_fix_completed_msg
