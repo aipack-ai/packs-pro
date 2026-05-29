@@ -232,12 +232,94 @@ function build_auto_fix_completion_response(files_changed, files_changes_failed,
 		end
 	end
 
+	local summary_line = build_auto_fix_summary_line(data)
+	if summary_line ~= nil then
+		response = response .. "\n\n" .. summary_line
+		if #files_changes_failed > 0 then
+			local remaining_lines = {}
+			local remaining_file_count = 0
+			for _, fc in ipairs(files_changes_failed) do
+				if type(fc) == "table" and not is_null(fc.path) and fc.path ~= "" then
+					local failed_count = u_output.failed_hunk_counts(fc)
+					remaining_file_count = remaining_file_count + 1
+					local hunk_txt = failed_count == 1 and "1 failed hunk" or (tostring(failed_count) .. " failed hunks")
+					table.insert(remaining_lines, "→ " .. fc.path .. " (" .. hunk_txt .. ")")
+				end
+			end
+			if #remaining_lines > 0 then
+				response = response .. "\n\n❗ Still fail - fixing " .. remaining_file_count .. " files\n"
+				response = response .. table.concat(remaining_lines, "\n")
+			end
+		end
+	end
+
 	if type(data) == "table" and data.prompt_file_rel_path then
 		response = response .. "\n\nCheck prompt file for more AI answer. Prompt file:"
 		response = response .. "\n→ " .. data.prompt_file_rel_path
 	end
 
 	return response
+end
+
+-- Builds the in-progress consolidated `completed_run` content for an auto-fix attempt (State 2).
+-- Renders the changed-files report with a `▶▶` prefix instead of `✅`, then appends a
+-- `❗ auto-fix N - fixing F files` section listing each current failing file with its hunk count.
+-- Used by: run_auto_fix_loop
+function build_inprogress_coding_content(files_changed, attempt_num, current_failed_changes)
+	files_changed = type(files_changed) == "table" and files_changed or {}
+	current_failed_changes = type(current_failed_changes) == "table" and current_failed_changes or {}
+
+	local response = "▶▶ "
+	if #files_changed == 0 then
+		response = response .. "No File changed."
+	else
+		local change_report = u_output.build_changed_files_report(files_changed)
+		if change_report and not is_null(change_report) then
+			response = response .. change_report.header .. "\n"
+			response = response .. table.concat(change_report.lines, "\n")
+		end
+	end
+
+	if #current_failed_changes > 0 then
+		local lines = {}
+		local file_count = 0
+		for _, fc in ipairs(current_failed_changes) do
+			if type(fc) == "table" and not is_null(fc.path) and fc.path ~= "" then
+				local failed_count = u_output.failed_hunk_counts(fc)
+				file_count = file_count + 1
+				local hunk_txt = failed_count == 1 and "1 failed hunk" or (tostring(failed_count) .. " failed hunks")
+				table.insert(lines, "→ " .. fc.path .. " (" .. hunk_txt .. ")")
+			end
+		end
+		if #lines > 0 then
+			response = response .. "\n\n❗ auto-fix " .. tostring(attempt_num) .. " - fixing " .. file_count .. " files\n"
+			response = response .. table.concat(lines, "\n")
+		end
+	end
+
+	return response
+end
+
+-- Builds the `(N auto-fixes: F files, H hunks)` summary line from the aggregate counters
+-- carried on auto_fix_result. Returns nil when no auto-fix attempt produced any fix (N == 0).
+-- Used by: build_auto_fix_completion_response, run_auto_fix_loop
+function build_auto_fix_summary_line(auto_fix_result)
+	if type(auto_fix_result) ~= "table" then
+		return nil
+	end
+
+	local attempts_with_fixes = tonumber(auto_fix_result.auto_fix_attempts_with_fixes) or 0
+	if attempts_with_fixes == 0 then
+		return nil
+	end
+
+	local files_fixed = tonumber(auto_fix_result.auto_fix_files_fixed) or 0
+	local hunks_fixed = tonumber(auto_fix_result.auto_fix_hunks_fixed) or 0
+
+	local files_txt = files_fixed == 1 and "1 file" or (tostring(files_fixed) .. " files")
+	local hunks_txt = hunks_fixed == 1 and "1 hunk" or (tostring(hunks_fixed) .. " hunks")
+
+	return "(" .. attempts_with_fixes .. " auto-fixes: " .. files_txt .. ", " .. hunks_txt .. ")"
 end
 
 -- Determines whether to defer immediate failure reporting so auto-fix can run first.
@@ -452,7 +534,10 @@ function run_auto_fix_loop(coder_response, report_data, coder_workbench, options
 		files_changed = all_files_changed,
 		file_changes_status = build_auto_fix_file_changes_status(all_files_changed, failed_changes),
 		remaining_failed_changes = failed_changes,
-		attempts = 0
+		attempts = 0,
+		auto_fix_attempts_with_fixes = 0,
+		auto_fix_files_fixed = 0,
+		auto_fix_hunks_fixed = 0
 	}
 
 	local coder_model = nil
@@ -625,6 +710,8 @@ return {
 	collect_successful_changes_from_status = collect_successful_changes_from_status,
 	build_auto_fix_file_changes_status = build_auto_fix_file_changes_status,
 	build_auto_fix_completion_response = build_auto_fix_completion_response,
+	build_inprogress_coding_content = build_inprogress_coding_content,
+	build_auto_fix_summary_line = build_auto_fix_summary_line,
 	should_defer_failed_changes = should_defer_failed_changes,
 	build_failed_changes_from_status = build_failed_changes_from_status,
 	build_auto_fix_info = build_auto_fix_info,
