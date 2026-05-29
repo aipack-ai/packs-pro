@@ -1,5 +1,7 @@
 # Built-In Auto-Fix for Udiffx Failures (Implementation Spec)
 
+**Status**: Implemented (since v0.6.0)
+
 ## Intent
 
 Define the built-in `pro@coder` auto-fix feature that automatically attempts to repair failed `udiffx` file change applications before the normal post-stage sub-agent flow runs.

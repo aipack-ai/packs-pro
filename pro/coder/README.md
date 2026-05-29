@@ -387,7 +387,7 @@ Typically, leave this out to use the default.
 
 #### auto_fix
 
-_since v0.4.0_
+_since v0.6.0_
 
 Automatically attempts to repair failed `udiffx` hunk applications before post-stage sub-agents run.
 
