@@ -161,7 +161,9 @@ write_mode: true
 
 ## Automatically attempt to repair failed udiffx hunks before post-stage sub-agents (default true)
 ## Set to false to disable, or provide a model name string to use a specific model for auto-fix
-## First implementation only applies to udiffx, write_mode: true, and single-task runs
+## When true with no explicit model, uses auto_context model (code_map_model or model) if available,
+## falling back to the coder model. First implementation only applies to udiffx, write_mode: true,
+## and single-task runs
 auto_fix: true  # or false, or "gpt-5-mini" to use a specific model
 
 ## MODEL: Here you can use any full model name or model aliases defined above and in the config.toml
@@ -387,51 +389,18 @@ Typically, leave this out to use the default.
 
 _since v0.4.0_
 
-Enables a built-in auto-fix step that automatically attempts to repair failed `udiffx` hunk applications before user post-stage sub-agents run.
+Automatically attempts to repair failed `udiffx` hunk applications before post-stage sub-agents run.
 
- `auto_fix` defaults to `true`. May also be set to a model name string to use a specific model for auto-fix (e.g., `auto_fix: "flash"`).
-- When eligible, `pro@coder` runs a built-in `pro@coder/auto-fix` agent that reads the latest failure diagnostics and asks the model for corrected `<FILE_CHANGES>`. The returned response is applied through the same existing file change apply path.
-- Auto-fix retries up to 3 times. Each retry uses only the latest normalized failure diagnostics.
-
-Auto-fix runs only when all eligibility checks pass:
-
- `auto_fix` evaluates to enabled (boolean `true` or a model name string)
-- `write_mode == true`
-- `file_content_mode` is `udiffx`
-- the coder run has a single task response (no multi-task `working_globs`)
-- at least one `udiffx` hunk apply failure occurred
-
-Defaulting `auto_fix` to `true` does not make a run eligible by itself; all the checks above must also pass.
-
-Diagnostics for the latest failure are written under the resolved workbench cache directory and overwritten on each attempt:
-
-- `$coder_workbench.cache_dir/auto-fix/last_udiffx_fail_reports.md`
-- `$coder_workbench.cache_dir/auto-fix/last_udiffx_fail_info.json`
-
-Behavior summary:
-
-- **Disabled** (`auto_fix: false` or not set): failed hunks immediately use the existing warning and failure report behavior.
-- **Eligible success**: the failure state is repaired before post-stage sub-agents receive the final coder responses.
-- **Retry exhaustion** (after 3 failed attempts): the existing failure warning and `last_file_change_fails_report.md` behavior is used, based on the latest failure report.
-- **Non-udiffx** (`whole` or `search_replace_auto`): auto-fix is skipped and current failure behavior is preserved.
-- **Multi-task** (`working_globs` producing more than one task): auto-fix is skipped in this first implementation and current failure behavior is preserved.
+- **Values**: `true` (default), `false`, or a model name string (e.g., `"flash"`).
+- **Model Resolution**: If `true`, the model is resolved from `auto_context` (`auto_context.code_map_model` if set, otherwise the `auto_context.model`). If `auto_context` is disabled, it falls back to the coder model.
+- **Eligibility**: Runs up to 3 times when `write_mode` is `true`, `file_content_mode` is `udiffx`, there is a single-task run, and at least one hunk failure occurs.
+- **Behavior**: Successfully repaired changes clear the failure state. If retries are exhausted, it falls back to normal failure warning and reporting.
 
 Example:
 
 ```yaml
 auto_fix: true # default; set to false to disable built-in udiffx repair
 ```
-
-##### Manual validation checklist
-
-Use a `udiffx`, `write_mode: true`, single-task setup with a workbench enabled, and intentionally produce a failing hunk to validate:
-
-- **Disabled**: with `auto_fix: false`, a failed hunk produces the same warning and report as before, and no auto-fix run occurs.
-- **Successful repair**: with default `auto_fix: true`, a failing hunk that the model can correct is repaired before post-stage sub-agents run, and the final report shows success.
-- **Retry exhaustion**: a hunk that cannot be repaired retries no more than 3 times, then falls back to the existing failure warning and `last_file_change_fails_report.md`.
-- **Non-udiffx failure**: with `file_content_mode: search_replace_auto` (or `whole`), a failed change keeps current failure behavior and does not enter auto-fix.
-- **Multi-task skip**: with `working_globs` producing more than one task, a failed hunk keeps current failure behavior and does not enter auto-fix.
-- **Diagnostics overwrite**: confirm `last_udiffx_fail_reports.md` and `last_udiffx_fail_info.json` under `$coder_workbench.cache_dir/auto-fix/` are overwritten on each failed attempt.
 
 #### write_mode
 
@@ -485,177 +454,61 @@ auto_context:
   helper_globs:               # Files to help select relevant context files
     - .aipack/.prompt/pro@coder/dev/plan/*.md
 ```
-
 #### workbench
 
-First-class `pro@coder` runtime feature that enables a workbench with integrated capabilities for `chat`, `plan`, and `spec`. It automatically manages these files and wires them into the prompt context, so there is no need to manually add them to `context_globs`.
+First-class `pro@coder` feature that enables an integrated workbench for managing task context using `chat.md`, `plan.md`, and `spec.md` files, plus task-specific raw files under a `data/` folder.
 
-Behavior:
-- Workbench initializes before the `start` event, so user sub-agents and auto-context receive resolved workbench state when workbench is enabled.
-- Because it runs before the `start` event, workbench configuration is effectively final for the duration of the run; sub-agents cannot customize the workbench setup for the current execution.
-- `chat` ensures the dev chat markdown file exists, appends its path to `context_globs_post` (deduped), and appends the generated cached chat rules file to `knowledge_globs_post` (deduped).
-- `plan` ensures `plan.md` exists in the plan directory, appends the generated cached plan rules file to `knowledge_globs_post` (deduped), and appends `plan.md` to `context_globs_post` (deduped).
-- `spec` ensures the resolved spec context file exists, appends the generated cached spec rules file to `knowledge_globs_post` (deduped), and appends the resolved spec context file path to `context_globs_post` (deduped).
-- `data` is enabled by default when workbench is enabled; set `data: false` to disable it.
-- Enabled workbench data ensures the workbench data directory exists. When auto-context is enabled, data files can be summarized through the existing code-map agent and selected from generated descriptions.
-- Enabled workbench content files are also added as auto-context helper files, so chat, plan, and spec context can guide auto-context selection.
-- Sub-agents receive the resolved runtime state at `input.coder_workbench`.
-- After the normal `start` event, `pro@coder` dispatches `workbench::done` so sub-agents can subscribe when they need resolved workbench state.
-- If all capabilities are disabled, including `data`, workbench is effectively disabled and does not modify params.
-- Legacy root `dev` is still accepted and normalized to `workbench`. If both are present, `workbench` wins.
-- Explicit `sub_agents` entries named `pro@coder/workbench` or `pro@coder/dev` are not supported. Configure workbench through the root `workbench:` block instead.
+By default, the workbench files are created in a `workbench-default/` directory next to your `coder-prompt.md` file.
 
-Current shape:
-- **A table**:
-  - `workbench.chat`
-  - `workbench.plan`
-  - `workbench.spec`
-  - `workbench.data`
-
-Supported `workbench.chat` values:
-- **A boolean**:
-  - `true`: Enable with default path.
-  - `false`: Disable chat.
-- **A string**: Path to the dev chat file.
-- **A table**: `enabled`, `path`, and future-safe extra keys.
-
-Supported `workbench.plan` values:
-- **A boolean**:
-  - `true`: Enable with the default directory.
-  - `false`: Disable plan.
-- **A string**: Path to the plan directory, or a `.md` file path whose parent directory will be used as the plan directory.
-- **A table**: `enabled`, `dir`, and future-safe extra keys.
-
-Supported `workbench.spec` values:
-- **A boolean**:
-  - `true`: Enable with the default path.
-  - `false`: Disable spec.
-- **A string**: Path to the spec directory, or to the spec file.
-- **A table**: `enabled`, `path`, and future-safe extra keys.
-
-Supported `workbench.data` values:
-- **A boolean**:
-  - `true`: Enable the workbench data directory.
-  - `false`: Disable workbench data.
-- If omitted, workbench data defaults to enabled when workbench is enabled.
-
-A defined `workbench:` table enables workbench by default, even when it only defines shared properties such as `dir`. For example:
+To configure the workbench, use simple boolean switches in your configuration block:
 
 ```yaml
 workbench:
-  dir: _workbench/my-feature
+  dir: string  # Dir path relative (default in pro@coder/workbench-default)
+  chat: true   # Enables chat.md (default false)
+  plan: true   # Enables plan.md (default false)
+  spec: false  # Enables spec.md (default false)
 ```
 
-With this configuration, workbench data is enabled by default and the runtime creates:
+There is also a `worbkench.data` to turn off data (by default data folder is on), but it is not recommend to use it. Do not set this property. 
 
-```text
-_workbench/my-feature/data/
-```
-
-Set `workbench.data: false` to disable data directory creation and workbench data flow.
-
-When workbench data is enabled, the resolved `coder_workbench.data_dir` is created under the workbench directory. Auto-context can then summarize matching data files through the same existing `pro@coder/code-map` agent run used for context and knowledge maps.
-
-Workbench data uses the same workspace-relative path model as normal context files. The default candidate glob is derived from the resolved workbench directory:
-
-```text
-$workbench_dir/data/**/*.*
-```
-
-For example, a workbench directory of `_workbench/with-adapter` produces `_workbench/with-adapter/data/**/*.*`.
-
-If the data directory is empty, no data files are summarized into code maps, selected by auto-context, shown as workbench data content in pins, or added to the final prompt context.
-
-Auto-context data selection is runtime state returned by the auto-context sub-agent, not a user-facing `coder_params.workbench_data_globs` parameter. If auto-context makes no data decision, the main coder flow can default to all enabled workbench data files. If auto-context returns an empty data selection, no workbench data files are sent. If it returns selected files, only those workspace-relative files are sent.
-
-### Default Workbench Behavior
-
-`pro@coder` provides an out-of-the-box workbench. By default, helper files are organized in a `workbench-default/` directory located in the same folder as your `coder-prompt.md` (the prompt's directory).
-
-- **`workbench.dir`**: Defines a custom shared workbench directory. If omitted, it defaults to `workbench-default/` relative to the prompt file.
-- **Explicit Paths**: If `path` or `dir` is provided for a specific capability (chat, plan, or spec), it takes precedence over the shared `dev.dir`.
-- **Auto-Creation**: Files and directories are created only for enabled capabilities. Enabled workbench data may create the `data/` directory by default. If the directory is empty, it does not add files to code maps, workbench data pins, or prompt context. For example, if `dev.plan` is `false`, no plan files are created in the workbench.
-
-Examples:
+You can customize the directory where these files are stored:
 
 ```yaml
 workbench:
+  dir: .workbench/my-feature
   chat: true
   plan: true
-  spec: true
-  # data is enabled by default; set data: false to disable it
 ```
 
-This resolves to a flat layout:
+##### Workbench Data Shape
 
-- `.aipack/.prompt/pro@coder/workbench-default/chat.md`
-- `.aipack/.prompt/pro@coder/workbench-default/plan.md`
-- `.aipack/.prompt/pro@coder/workbench-default/spec.md`
-- `.aipack/.prompt/pro@coder/workbench-default/data/`
+For sub-agent development, the resolved workbench state is provided in `input.coder_workbench`:
 
-Workbench rules are generated under the workbench cache directory:
-
-- `.aipack/.prompt/pro@coder/workbench-default/.cache/_chat-rules.md`
-- `.aipack/.prompt/pro@coder/workbench-default/.cache/_plan-rules.md`
-- `.aipack/.prompt/pro@coder/workbench-default/.cache/_spec-rules.md`
-
-These cached rules are seeded from prompt-local `user-templates/` files and are not overwritten once created.
-
-Default path when `workbench.chat.path` is omitted:
-
-`$coder_prompt_dir/workbench-default/chat.md`
-
-Default directory when `workbench.plan.dir` is omitted:
-
-`$coder_prompt_dir/workbench-default`
-
-Default spec file path when `workbench.spec.path` is omitted:
-
-`$coder_prompt_dir/workbench-default/spec.md`
-
-Default data directory when workbench data is enabled:
-
-`$coder_prompt_dir/workbench-default/data`
-
-When auto-context processes workbench data, generated artifacts use the workbench cache directory:
-
-- `<workbench-cache-dir>/code-map/data-code-map.json`
-- `<workbench-cache-dir>/auto-context/last_data_file_descriptions.md`
-
-Diagnostics are split by stage:
-
-- Detected data files and mapped data descriptions are reported in `<workbench-cache-dir>/auto-context/last_data_file_descriptions.md`.
-- Selected data files are reported by the auto-context status pins.
-- Final data files sent to the main AI are reported in `last_prompt_file_paths.md`.
-
-For string/table path values, relative paths are passed through unchanged.
-
-Plan path handling details:
-
-- `workbench.plan: "some/dir"` resolves to `some/dir`.
-- `workbench.plan: "some/file.md"` resolves to `some` (parent directory).
-- `workbench.plan: "plan.md"` resolves to `.`.
-- Trailing slashes are normalized.
-- For table mode, `workbench.plan.dir` must be a directory path, `.md` file paths are rejected with a validation error.
-When `workbench.plan.dir` is omitted, the plan directory resolves directly to the shared workbench root, so `plan.md` lives flat in that directory. The generated plan rules file lives under the workbench `.cache/` directory.
-
-Example:
-
-Spec path handling details:
-
-- `workbench.spec: "some/dir"` resolves context to `some/dir/spec.md` and generated rules under the workbench `.cache/` directory.
-- `workbench.spec: "some/spec.md"` resolves context to `some/spec.md` and generated rules under the workbench `.cache/` directory.
-- `workbench.spec: "spec.md"` resolves context to `spec.md` and generated rules under the workbench `.cache/` directory.
-- Trailing slashes are normalized.
-- When `workbench.spec.path` is a file path, it is treated as the spec context file, not the rules file.
-- When enabled, `pro@coder/workbench` also ensures a blank `spec.md` exists at the resolved context path.
-- When `workbench.dir` is set and `workbench.spec` is `true`, spec context resolves to `workbench.dir/spec.md` and generated rules resolve under `workbench.dir/.cache/`.
-
-Spec file auto-context behavior:
-
-- The resolved spec context file path is appended to `context_globs_post` when missing.
-- The rules file path is appended to `knowledge_globs_post` when missing.
-- The sub-agent returns the spec context file path in `agent_result.workbench_content_globs`, and also preserves `agent_result.dev_content_globs` for compatibility, so downstream helper-aware sub-agents can consume it without depending on config internals.
+```ts
+type CoderWorkbench = {
+  dir: string,
+  cache_dir: string,
+  prompt_cache_dir: string,
+  data_dir?: string,
+  chat?: {
+    enabled: boolean,
+    path: string,
+  },
+  plan?: {
+    enabled: boolean,
+    dir: string,
+    path: string,
+    rules_path: string,
+  },
+  spec?: {
+    enabled: boolean,
+    path: string,
+    rules_path: string,
+    context_path: string,
+  },
+}
+```
 
 For string or table values, relative paths are resolved relative to the workspace root unless they are absolute or use pack references.
 
@@ -900,69 +753,9 @@ This is an advanced feature intended for orchestrating multi-agent flows and sho
 For `post`, `sub_agents_prev` contains only earlier `post` executions from that same stage run, not the prior `pre` history.
 
 ## Builtin Sub Agents
-
 ### Workbench runtime integration
 
-Workbench is configured through the root `workbench:` block, not through `sub_agents`.
-
-```yaml
-workbench:
-  dir: .aipack/.prompt/pro@coder/workbench-default
-  chat: true
-  plan: true
-  spec: true
-  data: true
-
-# or use a custom directory for all workbench files
-workbench:
-  dir: _workbench/my-feature-a
-  chat: true
-  plan: true
-  spec: true
-
-# or enable the workbench with only a custom directory
-# data is enabled by default unless data: false is set
-workbench:
-  dir: _workbench/my-feature
-
-# or set individual paths
-workbench:
-  chat: .aipack/.prompt/pro@coder/workbench-default/chat.md
-  plan: .aipack/.prompt/pro@coder/workbench-default
-  spec: .aipack/.prompt/pro@coder/workbench-default/spec.md
-
-# or use table mode
-workbench:
-  chat:
-    enabled: true
-    path: .aipack/.prompt/pro@coder/workbench-default/chat.md
-  plan:
-    enabled: true
-    dir:  .aipack/.prompt/pro@coder/workbench-default
-  spec:
-    enabled: true
-    path: .aipack/.prompt/pro@coder/workbench-default/spec.md
-```
-
-- `workbench.chat: true` enables chat with the default path.
-- `workbench.plan: true` enables plan with the default directory.
-- `workbench.spec: true` enables spec with the default path.
-- Workbench data is enabled by default and allows auto-context to select data files from generated descriptions; set `workbench.data: false` to disable it.
-- A defined `workbench:` table enables workbench by default. If only `dir` is set, the runtime still enables workbench data and creates the `data/` directory under that workbench directory.
-- `workbench.dir` sets a shared fallback directory for boolean `true` usage and table configs that omit their own path or dir.
-- When `workbench.dir` is omitted, the shared fallback directory defaults to `$coder_prompt_dir/workbench-default`.
-- A string sets the corresponding directory directly for plan, while spec strings can be either a directory or the spec file path.
-- A table maps to the chat, plan, or spec config shape.
-- If all capabilities are disabled via table config (`enabled: false`) and `workbench.data` is `false`, workbench is disabled.
-- For table mode, `workbench.plan.dir` is strict and must be a directory path.
-- Legacy root `dev:` config is still accepted and normalized to the canonical workbench surface.
-- Explicit `sub_agents` entries named `pro@coder/workbench` or `pro@coder/dev` fail with a clear error. Root `workbench:` is the supported configuration surface.
-
-Workbench runs before the `start` event, so all pre-stage sub-agents, including auto-context, can receive `input.coder_workbench` when workbench is enabled. The resolved chat, plan, and spec context files are also added as auto-context helper files. After the normal `start` event, `pro@coder` dispatches `workbench::done` for sub-agents that need to react after the regular start-stage pipeline has seen resolved workbench state.
-
-Workbench chat, plan, and spec rules are generated into the workbench `.cache/` directory from prompt-local `user-templates/` files. The visible workbench root keeps user-facing content files such as `chat.md`, `plan.md`, and `spec.md`; generated rule files are added to knowledge from cache paths.
-
-When `workbench.data` is enabled, auto-context uses the existing code-map agent run to include an additional data named map. The map is written to `<workbench-cache-dir>/code-map/data-code-map.json`, and the data descriptions cache is written to `<workbench-cache-dir>/auto-context/last_data_file_descriptions.md`. The data descriptions are then used for workbench data selection, rather than adding a separate data-specific code-map sub-agent. The selected workbench data files are returned as runtime sub-agent result state and consumed by the main before-all flow.
+The workbench is configured through the root `workbench:` block in your parameters rather than the `sub_agents` list. See [workbench](#workbench) in the parameters list for full details.
 
 Selected workbench data files are returned by auto-context via `workbench_data_globs` (using context-style relative paths) and are automatically merged into the final coder context by the main agent during prompt assembly.
 
@@ -1240,61 +1033,5 @@ workbench:
 You can then prompt the agent with requests such as:
 
 - `Following the spec rules, create or update the project spec for ...`
-- `Following the spec and the current plan, implement the next step`
-
-
-## Workbench Data Manual Validation
-
-If no automated test harness is available, validate the simplified workbench data flow manually with a small workbench directory.
-
-Recommended setup:
-
-```yaml
-base_dir: ""
-auto_context:
-  model: flash
-  enabled: true
-workbench:
-  dir: _workbench/with-adapter
-  chat: false
-  plan: false
-  spec: false
-  data: true
-```
-
-Create one or more data files under:
-
-```text
-_workbench/with-adapter/data/
-```
-
-Validation checklist:
-
-- Run a prompt that clearly needs one of the data files, for example a summary request for a named PR stored in the data directory.
-
-- Confirm the data code-map exists at:
-
-  ```text
-  _workbench/with-adapter/.cache/code-map/data-code-map.json
-  ```
-
-- Confirm data code-map keys use workspace-relative paths, for example:
-
-  ```text
-  _workbench/with-adapter/data/pr-212-description.md
-  ```
-
-- Confirm the data descriptions cache exists at:
-
-  ```text
-  _workbench/with-adapter/.cache/auto-context/last_data_file_descriptions.md
-  ```
-
-- Confirm the data descriptions cache reports detected and mapped data counts, and includes mapped descriptions when matching data files exist.
-
-- Confirm an empty auto-context data selection results in no workbench data files in the main prompt.
-
-- Confirm disabling auto-context, while keeping `workbench.data: true`, defaults to all workbench data files.
-
 - Confirm selected data files appear under the workbench data section in `last_prompt_file_paths.md`.
 
