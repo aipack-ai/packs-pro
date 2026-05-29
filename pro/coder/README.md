@@ -391,6 +391,18 @@ _since v0.6.0_
 
 Automatically attempts to repair failed `udiffx` hunk applications before post-stage sub-agents run.
 
+Customization Example. (note: it is turned on by default)
+
+```yaml
+auto_fix: false # disabled. By default true (so active is omitted)
+
+auto_fix: mini  # by default auto-context lowest model, or coder model. Can be fixed to any model
+
+auto_fix:
+  model: lite
+  max_retries: 5 # by default 3
+```
+
 - **Values**: `true` (default), `false`, a model name string (e.g., `"flash"`), or a table with optional `model` and `max_retries` fields.
 
 - **Model Resolution**: 
@@ -404,20 +416,6 @@ Automatically attempts to repair failed `udiffx` hunk applications before post-s
 
 - **Behavior**: Successfully repaired changes clear the failure state. If retries are exhausted, it falls back to normal failure warning and reporting.
 
-Examples:
-
-```yaml
-auto_fix: "mini" # defaulttrue ; set to false, or to model name. 
-
-# or 
-auto_fix:
-  model: "flash"
-  max_retries: 5
-
-# or with max_retries and same default model logic. 
-auto_fix:
-  max_retries: 5
-```
 
 #### write_mode
 
