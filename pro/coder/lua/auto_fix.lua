@@ -408,8 +408,12 @@ function run_auto_fix_loop(coder_response, report_data, coder_workbench, options
 	}
 
 	local coder_model = nil
-	if type(report_data) == "table" and type(report_data.coder_params) == "table" then
-		coder_model = report_data.coder_params.model
+	if type(report_data) == "table" then
+		if type(report_data.auto_fix) == "table" and type(report_data.auto_fix.model) == "string" and report_data.auto_fix.model ~= "" then
+			coder_model = report_data.auto_fix.model
+		elseif type(report_data.coder_params) == "table" then
+			coder_model = report_data.coder_params.model
+		end
 	end
 
 	for _attempt = 1, max_retries do

@@ -442,15 +442,26 @@ local function build_auto_fix_state(meta, write_mode, file_content_mode, coder_w
 		meta.auto_fix = true
 	end
 
+	-- Determine auto_fix enabled and optional custom model.
+	-- When auto_fix is a string, it is enabled and the string is the model name to use.
+	local auto_fix_enabled = false
+	local auto_fix_model = nil
+	if type(auto_fix) == "string" then
+		auto_fix_enabled = true
+		auto_fix_model = auto_fix
+	elseif auto_fix == true then
+		auto_fix_enabled = true
+	end
+
 	local udiffx = type(file_content_mode) == "table" and file_content_mode.udiffx == true
 	local cache_dir = nil
 	if type(coder_workbench) == "table" then
 		cache_dir = coder_workbench.cache_dir
 	end
 
-	local base_eligible = auto_fix == true and write_mode == true and udiffx == true
+	local base_eligible = auto_fix_enabled and write_mode == true and udiffx == true
 	local ineligible_reason = nil
-	if auto_fix ~= true then
+	if not auto_fix_enabled then
 		ineligible_reason = "disabled"
 	elseif write_mode ~= true then
 		ineligible_reason = "write_mode_false"
@@ -462,7 +473,8 @@ local function build_auto_fix_state(meta, write_mode, file_content_mode, coder_w
 	end
 
 	return {
-		enabled = auto_fix == true,
+		enabled = auto_fix_enabled,
+		model = auto_fix_model,
 		write_mode = write_mode == true,
 		udiffx = udiffx,
 		cache_dir = cache_dir,

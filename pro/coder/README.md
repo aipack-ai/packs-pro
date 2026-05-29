@@ -160,8 +160,9 @@ file_content_mode: udiffx # default "udiffx" ("search_replace_auto" for legacy o
 write_mode: true
 
 ## Automatically attempt to repair failed udiffx hunks before post-stage sub-agents (default true)
+## Set to false to disable, or provide a model name string to use a specific model for auto-fix
 ## First implementation only applies to udiffx, write_mode: true, and single-task runs
-auto_fix: true
+auto_fix: true  # or false, or "gpt-5-mini" to use a specific model
 
 ## MODEL: Here you can use any full model name or model aliases defined above and in the config.toml
 ## such as ~/.aipack-base/config-default.toml
@@ -388,13 +389,13 @@ _since v0.4.0_
 
 Enables a built-in auto-fix step that automatically attempts to repair failed `udiffx` hunk applications before user post-stage sub-agents run.
 
-- `auto_fix` defaults to `true`.
+ `auto_fix` defaults to `true`. May also be set to a model name string to use a specific model for auto-fix (e.g., `auto_fix: "flash"`).
 - When eligible, `pro@coder` runs a built-in `pro@coder/auto-fix` agent that reads the latest failure diagnostics and asks the model for corrected `<FILE_CHANGES>`. The returned response is applied through the same existing file change apply path.
 - Auto-fix retries up to 3 times. Each retry uses only the latest normalized failure diagnostics.
 
 Auto-fix runs only when all eligibility checks pass:
 
-- `auto_fix == true`
+ `auto_fix` evaluates to enabled (boolean `true` or a model name string)
 - `write_mode == true`
 - `file_content_mode` is `udiffx`
 - the coder run has a single task response (no multi-task `working_globs`)
@@ -409,7 +410,7 @@ Diagnostics for the latest failure are written under the resolved workbench cach
 
 Behavior summary:
 
-- **Disabled** (`auto_fix: false`): failed hunks immediately use the existing warning and failure report behavior.
+- **Disabled** (`auto_fix: false` or not set): failed hunks immediately use the existing warning and failure report behavior.
 - **Eligible success**: the failure state is repaired before post-stage sub-agents receive the final coder responses.
 - **Retry exhaustion** (after 3 failed attempts): the existing failure warning and `last_file_change_fails_report.md` behavior is used, based on the latest failure report.
 - **Non-udiffx** (`whole` or `search_replace_auto`): auto-fix is skipped and current failure behavior is preserved.
