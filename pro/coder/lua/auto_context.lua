@@ -200,7 +200,10 @@ end
 --    knowledge_reason?: string,
 --    workbench_data_reason?: string,
 -- }
-local function pin_status(auto_context_config, ctx)
+local function pin_status(auto_context_config, ctx, is_task)
+	if is_task == nil then
+		is_task = not is_null(CTX.TASK_UID) and CTX.TASK_UID ~= ""
+	end
 	local mode = auto_context_config.mode
 	local done = false
 	if ctx.new_context_globs then
@@ -320,7 +323,9 @@ local function pin_status(auto_context_config, ctx)
 		content = msg
 	}
 	aip.run.pin("status", 1, status_pin)
-	aip.task.pin("status", 1, status_pin)
+	if is_task then
+		aip.task.pin("status", 1, status_pin)
+	end
 
 	-- === Pin Context Files
 	if done then
@@ -339,7 +344,9 @@ local function pin_status(auto_context_config, ctx)
 			content = msg
 		}
 		aip.run.pin("files", 2, files_pin)
-		aip.task.pin("files", 2, files_pin)
+		if is_task then
+			aip.task.pin("files", 2, files_pin)
+		end
 	end
 
 	-- === Pin Workbench Data Files
@@ -358,7 +365,9 @@ local function pin_status(auto_context_config, ctx)
 			content = msg
 		}
 		aip.run.pin("dfiles", 3, dfiles_pin)
-		aip.task.pin("dfiles", 3, dfiles_pin)
+		if is_task then
+			aip.task.pin("dfiles", 3, dfiles_pin)
+		end
 	end
 
 	-- === Pin Knowledge Files
@@ -377,7 +386,9 @@ local function pin_status(auto_context_config, ctx)
 			content = msg
 		}
 		aip.run.pin("kfiles", 4, kfiles_pin)
-		aip.task.pin("kfiles", 4, kfiles_pin)
+		if is_task then
+			aip.task.pin("kfiles", 4, kfiles_pin)
+		end
 	end
 
 	-- === Helper  helper_files
@@ -392,7 +403,9 @@ local function pin_status(auto_context_config, ctx)
 			content = content
 		}
 		aip.run.pin("helpers", 5, helpers_pin)
-		aip.task.pin("helpers", 5, helpers_pin)
+		if is_task then
+			aip.task.pin("helpers", 5, helpers_pin)
+		end
 	end
 
 	-- === Pin Reason
@@ -402,7 +415,9 @@ local function pin_status(auto_context_config, ctx)
 			content = aip.text.trim(ctx.reason)
 		}
 		aip.run.pin("reason", 6, reason_pin)
-		aip.task.pin("reason", 6, reason_pin)
+		if is_task then
+			aip.task.pin("reason", 6, reason_pin)
+		end
 	end
 
 	-- === Pin Workbench Data Reason
@@ -412,7 +427,9 @@ local function pin_status(auto_context_config, ctx)
 			content = aip.text.trim(ctx.workbench_data_reason)
 		}
 		aip.run.pin("dreason", 7, dreason_pin)
-		aip.task.pin("dreason", 7, dreason_pin)
+		if is_task then
+			aip.task.pin("dreason", 7, dreason_pin)
+		end
 	end
 
 	-- === Pin Knowledge Reason
@@ -422,7 +439,9 @@ local function pin_status(auto_context_config, ctx)
 			content = aip.text.trim(ctx.knowledge_reason)
 		}
 		aip.run.pin("kreason", 8, kreason_pin)
-		aip.task.pin("kreason", 8, kreason_pin)
+		if is_task then
+			aip.task.pin("kreason", 8, kreason_pin)
+		end
 	end
 end
 
