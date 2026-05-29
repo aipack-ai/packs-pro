@@ -20,6 +20,7 @@ return aip.flow.before_all_response({
 
 ```lua
 local p_utils  = require("utils_data")
+local u_auto_fix = require("auto_fix")
 
 -- This is the input format (.base, and the .working_refs)
 local base, working_refs = input.base, input.working_refs
@@ -155,6 +156,8 @@ if base.coder_workbench then
     end
 end
 base.workbench_context_describe = wb_context_desc
+
+base.auto_fix = u_auto_fix.resolve_auto_fix_config(base.auto_fix)
 
 if type(base.auto_fix) == "table" then
 	local single_task = input.single_task == true

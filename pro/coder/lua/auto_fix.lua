@@ -3,6 +3,37 @@
 
 local u_output = require("utils_output")
 
+-- Resolves the auto_fix configuration by normalizing different types.
+local function resolve_auto_fix_config(cfg)
+	local resolved = {
+		enabled = false,
+		model = nil,
+		max_retries = 3
+	}
+
+	if type(cfg) == "boolean" then
+		resolved.enabled = cfg
+	elseif type(cfg) == "string" then
+		resolved.enabled = true
+		resolved.model = cfg
+	elseif type(cfg) == "table" then
+		resolved.enabled = cfg.enabled ~= false
+		resolved.model = cfg.model
+		resolved.max_retries = tonumber(cfg.max_retries) or 3
+		for k, v in pairs(cfg) do
+			if k ~= "enabled" and k ~= "model" and k ~= "max_retries" then
+				resolved[k] = v
+			end
+		end
+	end
+
+	if resolved.base_eligible == nil then
+		resolved.base_eligible = resolved.enabled
+	end
+
+	return resolved
+end
+
 -- Loads the text content of a file at the given path.
 -- Returns the content string, or nil if the file does not exist or is not readable.
 -- Used by: auto-fix.aip (#Data)
@@ -375,7 +406,12 @@ end
 -- Used by: main.aip (#After All)
 function run_auto_fix_loop(coder_response, report_data, coder_workbench, options)
 	options = options or {}
-	local max_retries = options.max_retries or 3
+	local max_retries = 3
+	if type(report_data) == "table" and type(report_data.auto_fix) == "table" and report_data.auto_fix.max_retries then
+		max_retries = report_data.auto_fix.max_retries
+	else
+		max_retries = options.max_retries or 3
+	end
 
 	if type(coder_response) ~= "table" then
 		return {}, report_data, nil
@@ -569,6 +605,7 @@ function delete_auto_fix_diagnostics(coder_workbench)
 end
 
 return {
+	resolve_auto_fix_config = resolve_auto_fix_config,
 	load_text_file = load_text_file,
 	normalize_failed_change_path = normalize_failed_change_path,
 	failed_hunk_details_available = failed_hunk_details_available,
