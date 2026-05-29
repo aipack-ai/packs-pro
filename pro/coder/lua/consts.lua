@@ -9,6 +9,7 @@ return {
 	LABEL_README_FILE         = "Readme File:",
 	LABEL_GIT_COMMIT          = " Git Commit:",
 	LABEL_COMPLETED           = "Coding Done:",
+	LABEL_COMPLETED_AUTO_FIX  = "Coding ▶▶▶▶:",
 	LABEL_CHAT                = "Chat:",
 	LABEL_PLAN                = " Plan:",
 	LABEL_SPEC                = " Spec:",
