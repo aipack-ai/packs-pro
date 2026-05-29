@@ -2,6 +2,7 @@
 -- Used by: main.aip (#Output, #After All), auto-fix.aip (#Data)
 
 local u_output = require("utils_output")
+local CONST = require("consts")
 
 -- Resolves the auto_fix configuration by normalizing different types.
 local function resolve_auto_fix_config(cfg, env)
@@ -552,6 +553,16 @@ function run_auto_fix_loop(coder_response, report_data, coder_workbench, options
 	for _attempt = 1, max_retries do
 		auto_fix_result.attempts = _attempt
 
+		-- Update the consolidated main pin with the State 2 in-progress content for this attempt.
+		aip.run.pin("completed_run", 0, {
+			label = CONST.LABEL_COMPLETED_AUTO_FIX,
+			content = build_inprogress_coding_content(auto_fix_result.files_changed, _attempt, failed_changes)
+		})
+
+		-- Capture the pre-attempt failed hunk count and unique fixed-file baseline to derive this attempt's gains.
+		local pre_attempt_failed_hunks = count_failed_hunks(failed_changes)
+		local pre_attempt_fixed_files = #auto_fix_result.files_changed
+
 		-- Write the latest diagnostics for the current failed state before each auto-fix attempt.
 		local _diag_res, _diag_err = write_auto_fix_diagnostics(failed_changes, coder_workbench)
 
@@ -599,6 +610,20 @@ function run_auto_fix_loop(coder_response, report_data, coder_workbench, options
 			for _, item in ipairs(attempt_files_changed) do
 				add_changed_file_unique(auto_fix_result.files_changed, seen_changed_paths, item)
 			end
+		end
+
+		-- Track aggregate counters for this attempt: newly fixed files (unique) and fixed hunks.
+		local attempt_remaining_failed = type(attempt_failed_changes) == "table" and attempt_failed_changes or {}
+		local post_attempt_failed_hunks = count_failed_hunks(attempt_remaining_failed)
+		local newly_fixed_files = #auto_fix_result.files_changed - pre_attempt_fixed_files
+		local newly_fixed_hunks = pre_attempt_failed_hunks - post_attempt_failed_hunks
+		if newly_fixed_hunks < 0 then
+			newly_fixed_hunks = 0
+		end
+		if newly_fixed_files > 0 or newly_fixed_hunks > 0 then
+			auto_fix_result.auto_fix_attempts_with_fixes = auto_fix_result.auto_fix_attempts_with_fixes + 1
+			auto_fix_result.auto_fix_files_fixed = auto_fix_result.auto_fix_files_fixed + newly_fixed_files
+			auto_fix_result.auto_fix_hunks_fixed = auto_fix_result.auto_fix_hunks_fixed + newly_fixed_hunks
 		end
 
 		if type(attempt_failed_changes) ~= "table" or #attempt_failed_changes == 0 then
