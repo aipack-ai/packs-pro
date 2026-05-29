@@ -435,7 +435,7 @@ local function get_file_content_mode(meta, write_mode)
 	return file_content_mode
 end
 
-local function build_auto_fix_state(meta, write_mode, file_content_mode, coder_workbench)
+local function build_auto_fix_state(meta, write_mode, file_content_mode, coder_workbench, auto_context_model)
 	local auto_fix = meta.auto_fix
 	if is_null(auto_fix) then
 		auto_fix = true
@@ -444,6 +444,8 @@ local function build_auto_fix_state(meta, write_mode, file_content_mode, coder_w
 
 	-- Determine auto_fix enabled and optional custom model.
 	-- When auto_fix is a string, it is enabled and the string is the model name to use.
+	-- When auto_fix is true and no explicit model is given, the model is resolved
+	-- from auto_context (code_map_model or model) with a fallback to the coder model.
 	local auto_fix_enabled = false
 	local auto_fix_model = nil
 	if type(auto_fix) == "string" then
@@ -451,6 +453,7 @@ local function build_auto_fix_state(meta, write_mode, file_content_mode, coder_w
 		auto_fix_model = auto_fix
 	elseif auto_fix == true then
 		auto_fix_enabled = true
+		auto_fix_model = auto_context_model or meta.model
 	end
 
 	local udiffx = type(file_content_mode) == "table" and file_content_mode.udiffx == true
@@ -682,6 +685,8 @@ function run_before_all(inputs)
 	end
 
 
+	local auto_context_model = nil
+
 	-- === Build auto_context sub agent if present
 	if not is_null(meta.auto_context) then
 		local ac_config = u_auto_context.new_auto_context_sub_agent_config(meta.auto_context)
@@ -689,6 +694,21 @@ function run_before_all(inputs)
 			ac_config.helper_globs = u_workbench.append_workbench_helper_globs(ac_config.helper_globs, coder_workbench)
 			ac_config.on = value_or(ac_config.on, "start")
 			table.insert(builtin_sub_agents, ac_config)
+		end
+		-- Resolve auto_fix model from auto_context when auto_fix does not specify a model.
+		if (meta.auto_fix == nil or meta.auto_fix == true) then
+			local ac_raw = meta.auto_context
+			local ac_enabled = true
+			if type(ac_raw) == "table" and ac_raw.enabled == false then
+				ac_enabled = false
+			end
+			if ac_enabled then
+				if type(ac_raw) == "table" then
+					auto_context_model = ac_raw.code_map_model or ac_raw.model
+				elseif type(ac_raw) == "string" then
+					auto_context_model = ac_raw
+				end
+			end
 		end
 		meta.auto_context = nil
 	end
@@ -823,7 +843,7 @@ function run_before_all(inputs)
 	-- === Compute file_content_mode
 	local file_content_mode, err = get_file_content_mode(meta, write_mode)
 	if err then return nil, nil, err end
-	local auto_fix = build_auto_fix_state(meta, write_mode, file_content_mode, coder_workbench)
+	local auto_fix = build_auto_fix_state(meta, write_mode, file_content_mode, coder_workbench, auto_context_model)
 
 	-- Clean up pinned and normalized workbench keys from meta before downstream use
 	meta.context_globs_pre = nil
