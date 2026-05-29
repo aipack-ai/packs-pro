@@ -270,8 +270,15 @@ if output_base then
 				local auto_fix_completed_msg = u_auto_fix.build_auto_fix_completion_response(auto_fix_result.files_changed,
 						remaining_failed_changes, report_data)
 					if auto_fix_completed_msg ~= nil and auto_fix_completed_msg ~= "" then
+						-- When auto-fix actually ran (attempts > 0), set the final consolidated main pin
+						-- with the auto-fix label (State 3 / State 4), overriding the `Coding Done:`
+						-- pin set by `# Output`. Otherwise keep the default completed label.
+						local completed_label = CONST.LABEL_COMPLETED
+						if tonumber(auto_fix_result.attempts or 0) > 0 then
+							completed_label = CONST.LABEL_COMPLETED_AUTO_FIX
+						end
 						aip.run.pin("completed_run", 0, {
-							label = CONST.LABEL_COMPLETED,
+							label = completed_label,
 							content = auto_fix_completed_msg
 						})
 					end
