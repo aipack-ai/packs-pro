@@ -449,24 +449,29 @@ aip.file.save(knl_cache_file, knl_cache_content)
 if auto_context_config.workbench_data_enabled
 	and not is_null(auto_context_config.workbench_cache_dir)
 	and auto_context_config.workbench_cache_dir ~= "" then
+	
 	local wd_cache_dir = auto_context_config.workbench_cache_dir .. "/auto-context"
 	local ensure_wd_cache_dir_res = aip.file.ensure_dir(wd_cache_dir)
+	
 	if not (type(ensure_wd_cache_dir_res) == "table" and ensure_wd_cache_dir_res.error) then
 		local wd_cache_file = wd_cache_dir .. "/last_data_file_descriptions.md"
-		local wd_fallback_content = nil
 		if workbench_data_selection_enabled then
-			wd_fallback_content = wd_files_map_miss_content or "No mapped workbench data files were available."
+			local wd_fallback_content = wd_files_map_miss_content or "No mapped workbench data files were available."
+			local wd_cache_content = build_description_cache_content({
+				title = "Workbench Data Files Descriptions",
+				descriptions_txt = wd_files_txt,
+				detected_count = #workbench_data_files,
+				mapped_count = wd_files_count,
+				code_map_file_path = workbench_data_code_map_file_path,
+				fallback_content = wd_fallback_content,
+				sent = wd_files_count > 0 and not is_null(wd_files_txt) and wd_files_txt:find("%S") ~= nil,
+			})
+			aip.file.save(wd_cache_file, wd_cache_content)
+		else
+			if aip.file.exists(wd_cache_file) then
+				aip.file.delete(wd_cache_file)
+			end
 		end
-		local wd_cache_content = build_description_cache_content({
-			title = "Workbench Data Files Descriptions",
-			descriptions_txt = wd_files_txt,
-			detected_count = #workbench_data_files,
-			mapped_count = wd_files_count,
-			code_map_file_path = workbench_data_code_map_file_path,
-			fallback_content = wd_fallback_content,
-			sent = wd_files_count > 0 and not is_null(wd_files_txt) and wd_files_txt:find("%S") ~= nil,
-		})
-		aip.file.save(wd_cache_file, wd_cache_content)
 	end
 end
 
