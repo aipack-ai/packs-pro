@@ -710,7 +710,6 @@ function run_before_all(inputs)
 				end
 			end
 		end
-		meta.auto_context = nil
 	end
 
 	-- === Merge user and builtin agents (user-defined first)

@@ -4,6 +4,49 @@
 local u_output = require("utils_output")
 local CONST = require("consts")
 
+-- Resolves the model used by auto-fix from coder params.
+-- Explicit auto_fix model settings win, then auto_context model fallbacks, then the coder model.
+local function resolve_auto_fix_model(coder_params)
+	if type(coder_params) ~= "table" then
+		return nil
+	end
+
+	local auto_fix = coder_params.auto_fix
+	if auto_fix == false then
+		return nil
+	end
+	if type(auto_fix) == "string" and auto_fix ~= "" then
+		return auto_fix
+	end
+	if type(auto_fix) == "table" then
+		if auto_fix.enabled == false then
+			return nil
+		end
+		if type(auto_fix.model) == "string" and auto_fix.model ~= "" then
+			return auto_fix.model
+		end
+	end
+
+	local auto_context = coder_params.auto_context
+	if type(auto_context) == "string" and auto_context ~= "" then
+		return auto_context
+	end
+	if type(auto_context) == "table" and auto_context.enabled ~= false then
+		if type(auto_context.code_map_model) == "string" and auto_context.code_map_model ~= "" then
+			return auto_context.code_map_model
+		end
+		if type(auto_context.model) == "string" and auto_context.model ~= "" then
+			return auto_context.model
+		end
+	end
+
+	if type(coder_params.model) == "string" and coder_params.model ~= "" then
+		return coder_params.model
+	end
+
+	return nil
+end
+
 -- Resolves the auto_fix configuration by normalizing different types.
 local function resolve_auto_fix_config(cfg, env)
 	local resolved = {
@@ -26,6 +69,14 @@ local function resolve_auto_fix_config(cfg, env)
 				resolved[k] = v
 			end
 		end
+	end
+
+	if resolved.enabled == true and (is_null(resolved.model) or resolved.model == "") then
+		local model_params = nil
+		if type(env) == "table" then
+			model_params = env.coder_params or env
+		end
+		resolved.model = resolve_auto_fix_model(model_params)
 	end
 
 	if resolved.base_eligible == nil then
@@ -562,23 +613,7 @@ function run_auto_fix_loop(coder_response, report_data, coder_workbench, options
 		if type(report_data.auto_fix) == "table" and type(report_data.auto_fix.model) == "string" and report_data.auto_fix.model ~= "" then
 			coder_model = report_data.auto_fix.model
 		elseif type(report_data.coder_params) == "table" then
-			local cp = report_data.coder_params
-			local ac_model = nil
-			if cp.auto_context ~= nil then
-				local ac = cp.auto_context
-				if type(ac) == "string" and ac ~= "" then
-					ac_model = ac
-				elseif type(ac) == "table" then
-					if ac.enabled ~= false then
-						if type(ac.code_map_model) == "string" and ac.code_map_model ~= "" then
-							ac_model = ac.code_map_model
-						elseif type(ac.model) == "string" and ac.model ~= "" then
-							ac_model = ac.model
-						end
-					end
-				end
-			end
-			coder_model = ac_model or cp.model
+			coder_model = resolve_auto_fix_model(report_data.coder_params)
 		end
 	end
 
@@ -760,6 +795,7 @@ end
 
 return {
 	resolve_auto_fix_config = resolve_auto_fix_config,
+	resolve_auto_fix_model = resolve_auto_fix_model,
 	load_text_file = load_text_file,
 	normalize_failed_change_path = normalize_failed_change_path,
 	failed_hunk_details_available = failed_hunk_details_available,

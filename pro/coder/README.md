@@ -161,9 +161,9 @@ write_mode: true
 
 ## Automatically attempt to repair failed udiffx hunks before post-stage sub-agents (default true)
 ## Set to false to disable, or provide a model name string to use a specific model for auto-fix
-## When true with no explicit model, uses auto_context model (code_map_model or model) if available,
-## falling back to the coder model. First implementation only applies to udiffx, write_mode: true,
-## and single-task runs
+## Model resolution uses an explicit auto_fix model first. Otherwise, when auto_context is enabled,
+## it uses auto_context.code_map_model, then auto_context.model, then falls back to the coder model.
+## First implementation only applies to udiffx, write_mode: true, and single-task runs
 auto_fix: true  # or false, or "gpt-5-mini" to use a specific model
 
 ## MODEL: Here you can use any full model name or model aliases defined above and in the config.toml
@@ -406,10 +406,11 @@ auto_fix:
 - **Values**: `true` (default), `false`, a model name string (e.g., `"flash"`), or a table with optional `model` and `max_retries` fields.
 
 - **Model Resolution**: 
-  - If `true` or not explicitly set, the model is resolved from `auto_context` (`auto_context.code_map_model` if set, otherwise the `auto_context.model`). 
-  - If `auto_context` is disabled, it falls back to the coder model.
-  - When a string value is given, it is used directly. 
-  - When a table is used and includes a `model` field, that model is used; otherwise the same fallback as `true` applies.
+  - When `auto_fix` is a string, that model is used directly.
+  - When `auto_fix` is a table with a `model` field, that model is used directly.
+  - Otherwise, if `auto_context` is enabled, auto-fix uses `auto_context.code_map_model` when set, or `auto_context.model` when set.
+  - When `auto_context` is disabled or has no model fields, auto-fix falls back to the coder `model`.
+  - The resolution is centralized in `resolve_auto_fix_model(coder_params)` so the initial setup and retry loop use the same fallback order.
 
 - **Retries**: Default max retries is 3. Can be overridden via `max_retries` in a table configuration.
   - **Eligibility**: Runs up to the configured max retries when `write_mode` is `true`, `file_content_mode` is `udiffx`, there is a single-task run, and at least one hunk failure occurs.
