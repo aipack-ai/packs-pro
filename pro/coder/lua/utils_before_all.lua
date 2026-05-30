@@ -118,18 +118,18 @@ end
 
 -- Cleans cache files.
 local function clean_and_init_cache(paths)
-	-- Clean legacy file (since 0.2.27)
-	local legacy_prompt_files_path = paths.prompt_dir .. "/.cache/last_prompt_files_path.md"
-	if aip.path.exists(legacy_prompt_files_path) then
-		aip.file.delete(legacy_prompt_files_path)
-	end
-	local legacy_responses_raw_path = paths.prompt_cache_dir .. "/last_ai_responses_for_raw.md"
-	if aip.path.exists(legacy_responses_raw_path) then
-		aip.file.delete(legacy_responses_raw_path)
-	end
-	local legacy_responses_prompt_path = paths.prompt_cache_dir .. "/last_ai_responses_for_prompt.md"
-	if aip.path.exists(legacy_responses_prompt_path) then
-		aip.file.delete(legacy_responses_prompt_path)
+	-- Clean legacy files (since 0.2.27)
+	local legacy_file_names = {
+		"last_prompt_file_paths.md",
+		"last_prompt_files_path.md",
+		"last_ai_responses_for_raw.md",
+		"last_ai_responses_for_prompt.md"
+	}
+	for _, name in ipairs(legacy_file_names) do
+		local legacy_path = paths.prompt_cache_dir .. "/" .. name
+		if aip.path.exists(legacy_path) then
+			aip.file.delete(legacy_path)
+		end
 	end
 
 	-- Init cacche files
@@ -697,9 +697,12 @@ function run_before_all(inputs)
 			coder_prompt_dir = coder_prompt_dir,
 			prompt_cache_dir = paths.prompt_cache_dir
 		})
+		---@cast coder_workbench -nil
+
 		-- Re-derive paths to use the workbench cache directory for transient files
 		paths = prepare_paths(prompt_file.path, { coder_workbench = coder_workbench })
 		-- Ensure root and data directories exist
+
 		if not is_null(coder_workbench.dir) and coder_workbench.dir ~= "" then
 			aip.file.ensure_dir(coder_workbench.dir)
 		end
@@ -803,9 +806,9 @@ function run_before_all(inputs)
 	clean_and_init_cache(paths)
 
 	local workbench_data_selection                                                                       = extract_workbench_data_selection(
-	pre_agent_results)
+		pre_agent_results)
 	local knowledge_refs, structure_refs, context_refs, working_refs_list, base_dir, workbench_data_refs = resolve_refs(
-	meta, coder_workbench, workbench_data_selection)
+		meta, coder_workbench, workbench_data_selection)
 
 	-- Resolve pinned pre/post separately (aip.file.list, not list_likely_text),
 	-- then do a single ordered merge per ref type.
@@ -823,11 +826,11 @@ function run_before_all(inputs)
 			aip.file.list(final_knl_post, { base_dir = CTX.WORKSPACE_DIR }) or {}
 
 	context_refs                                                                                         = u_pinned
-	.merge_pinned(ctx_pre_refs,
-		context_refs or {}, ctx_post_refs)
+			.merge_pinned(ctx_pre_refs,
+				context_refs or {}, ctx_post_refs)
 	knowledge_refs                                                                                       = u_pinned
-	.merge_pinned(knl_pre_refs,
-		knowledge_refs or {}, knl_post_refs)
+			.merge_pinned(knl_pre_refs,
+				knowledge_refs or {}, knl_post_refs)
 
 	-- For the report, keep pre/post as separate lists (nil if empty).
 	local context_refs_pre                                                                               = #ctx_pre_refs >
@@ -844,10 +847,10 @@ function run_before_all(inputs)
 			nil
 
 	local write_mode                                                                                     = meta.write_mode or
-	false
+			false
 	-- === Compute include_second_partby default we include second part if not nil
 	local include_second_part                                                                            = second_part ~=
-	nil
+			nil
 	if write_mode == true then
 		-- if write_mode, we do not include second part
 		include_second_part = false
