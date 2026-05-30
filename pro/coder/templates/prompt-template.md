@@ -30,8 +30,8 @@ auto_context:
 workbench:
   # dir:  PATH_TO_PRO_CODER_DIR/workbench-default
   # chat: true
-  # spec: true
   # plan: true
+  # spec: true
 
 ## Full model names or aliases (see aliases ~/.aipack-base/config-default.toml)
 ## -high, -medium, or -low suffixes for reasoning (e.g., "flash-low", "opus-max", "gpt-high")

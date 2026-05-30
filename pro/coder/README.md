@@ -159,12 +159,15 @@ file_content_mode: udiffx # default "udiffx" ("search_replace_auto" for legacy o
 ## Set to true to write the files (otherwise, they will be shown below the `====` separator)
 write_mode: true
 
-## Automatically attempt to repair failed udiffx hunks before post-stage sub-agents (default true)
-## Set to false to disable, or provide a model name string to use a specific model for auto-fix
-## Model resolution uses an explicit auto_fix model first. Otherwise, when auto_context is enabled,
-## it uses auto_context.code_map_model, then auto_context.model, then falls back to the coder model.
-## First implementation only applies to udiffx, write_mode: true, and single-task runs
-auto_fix: true  # or false, or "gpt-5-mini" to use a specific model
+## Auto-Fix will attempt to fix udiffx mismatches.
+## Default true, and use the auto-context code_map_model model, or coder model if no auto-context
+##
+## Can be fully defined as
+## auto_fix:
+##   model: lite
+##   max_retries: 5 # default 3
+##
+# auto_fix: "lite"  # Set the model lite for auto_fix (otherwise, auto-context code_map_model is used)
 
 ## MODEL: Here you can use any full model name or model aliases defined above and in the config.toml
 ## such as ~/.aipack-base/config-default.toml
