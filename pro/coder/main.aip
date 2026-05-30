@@ -208,172 +208,6 @@ return aip.flow.data_response({
 })
 ```
 
-# After All
-
-```lua
-local CONST = require("consts")
-local u_auto_fix = require("auto_fix")
-local u_sub_agent = require("utils_sub_agent")
-local u_output = require("utils_output")
-
-local output_items = {}
-if not is_null(outputs) and type(outputs) == "table" then
-	output_items = outputs
-end
-local first_output = output_items[1]
-local output_base = nil
-if type(first_output) == "table" and not is_null(first_output.data) then
-	output_base = first_output.data
-end
-local MAX_CODER_REDO_COUNT = 20
-
-if output_base then
-	local post_err = nil
-	local post_has_failure = false
-	local post_error_msg = nil
-	local coder_redo_requested = false
-	local coder_redo_count = nil
-	local coder_redo_cap_reached = false
-
-	local coder_responses = {}
-	for _, output in ipairs(output_items) do
-		if type(output) == "table" and type(output.coder_response) == "table" then
-			table.insert(coder_responses, output.coder_response)
-		end
-	end
-
-	for _, output in ipairs(output_items) do
-		local coder_response = type(output) == "table" and output.coder_response or nil
-		if type(coder_response) == "table" and coder_response.deferred_failure_report == true then
-			local report_data = type(output.data) == "table" and output.data or output_base
-			local deferred_failed_changes = coder_response.files_changes_failed
-			if (type(deferred_failed_changes) ~= "table" or #deferred_failed_changes == 0)
-					and type(coder_response.file_changes_status) == "table" then
-			deferred_failed_changes = u_auto_fix.build_failed_changes_from_status(coder_response.file_changes_status,
-					report_data and report_data.base_dir or nil)
-			end
-			if type(report_data) == "table" and type(deferred_failed_changes) == "table" and #deferred_failed_changes > 0 then
-				local coder_workbench = report_data.coder_workbench or output_base.coder_workbench
-				-- Run the bounded built-in auto-fix loop before falling back to the existing report path.
-				-- The loop applies repaired changes through the existing apply path and rewrites diagnostics
-				-- on each failed attempt. Any remaining failures fall back to the existing failure reporting.
-			local remaining_failed_changes, _auto_fix_report_data, auto_fix_result = u_auto_fix.run_auto_fix_loop(coder_response, report_data, coder_workbench, {
-					max_retries = 3
-				})
-				if type(auto_fix_result) == "table" then
-					coder_response.files_changes_failed = remaining_failed_changes or {}
-					coder_response.auto_fix_result = auto_fix_result
-					if type(auto_fix_result.file_changes_status) == "table" then
-						coder_response.file_changes_status = auto_fix_result.file_changes_status
-					end
-
-				local auto_fix_completed_msg = u_auto_fix.build_auto_fix_completion_response(auto_fix_result.files_changed,
-						remaining_failed_changes, report_data)
-					if auto_fix_completed_msg ~= nil and auto_fix_completed_msg ~= "" then
-						-- When auto-fix actually ran (attempts > 0), set the final consolidated main pin
-						-- with the auto-fix label (State 3 / State 4), overriding the `Coding Done:`
-						-- pin set by `# Output`. Otherwise keep the default completed label.
-						local completed_label = CONST.LABEL_COMPLETED
-						aip.run.pin("completed_run", 0, {
-							label = completed_label,
-							content = auto_fix_completed_msg
-						})
-					end
-				end
-				if type(remaining_failed_changes) == "table" and #remaining_failed_changes > 0 then
-					-- Write the latest auto-fix diagnostics before falling back to the existing report path.
-					-- Diagnostics are additive; if they cannot be written we still emit the existing failure report.
-				u_auto_fix.write_auto_fix_diagnostics(remaining_failed_changes, coder_workbench)
-					u_output.handle_failed_changes(remaining_failed_changes, report_data)
-
-					-- After retry exhaustion, restore the pre-auto-fix terminal warning behavior by pinning the
-					-- failure message in both the run and the current task scopes.
-					local fail_report_path = report_data.last_file_change_fails_report_path
-					local ai_res_path = report_data.ai_responses_for_raw_path
-					local warn_msg = "❗❗❗ Failed to apply some changes to file(s) ❗❗❗\n"
-					local tui_block = u_output.format_failed_changes_for_tui(remaining_failed_changes)
-					if tui_block ~= nil and tui_block ~= "" then
-						warn_msg = warn_msg .. "\n" .. tui_block
-					end
-					if fail_report_path then
-						warn_msg = warn_msg .. "\n\nFor fail report, see file:\n➜ " .. fail_report_path
-					end
-					if ai_res_path then
-						warn_msg = warn_msg .. "\n\nFor full raw AI response, see file:\n➜ " .. ai_res_path
-					end
-					aip.run.pin("changes_failed_run", 0, { label = "WARNING", content = warn_msg })
-				end
-			end
-			coder_response.deferred_failure_report = false
-		end
-	end
-
-	local _, _, err, coder_redo = u_sub_agent.run_sub_agents_post(output_base.coder_params or {}, output_base.coder_prompt, {
-		coder_workbench = output_base.coder_workbench,
-		extra_sub_input = {
-			coder_context_file_refs = output_base.coder_context_file_refs,
-			coder_knowledge_file_refs = output_base.coder_knowledge_file_refs,
-			coder_working_file_refs = output_base.coder_working_file_refs,
-			coder_responses = coder_responses,
-		}
-	}, output_base.coder_prompt_dir)
-
-	if err then
-		post_has_failure = true
-		post_error_msg = err
-		post_err = err
-		aip.run.pin("completed", 10, {
-			label = CONST.LABEL_COMPLETED,
-			content = "⚠ Post-stage sub-agent failed.\n\n" .. err
-		})
-		aip.run.pin("post_stage_failed", 10, {
-			label = "WARNING",
-			content = "Post-stage sub-agent execution failed after main output processing.\n\n" .. err
-		})
-	end
-
-	if coder_redo == true then
-		coder_redo_requested = true
-	end
-
-	if coder_redo_requested and not post_has_failure then
-		coder_redo_count = tonumber(CTX.RUN_FLOW_REDO_COUNT) or 0
-
-		if coder_redo_count < MAX_CODER_REDO_COUNT then
-			aip.run.pin("coder_redo_requested", 9, {
-				label = CONST.LABEL_COMPLETED,
-				content = "Post-stage sub-agent requested a coder rerun.\n\nRedo count: " .. coder_redo_count .. "\nCap: " .. MAX_CODER_REDO_COUNT .. "\n\nStarting a new coder run."
-			})
-			return aip.flow.redo_run()
-		end
-
-		coder_redo_cap_reached = true
-		aip.run.pin("coder_redo_cap_reached", 10, {
-			label = "WARNING",
-			content = "Post-stage sub-agent requested a coder rerun, but the redo cap was reached.\n\nRedo count: " .. coder_redo_count .. "\nCap: " .. MAX_CODER_REDO_COUNT .. "\n\nNo additional coder rerun will be started."
-		})
-	end
-
-	return {
-		coder_params              = output_base.coder_params,
-		coder_workbench           = output_base.coder_workbench,
-		coder_prompt              = output_base.coder_prompt,
-		coder_prompt_dir          = output_base.coder_prompt_dir,
-		coder_context_file_refs   = output_base.coder_context_file_refs,
-		coder_knowledge_file_refs = output_base.coder_knowledge_file_refs,
-		coder_working_file_refs   = output_base.coder_working_file_refs,
-		post_coder_redo_requested = coder_redo_requested,
-		post_coder_redo_count     = coder_redo_count,
-		post_coder_redo_cap_reached = coder_redo_cap_reached,
-		post_has_failure          = post_has_failure,
-		post_error_msg            = post_error_msg,
-		error                     = post_err,
-	}
-end
-
-return nil
-```
-
 # System `cache = {{data.cache_pre_prompts}}`
 
 You are a senior developer expert who has deep expertise in many languages and creates production-grade quality code (simple and scalable).
@@ -731,3 +565,168 @@ end
  }
 ```
 
+# After All
+
+```lua
+local CONST = require("consts")
+local u_auto_fix = require("auto_fix")
+local u_sub_agent = require("utils_sub_agent")
+local u_output = require("utils_output")
+
+local output_items = {}
+if not is_null(outputs) and type(outputs) == "table" then
+	output_items = outputs
+end
+local first_output = output_items[1]
+local output_base = nil
+if type(first_output) == "table" and not is_null(first_output.data) then
+	output_base = first_output.data
+end
+local MAX_CODER_REDO_COUNT = 20
+
+if output_base then
+	local post_err = nil
+	local post_has_failure = false
+	local post_error_msg = nil
+	local coder_redo_requested = false
+	local coder_redo_count = nil
+	local coder_redo_cap_reached = false
+
+	local coder_responses = {}
+	for _, output in ipairs(output_items) do
+		if type(output) == "table" and type(output.coder_response) == "table" then
+			table.insert(coder_responses, output.coder_response)
+		end
+	end
+
+	for _, output in ipairs(output_items) do
+		local coder_response = type(output) == "table" and output.coder_response or nil
+		if type(coder_response) == "table" and coder_response.deferred_failure_report == true then
+			local report_data = type(output.data) == "table" and output.data or output_base
+			local deferred_failed_changes = coder_response.files_changes_failed
+			if (type(deferred_failed_changes) ~= "table" or #deferred_failed_changes == 0)
+					and type(coder_response.file_changes_status) == "table" then
+			deferred_failed_changes = u_auto_fix.build_failed_changes_from_status(coder_response.file_changes_status,
+					report_data and report_data.base_dir or nil)
+			end
+			if type(report_data) == "table" and type(deferred_failed_changes) == "table" and #deferred_failed_changes > 0 then
+				local coder_workbench = report_data.coder_workbench or output_base.coder_workbench
+				-- Run the bounded built-in auto-fix loop before falling back to the existing report path.
+				-- The loop applies repaired changes through the existing apply path and rewrites diagnostics
+				-- on each failed attempt. Any remaining failures fall back to the existing failure reporting.
+			local remaining_failed_changes, _auto_fix_report_data, auto_fix_result = u_auto_fix.run_auto_fix_loop(coder_response, report_data, coder_workbench, {
+					max_retries = 3
+				})
+				if type(auto_fix_result) == "table" then
+					coder_response.files_changes_failed = remaining_failed_changes or {}
+					coder_response.auto_fix_result = auto_fix_result
+					if type(auto_fix_result.file_changes_status) == "table" then
+						coder_response.file_changes_status = auto_fix_result.file_changes_status
+					end
+
+				local auto_fix_completed_msg = u_auto_fix.build_auto_fix_completion_response(auto_fix_result.files_changed,
+						remaining_failed_changes, report_data)
+					if auto_fix_completed_msg ~= nil and auto_fix_completed_msg ~= "" then
+						-- When auto-fix actually ran (attempts > 0), set the final consolidated main pin
+						-- with the auto-fix label (State 3 / State 4), overriding the `Coding Done:`
+						-- pin set by `# Output`. Otherwise keep the default completed label.
+						local completed_label = CONST.LABEL_COMPLETED
+						aip.run.pin("completed_run", 0, {
+							label = completed_label,
+							content = auto_fix_completed_msg
+						})
+					end
+				end
+				if type(remaining_failed_changes) == "table" and #remaining_failed_changes > 0 then
+					-- Write the latest auto-fix diagnostics before falling back to the existing report path.
+					-- Diagnostics are additive; if they cannot be written we still emit the existing failure report.
+				u_auto_fix.write_auto_fix_diagnostics(remaining_failed_changes, coder_workbench)
+					u_output.handle_failed_changes(remaining_failed_changes, report_data)
+
+					-- After retry exhaustion, restore the pre-auto-fix terminal warning behavior by pinning the
+					-- failure message in both the run and the current task scopes.
+					local fail_report_path = report_data.last_file_change_fails_report_path
+					local ai_res_path = report_data.ai_responses_for_raw_path
+					local warn_msg = "❗❗❗ Failed to apply some changes to file(s) ❗❗❗\n"
+					local tui_block = u_output.format_failed_changes_for_tui(remaining_failed_changes)
+					if tui_block ~= nil and tui_block ~= "" then
+						warn_msg = warn_msg .. "\n" .. tui_block
+					end
+					if fail_report_path then
+						warn_msg = warn_msg .. "\n\nFor fail report, see file:\n➜ " .. fail_report_path
+					end
+					if ai_res_path then
+						warn_msg = warn_msg .. "\n\nFor full raw AI response, see file:\n➜ " .. ai_res_path
+					end
+					aip.run.pin("changes_failed_run", 0, { label = "WARNING", content = warn_msg })
+				end
+			end
+			coder_response.deferred_failure_report = false
+		end
+	end
+
+	local _, _, err, coder_redo = u_sub_agent.run_sub_agents_post(output_base.coder_params or {}, output_base.coder_prompt, {
+		coder_workbench = output_base.coder_workbench,
+		extra_sub_input = {
+			coder_context_file_refs = output_base.coder_context_file_refs,
+			coder_knowledge_file_refs = output_base.coder_knowledge_file_refs,
+			coder_working_file_refs = output_base.coder_working_file_refs,
+			coder_responses = coder_responses,
+		}
+	}, output_base.coder_prompt_dir)
+
+	if err then
+		post_has_failure = true
+		post_error_msg = err
+		post_err = err
+		aip.run.pin("completed", 10, {
+			label = CONST.LABEL_COMPLETED,
+			content = "⚠ Post-stage sub-agent failed.\n\n" .. err
+		})
+		aip.run.pin("post_stage_failed", 10, {
+			label = "WARNING",
+			content = "Post-stage sub-agent execution failed after main output processing.\n\n" .. err
+		})
+	end
+
+	if coder_redo == true then
+		coder_redo_requested = true
+	end
+
+	if coder_redo_requested and not post_has_failure then
+		coder_redo_count = tonumber(CTX.RUN_FLOW_REDO_COUNT) or 0
+
+		if coder_redo_count < MAX_CODER_REDO_COUNT then
+			aip.run.pin("coder_redo_requested", 9, {
+				label = CONST.LABEL_COMPLETED,
+				content = "Post-stage sub-agent requested a coder rerun.\n\nRedo count: " .. coder_redo_count .. "\nCap: " .. MAX_CODER_REDO_COUNT .. "\n\nStarting a new coder run."
+			})
+			return aip.flow.redo_run()
+		end
+
+		coder_redo_cap_reached = true
+		aip.run.pin("coder_redo_cap_reached", 10, {
+			label = "WARNING",
+			content = "Post-stage sub-agent requested a coder rerun, but the redo cap was reached.\n\nRedo count: " .. coder_redo_count .. "\nCap: " .. MAX_CODER_REDO_COUNT .. "\n\nNo additional coder rerun will be started."
+		})
+	end
+
+	return {
+		coder_params              = output_base.coder_params,
+		coder_workbench           = output_base.coder_workbench,
+		coder_prompt              = output_base.coder_prompt,
+		coder_prompt_dir          = output_base.coder_prompt_dir,
+		coder_context_file_refs   = output_base.coder_context_file_refs,
+		coder_knowledge_file_refs = output_base.coder_knowledge_file_refs,
+		coder_working_file_refs   = output_base.coder_working_file_refs,
+		post_coder_redo_requested = coder_redo_requested,
+		post_coder_redo_count     = coder_redo_count,
+		post_coder_redo_cap_reached = coder_redo_cap_reached,
+		post_has_failure          = post_has_failure,
+		post_error_msg            = post_error_msg,
+		error                     = post_err,
+	}
+end
+
+return nil
+```
