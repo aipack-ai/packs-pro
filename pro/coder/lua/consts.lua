@@ -10,7 +10,10 @@ return {
 	LABEL_GIT_COMMIT          = " Git Commit:",
 	LABEL_COMPLETED           = "Coding Done:",
 	LABEL_COMPLETED_AUTO_FIX  = "Coding ▶▶▶▶:",
-	LABEL_CHAT                = "Chat:",
+	LABEL_CHAT                = " Chat:",
 	LABEL_PLAN                = " Plan:",
 	LABEL_SPEC                = " Spec:",
+
+	-- DEBUG
+	UDIFFX_INST_DEBUG         = true, -- ->> for debug
 }

@@ -888,7 +888,7 @@ function run_before_all(inputs)
 		suggest_git_commit = write_mode
 	end
 
-	local udiffx_inst_debug = meta.udiffx_inst_debug
+	local udiffx_inst_debug = CONST.UDIFFX_INST_DEBUG or meta.udiffx_inst_debug
 	local instructions = prepare_instructions(file_content_mode, suggest_git_commit, udiffx_inst_debug, coder_prompt_dir)
 	local coder_params = aip.lua.merge_deep({}, meta)
 	local coder_context_file_refs = clone_ref_list(context_refs)
