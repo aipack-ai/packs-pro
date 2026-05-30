@@ -448,7 +448,8 @@ aip.file.save(knl_cache_file, knl_cache_content)
 
 if auto_context_config.workbench_data_enabled
 	and not is_null(auto_context_config.workbench_cache_dir)
-	and auto_context_config.workbench_cache_dir ~= "" then
+	and auto_context_config.workbench_cache_dir ~= ""
+	and #workbench_data_files > 0 then
 	
 	local wd_cache_dir = auto_context_config.workbench_cache_dir .. "/auto-context"
 	local ensure_wd_cache_dir_res = aip.file.ensure_dir(wd_cache_dir)
