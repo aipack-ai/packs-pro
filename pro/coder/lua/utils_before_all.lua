@@ -123,6 +123,14 @@ local function clean_and_init_cache(paths)
 	if aip.path.exists(legacy_prompt_files_path) then
 		aip.file.delete(legacy_prompt_files_path)
 	end
+	local legacy_responses_raw_path = paths.prompt_cache_dir .. "/last_ai_responses_for_raw.md"
+	if aip.path.exists(legacy_responses_raw_path) then
+		aip.file.delete(legacy_responses_raw_path)
+	end
+	local legacy_responses_prompt_path = paths.prompt_cache_dir .. "/last_ai_responses_for_prompt.md"
+	if aip.path.exists(legacy_responses_prompt_path) then
+		aip.file.delete(legacy_responses_prompt_path)
+	end
 
 	-- Init cacche files
 	aip.file.save(paths.prompt_file_paths, "")
@@ -682,6 +690,23 @@ function run_before_all(inputs)
 	-- Ensure the default workbench root directory exists when no explicit workbench is configured
 	if coder_workbench == nil then
 		u_workbench.ensure_default_workbench_root_dir({ coder_prompt_dir = paths.prompt_dir })
+	end
+	-- Create a minimal default coder_workbench when no explicit workbench is configured
+	if coder_workbench == nil then
+		coder_workbench = u_workbench.build_coder_workbench({ data = true }, {
+			coder_prompt_dir = coder_prompt_dir,
+			prompt_cache_dir = paths.prompt_cache_dir
+		})
+		-- Re-derive paths to use the workbench cache directory for transient files
+		paths = prepare_paths(prompt_file.path, { coder_workbench = coder_workbench })
+		-- Ensure root and data directories exist
+		if not is_null(coder_workbench.dir) and coder_workbench.dir ~= "" then
+			aip.file.ensure_dir(coder_workbench.dir)
+		end
+		if not is_null(coder_workbench.data_dir) and coder_workbench.data_dir ~= "" then
+			aip.file.ensure_dir(coder_workbench.data_dir)
+		end
+		pin_workbench_diagnostics(coder_workbench)
 	end
 
 
