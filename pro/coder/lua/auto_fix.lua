@@ -562,7 +562,23 @@ function run_auto_fix_loop(coder_response, report_data, coder_workbench, options
 		if type(report_data.auto_fix) == "table" and type(report_data.auto_fix.model) == "string" and report_data.auto_fix.model ~= "" then
 			coder_model = report_data.auto_fix.model
 		elseif type(report_data.coder_params) == "table" then
-			coder_model = report_data.coder_params.model
+			local cp = report_data.coder_params
+			local ac_model = nil
+			if cp.auto_context ~= nil then
+				local ac = cp.auto_context
+				if type(ac) == "string" and ac ~= "" then
+					ac_model = ac
+				elseif type(ac) == "table" then
+					if ac.enabled ~= false then
+						if type(ac.code_map_model) == "string" and ac.code_map_model ~= "" then
+							ac_model = ac.code_map_model
+						elseif type(ac.model) == "string" and ac.model ~= "" then
+							ac_model = ac.model
+						end
+					end
+				end
+			end
+			coder_model = ac_model or cp.model
 		end
 	end
 
