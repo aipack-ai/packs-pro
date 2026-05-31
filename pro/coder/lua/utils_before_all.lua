@@ -218,6 +218,42 @@ local function build_workbench_diagnostics(coder_workbench)
 	return table.concat(lines, "\n")
 end
 
+local function build_workbench_prompt_addition(coder_workbench)
+	if is_null(coder_workbench) or type(coder_workbench) ~= "table" then
+		return nil
+	end
+
+	local aliases = {}
+	local function add_alias(alias, path)
+		if not is_null(path) and path ~= "" then
+			table.insert(aliases, {
+				alias = alias,
+				path = path
+			})
+		end
+	end
+
+	add_alias("chat.md", coder_workbench.chat and coder_workbench.chat.path)
+	add_alias("plan.md", coder_workbench.plan and coder_workbench.plan.path)
+	add_alias("spec.md", coder_workbench.spec and (coder_workbench.spec.context_path or coder_workbench.spec.path))
+
+	if #aliases == 0 then
+		return nil
+	end
+
+	local lines = {
+		"When referring to workbench files by canonical names, use these resolved paths:",
+		""
+	}
+	for _, item in ipairs(aliases) do
+		table.insert(lines, "- `" .. item.alias .. "`: `" .. item.path .. "`")
+	end
+	table.insert(lines, "")
+	table.insert(lines, "Do not create root-level `chat.md`, `plan.md`, or `spec.md` when a matching workbench file is listed above.")
+
+	return table.concat(lines, "\n")
+end
+
 local function pin_workbench_diagnostics(coder_workbench)
 	local content = build_workbench_diagnostics(coder_workbench)
 	if content == nil or content == "" then
@@ -556,6 +592,7 @@ local function build_input_base(params)
 		workbench_data_refs                = params.workbench_data_refs,
 		coder_params                       = params.coder_params,
 		coder_workbench                    = params.coder_workbench,
+		workbench_prompt_addition          = params.workbench_prompt_addition,
 		coder_prompt                       = params.coder_prompt,
 		coder_prompt_dir                   = params.coder_prompt_dir,
 		coder_context_file_refs            = params.coder_context_file_refs,
@@ -894,6 +931,7 @@ function run_before_all(inputs)
 	local coder_context_file_refs = clone_ref_list(context_refs)
 	local coder_knowledge_file_refs = clone_ref_list(knowledge_refs)
 	local coder_working_file_refs = collect_working_refs(working_refs_list)
+	local workbench_prompt_addition = build_workbench_prompt_addition(coder_workbench)
 
 	-- === Build the input base
 	local input_base = build_input_base({
@@ -920,6 +958,7 @@ function run_before_all(inputs)
 		workbench_data_refs                = workbench_data_refs,
 		coder_params                       = coder_params,
 		coder_workbench                    = coder_workbench,
+		workbench_prompt_addition          = workbench_prompt_addition,
 		coder_prompt                       = inst,
 		coder_prompt_dir                   = coder_prompt_dir,
 		coder_context_file_refs            = coder_context_file_refs,

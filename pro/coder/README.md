@@ -491,6 +491,8 @@ workbench:
 
 There is also a `worbkench.data` to turn off data (by default data folder is on), but it is not recommend to use it. Do not set this property. 
 
+When a workbench file is enabled, `pro@coder` adds prompt guidance that maps canonical file names to resolved workbench paths. For example, `chat.md`, `plan.md`, and `spec.md` refer to the configured workbench files when those capabilities are enabled. This helps prevent accidental creation of root-level files with those names.
+
 You can customize the directory where these files are stored:
 
 ```yaml

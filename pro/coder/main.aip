@@ -321,6 +321,16 @@ The workbench data directory is available for supporting files:
 
 {{/if}}
 
+{{#if data.workbench_prompt_addition}}
+
+---
+
+## Workbench File Aliases
+
+{{data.workbench_prompt_addition}}
+
+{{/if}}
+
 # User `cache = {{data.cache_knowledge_files}}`
 
 {{#if data.knowledge_files}}
