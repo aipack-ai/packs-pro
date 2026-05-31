@@ -15,5 +15,6 @@ return {
 	LABEL_SPEC                = " Spec:",
 
 	-- DEBUG
-	UDIFFX_INST_DEBUG         = true, -- ->> for debug
+	-- turn on to get templates/file-content-udiffx.md (otherwise comes from udiffx)
+	UDIFFX_INST_DEBUG         = false,
 }
