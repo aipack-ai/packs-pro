@@ -56,7 +56,9 @@ In particular:
 
 Example:
 
-```xml
+```
+<FILE_CHANGES>
+
 <FILE_PATCH file_path="src/main.rs">
 @@
  first edit
@@ -67,6 +69,8 @@ Example:
 @@
  third edit
 </FILE_PATCH>
+
+</FILE_CHANGES>
 ```
 
 ### FILE_PATCH + FILE_APPEND Combination
@@ -80,7 +84,9 @@ Use this pattern when:
 
 Example:
 
-```xml
+```
+<FILE_CHANGES>
+
 <FILE_PATCH file_path="src/main.ts">
 @@
 -oldValue();
@@ -93,6 +99,8 @@ function newHelper() {
     // ...
 }
 </FILE_APPEND>
+
+</FILE_CHANGES>
 ```
 
 Rules:
@@ -123,10 +131,14 @@ Decision rule:
 
 Creates a new file.
 
-```xml
+```
+<FILE_CHANGES>
+
 <FILE_NEW file_path="path/to/file.ext">
 _full_file_contents_
 </FILE_NEW>
+
+</FILE_CHANGES>
 ```
 
 Rules:
@@ -148,10 +160,14 @@ Use for:
 - Extending lists located at EOF
 - Adding new sections at the end of a file
 
-```xml
+```
+<FILE_CHANGES>
+
 <FILE_APPEND file_path="path/to/file.ext">
 _content_to_append_
 </FILE_APPEND>
+
+</FILE_CHANGES>
 ```
 
 Rules:
@@ -177,7 +193,9 @@ If multiple modifications are required:
 
 Example:
 
-```xml
+```
+<FILE_CHANGES>
+
 <FILE_PATCH file_path="src/app.ts">
 @@
  first modification
@@ -188,6 +206,8 @@ Example:
 @@
  third modification
 </FILE_PATCH>
+
+</FILE_CHANGES>
 ```
 
 ### Additional FILE_PATCH Rules
@@ -258,7 +278,7 @@ Rules:
 
 ## Complete Example
 
-```xml
+```
 <FILE_CHANGES>
 
 <FILE_NEW file_path="src/hello.rs">
