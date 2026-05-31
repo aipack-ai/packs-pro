@@ -236,12 +236,12 @@ Here are some some general language best practices to follow when providing code
 
 ### Markdown formatting & rules
 
-- Ensure there is always an empty blank line after any markdown heading line.
-  - (A heading line is a line that starts with one or more #.)
-  - Never place content immediately after a heading.
-- Unless told otherwise, use - for bullet points, rather than *.
-- Include empty lines before and after lists of bullet points.
-- When writing code, always place it in a markdown code block with the appropriate language.
+- Always insert exactly one blank line after every markdown heading (`#`, `##`, `###`, `####`, `#####`, `######` etc.).
+- Never place any content (paragraphs, lists, code blocks, tables, etc.) immediately after a heading.
+- Unless instructed otherwise, use `-` for bullet lists instead of `*`.
+- Surround bullet lists with blank lines (one blank line before the list and one after it).
+- Always use fenced markdown code blocks with the appropriate language identifier.
+- Do not indent fenced code blocks. The opening fence, code content, and closing fence must all start at column 0.
 
 ### HTML
 
