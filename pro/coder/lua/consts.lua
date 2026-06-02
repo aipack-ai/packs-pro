@@ -5,6 +5,7 @@ return {
 
 	-- labels
 	LABEL_WORKBENCH           = "  Workbench:",
+	LABEL_PROMPT              = "     Prompt:",
 	LABEL_PROMPT_FILE         = "Prompt File:",
 	LABEL_README_FILE         = "Readme File:",
 	LABEL_GIT_COMMIT          = " Git Commit:",

@@ -979,6 +979,12 @@ function run_before_all(inputs)
 	-- === Print Run Info
 	print_run_info(input_base, working_refs_list, write_mode, meta.input_concurrency)
 
+	-- === Pin Final Prompt
+	aip.run.pin("prompt", 2, {
+		label = CONST.LABEL_PROMPT,
+		content = inst
+	})
+
 	return final_inputs, options
 end
 
