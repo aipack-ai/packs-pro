@@ -368,10 +368,10 @@ if auto_context_config.knowledge and knowledge_code_map then
 		local txt = "- " .. kfile.file_path .. "\n"
 		txt = txt .. "    - Summary: " .. kfile.summary .. "\n"
 		txt = txt .. "    - When To Use: " .. kfile.when_to_use .. "\n"
-		if kfile.public_types and #kfile.public_types > 0 then
+        if not is_null(kfile.public_types) and #kfile.public_types > 0 then
 			txt = txt .. "    - Types: " .. table.concat(kfile.public_types, ", ")  .. "\n"
 		end
-		if kfile.public_functions and #kfile.public_functions > 0 then
+        if not is_null(kfile.public_functions) and #kfile.public_functions > 0 then
 			txt = txt .. "    - Functions: " .. table.concat(kfile.public_functions, ", ")  .. "\n"
 		end
 		k_files_txt = k_files_txt .. txt .. "\n"
@@ -413,10 +413,10 @@ if workbench_data_selection_enabled and workbench_data_code_map then
 		local txt = "- " .. wdfile.file_path .. "\n"
 		txt = txt .. "    - Summary: " .. wdfile.summary .. "\n"
 		txt = txt .. "    - When To Use: " .. wdfile.when_to_use .. "\n"
-		if wdfile.public_types and #wdfile.public_types > 0 then
+        if not is_null(wdfile.public_types) and #wdfile.public_types > 0 then
 			txt = txt .. "    - Types: " .. table.concat(wdfile.public_types, ", ")  .. "\n"
 		end
-		if wdfile.public_functions and #wdfile.public_functions > 0 then
+        if not is_null(wdfile.public_functions) and #wdfile.public_functions > 0 then
 			txt = txt .. "    - Functions: " .. table.concat(wdfile.public_functions, ", ")  .. "\n"
 		end
 		wd_files_txt = wd_files_txt .. txt .. "\n"
