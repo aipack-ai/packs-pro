@@ -218,8 +218,6 @@ _ac.pin_status(auto_context_config, {
 	workbench_data_files_count = #workbench_data_files,
 	workbench_data_files_size  = workbench_data_files_size,
 })
--- === Pin the user prompt
-aip.run.pin("prompt", 9, {label = _ac.LABEL_PROMPT, content = user_prompt})
 
 -- === run code-map agent
 -- Note: for now, just passthrough input (later will resolve code_map_model, and code_map_input_concurrency)
@@ -292,6 +290,10 @@ end
 
 -- === Determine if we have a prompt
 local user_prompt = sub_agent_input.coder_prompt
+
+-- === Pin the user prompt
+aip.run.pin("ac_prompt", 9, {label = _ac.LABEL_PROMPT, content = user_prompt})
+
 if not user_prompt or not user_prompt:find("%S") then
 	local msg = "No prompt - skipping re-context step (only code-map done)"
 	aip.run.pin("status", 2, msg)
