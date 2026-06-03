@@ -677,6 +677,11 @@ function run_before_all(inputs)
 	-- === Extract the meta and instruction
 	local meta, inst = extract_meta_and_inst(first_part)
 
+    aip.run.pin("prompt", 2, {
+        label = CONST.LABEL_PROMPT,
+        content = inst
+    })
+
 	aip.run.pin("pfile", 4, {
 		label = CONST.LABEL_PROMPT_FILE,
 		content = paths.prompt_file_rel_path
@@ -803,6 +808,11 @@ function run_before_all(inputs)
 		append_agent_results(pre_agent_results, sub_agent_results)
 		-- recompute options from the meta returned
 		options = build_agent_options(meta)
+
+        aip.run.pin("prompt", 2, {
+            label = CONST.LABEL_PROMPT,
+            content = inst
+        })
 	end
 
 	-- === Run post-workbench pre-stage sub-agents
@@ -820,6 +830,11 @@ function run_before_all(inputs)
 		append_agent_results(pre_agent_results, sub_agent_results)
 		-- recompute options from the meta returned
 		options = build_agent_options(meta)
+
+        aip.run.pin("prompt", 2, {
+            label = CONST.LABEL_PROMPT,
+            content = inst
+        })
 	end
 
 	-- === Apply pinned globs (pre and post) as the final step before resolving refs.
