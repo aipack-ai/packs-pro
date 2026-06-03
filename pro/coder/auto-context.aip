@@ -218,6 +218,8 @@ _ac.pin_status(auto_context_config, {
 	workbench_data_files_count = #workbench_data_files,
 	workbench_data_files_size  = workbench_data_files_size,
 })
+-- === Pin the user prompt
+aip.run.pin("prompt", 9, {label = _ac.LABEL_PROMPT, content = user_prompt})
 
 -- === run code-map agent
 -- Note: for now, just passthrough input (later will resolve code_map_model, and code_map_input_concurrency)

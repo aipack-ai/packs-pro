@@ -11,6 +11,7 @@ local LABEL_HFILES              = "    Helper Files:"
 local LABEL_REASON              = "  Context Reason:"
 local LABEL_DREASON             = "     Data Reason:"
 local LABEL_KREASON             = "Knowledge Reason:"
+local LABEL_PROMPT              = "   Prompt:"
 
 local DEFAULT_INPUT_CONCURRENCY = 8
 
@@ -485,4 +486,5 @@ return {
 	pin_status                          = pin_status,
 	sort_files_by_mtime                 = sort_files_by_mtime,
 	append_helper_globs_from_sub_agents = append_helper_globs_from_sub_agents,
+	LABEL_PROMPT                        = LABEL_PROMPT,
 }
