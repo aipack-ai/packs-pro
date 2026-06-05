@@ -653,10 +653,20 @@ if output_base then
 					-- Write the latest auto-fix diagnostics before falling back to the existing report path.
 					-- Diagnostics are additive; if they cannot be written we still emit the existing failure report.
 				u_auto_fix.write_auto_fix_diagnostics(remaining_failed_changes, coder_workbench)
-					u_output.handle_failed_changes(remaining_failed_changes, report_data)
+					-- Write the legacy failure report file without pinning a task-scoped warning
+					-- because task pins are unavailable in the After All stage.
+					do
+						local fail_report_path = report_data.last_file_change_fails_report_path
+						local ai_res_path = report_data.ai_responses_for_raw_path
+						local fail_report_content = u_output.format_failed_changes_for_file_report(remaining_failed_changes) or ""
+						if fail_report_content ~= "" then
+							fail_report_content = fail_report_content .. "\n\nFull raw AI response:\n" .. ai_res_path
+						end
+						aip.file.append(fail_report_path, fail_report_content .. "\n\n")
+					end
 
 					-- After retry exhaustion, restore the pre-auto-fix terminal warning behavior by pinning the
-					-- failure message in both the run and the current task scopes.
+					-- failure message in the run scope (task pins cannot be used in After All).
 					local fail_report_path = report_data.last_file_change_fails_report_path
 					local ai_res_path = report_data.ai_responses_for_raw_path
 					local warn_msg = "❗❗❗ Failed to apply some changes to file(s) ❗❗❗\n"
