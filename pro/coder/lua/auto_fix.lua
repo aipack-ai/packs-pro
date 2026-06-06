@@ -47,12 +47,40 @@ local function resolve_auto_fix_model(coder_params)
 	return nil
 end
 
+-- Gets the ordered list of models used by the tiered auto-fix retry strategy.
+-- Returns a table of up to three model strings (may be nil if not configured):
+--   [1] code_map_model, [2] auto_context.model, [3] coder model.
+-- Used by: run_auto_fix_loop
+local function get_auto_fix_models(coder_params)
+	local models = {}
+
+	local code_map_model = nil
+	if type(coder_params.auto_context) == "table" then
+		code_map_model = coder_params.auto_context.code_map_model
+	end
+	table.insert(models, code_map_model)
+
+	local ac_model = nil
+	if type(coder_params.auto_context) == "table" then
+		ac_model = coder_params.auto_context.model
+	end
+	table.insert(models, ac_model)
+
+	local coder_model = nil
+	if type(coder_params) == "table" and type(coder_params.model) == "string" then
+		coder_model = coder_params.model
+	end
+	table.insert(models, coder_model)
+
+	return models
+end
+
 -- Resolves the auto_fix configuration by normalizing different types.
 local function resolve_auto_fix_config(cfg, env)
 	local resolved = {
 		enabled = false,
 		model = nil,
-		max_retries = 3
+		max_retries = 6
 	}
 
 	if type(cfg) == "boolean" then
@@ -796,6 +824,7 @@ end
 return {
 	resolve_auto_fix_config = resolve_auto_fix_config,
 	resolve_auto_fix_model = resolve_auto_fix_model,
+	get_auto_fix_models = get_auto_fix_models,
 	load_text_file = load_text_file,
 	normalize_failed_change_path = normalize_failed_change_path,
 	failed_hunk_details_available = failed_hunk_details_available,
