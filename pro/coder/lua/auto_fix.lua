@@ -55,13 +55,13 @@ local function get_auto_fix_models(coder_params)
 	local models = {}
 
 	local code_map_model = nil
-	if type(coder_params.auto_context) == "table" then
+	if not is_null(coder_params) and type(coder_params.auto_context) == "table" then
 		code_map_model = coder_params.auto_context.code_map_model
 	end
 	table.insert(models, code_map_model)
 
 	local ac_model = nil
-	if type(coder_params.auto_context) == "table" then
+	if not is_null(coder_params) and type(coder_params.auto_context) == "table" then
 		ac_model = coder_params.auto_context.model
 	end
 	table.insert(models, ac_model)
@@ -280,7 +280,7 @@ end
 
 -- Builds a human-readable completion response for the auto-fix result.
 -- Used by: main.aip (#After All)
-function build_auto_fix_completion_response(files_changed, files_changes_failed, data)
+function build_auto_fix_completion_response(files_changed, files_changes_failed, auto_fix_result, data)
 	files_changed = type(files_changed) == "table" and files_changed or {}
 	files_changes_failed = type(files_changes_failed) == "table" and files_changes_failed or {}
 
@@ -312,7 +312,7 @@ function build_auto_fix_completion_response(files_changed, files_changes_failed,
 		end
 	end
 
-	local summary_line = build_auto_fix_summary_line(data)
+	local summary_line = build_auto_fix_summary_line(auto_fix_result)
 	if summary_line ~= nil then
 		response = response .. "\n\n" .. summary_line
 		if #files_changes_failed > 0 then
@@ -661,7 +661,7 @@ function run_auto_fix_loop(coder_response, report_data, coder_workbench, options
 			end
 			local tier_models = get_auto_fix_models(coder_params)
 			local coder_model = nil
-			if type(coder_params) == "table" then
+			if not is_null(coder_params) and type(coder_params.model) == "string" then
 				coder_model = coder_params.model
 			end
 
