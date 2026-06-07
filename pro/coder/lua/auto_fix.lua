@@ -635,13 +635,59 @@ function run_auto_fix_loop(coder_response, report_data, coder_workbench, options
 		auto_fix_files_fixed = 0,
 		auto_fix_hunks_fixed = 0
 	}
+	-- Build models_to_use array of length max_retries for tiered model distribution.
+	local models_to_use = {}
+	do
+		local raw_auto_fix = nil
+		if type(report_data) == "table" and type(report_data.coder_params) == "table" then
+			raw_auto_fix = report_data.coder_params.auto_fix
+		end
+		local explicit_auto_fix_model = nil
+		if type(raw_auto_fix) == "string" and raw_auto_fix ~= "" then
+			explicit_auto_fix_model = raw_auto_fix
+		elseif type(raw_auto_fix) == "table" and type(raw_auto_fix.model) == "string" and raw_auto_fix.model ~= "" then
+			explicit_auto_fix_model = raw_auto_fix.model
+		end
 
-	local coder_model = nil
-	if type(report_data) == "table" then
-		if type(report_data.auto_fix) == "table" and type(report_data.auto_fix.model) == "string" and report_data.auto_fix.model ~= "" then
-			coder_model = report_data.auto_fix.model
-		elseif type(report_data.coder_params) == "table" then
-			coder_model = resolve_auto_fix_model(report_data.coder_params)
+		if explicit_auto_fix_model then
+			for _ = 1, max_retries do
+				table.insert(models_to_use, explicit_auto_fix_model)
+			end
+		else
+			-- Tiered strategy: ordered list of up to three models.
+			local coder_params = nil
+			if type(report_data) == "table" then
+				coder_params = report_data.coder_params
+			end
+			local tier_models = get_auto_fix_models(coder_params)
+			local coder_model = nil
+			if type(coder_params) == "table" then
+				coder_model = coder_params.model
+			end
+
+			for i, m in ipairs(tier_models) do
+				if is_null(m) or m == "" then
+					tier_models[i] = coder_model
+				end
+			end
+
+			local n_models = #tier_models
+			local quota = max_retries
+			local per_model = {}
+			for i = 1, n_models do
+				local remaining_models = n_models - i + 1
+				local count = math.ceil(quota / remaining_models)
+				per_model[i] = count
+				quota = quota - count
+			end
+
+			for i = 1, n_models do
+				local count = per_model[i]
+				local model = tier_models[i]
+				for _ = 1, count do
+					table.insert(models_to_use, model)
+				end
+			end
 		end
 	end
 
@@ -669,7 +715,7 @@ function run_auto_fix_loop(coder_response, report_data, coder_workbench, options
 				base_dir = base_dir,
 				coder_workbench = coder_workbench
 			},
-			options = (not is_null(coder_model) and coder_model ~= "" and { model = coder_model }) or nil,
+			options = (not is_null(models_to_use[_attempt]) and models_to_use[_attempt] ~= "" and { model = models_to_use[_attempt] }) or nil,
 			agent_base_dir = CTX.AGENT_FILE_DIR
 		})
 
