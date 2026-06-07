@@ -91,7 +91,7 @@ local function resolve_auto_fix_config(cfg, env)
 	elseif type(cfg) == "table" then
 		resolved.enabled = cfg.enabled ~= false
 		resolved.model = cfg.model
-		resolved.max_retries = tonumber(cfg.max_retries) or 3
+        resolved.max_retries = tonumber(cfg.max_retries) or 6
 		for k, v in pairs(cfg) do
 			if k ~= "enabled" and k ~= "model" and k ~= "max_retries" then
 				resolved[k] = v
