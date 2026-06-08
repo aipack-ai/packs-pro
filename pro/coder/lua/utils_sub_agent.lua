@@ -1,6 +1,8 @@
 -- === Support Functions
 local MAX_SUB_AGENT_STEPS = 100
 
+local CONST = require("consts")
+
 -- Properties that must be cleared from coder_params returned by sub-agents.
 -- These are top-level config concerns and should not be merged back into pipeline state.
 local CLEAR_CODER_PARAMS_RESPONSE_PROPERTIES = {
@@ -438,6 +440,12 @@ function run_sub_agent(config, stage, current_params, current_coder_prompt, code
 	end
 	if res.coder_prompt then
 		current_coder_prompt = res.coder_prompt
+		if stage == "pre" then
+			aip.run.pin("prompt", 2, {
+				label = CONST.LABEL_PROMPT,
+				content = current_coder_prompt
+			})
+		end
 	end
 
 	if stage == "pre" and not is_null(res.agent_on) then
