@@ -316,9 +316,13 @@ The workbench path for this run is:
 `{{data.coder_workbench.dir}}`
 
 {{#if data.coder_workbench.data_dir}}
+
 The workbench data directory is available for supporting files:
 
 `{{data.coder_workbench.data_dir}}`
+
+If the user ask to read or create workbench files (beside the chat, plan, spec), crate them in this folder. 
+
 {{/if}}
 
 {{/if}}
