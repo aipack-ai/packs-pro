@@ -242,14 +242,15 @@ local function build_workbench_prompt_addition(coder_workbench)
 	end
 
 	local lines = {
-		"When referring to workbench files by canonical names, use these resolved paths:",
+		"When the user refers to workbench files by canonical names, it actually means those resolved paths:",
 		""
 	}
 	for _, item in ipairs(aliases) do
-		table.insert(lines, "- `" .. item.alias .. "`: `" .. item.path .. "`")
+		table.insert(lines, "- alias `" .. item.alias .. "` - full path `" .. item.path .. "`")
 	end
 	table.insert(lines, "")
-	table.insert(lines, "Do not create root-level `chat.md`, `plan.md`, or `spec.md` when a matching workbench file is listed above.")
+	table.insert(lines,
+		"Do not create root-level `chat.md`, `plan.md`, or `spec.md` when a matching workbench file is listed above.")
 
 	return table.concat(lines, "\n")
 end
@@ -677,10 +678,10 @@ function run_before_all(inputs)
 	-- === Extract the meta and instruction
 	local meta, inst = extract_meta_and_inst(first_part)
 
-    aip.run.pin("prompt", 2, {
-        label = CONST.LABEL_PROMPT,
-        content = inst
-    })
+	aip.run.pin("prompt", 2, {
+		label = CONST.LABEL_PROMPT,
+		content = inst
+	})
 
 	aip.run.pin("pfile", 4, {
 		label = CONST.LABEL_PROMPT_FILE,
@@ -809,10 +810,10 @@ function run_before_all(inputs)
 		-- recompute options from the meta returned
 		options = build_agent_options(meta)
 
-        aip.run.pin("prompt", 2, {
-            label = CONST.LABEL_PROMPT,
-            content = inst
-        })
+		aip.run.pin("prompt", 2, {
+			label = CONST.LABEL_PROMPT,
+			content = inst
+		})
 	end
 
 	-- === Run post-workbench pre-stage sub-agents
@@ -831,10 +832,10 @@ function run_before_all(inputs)
 		-- recompute options from the meta returned
 		options = build_agent_options(meta)
 
-        aip.run.pin("prompt", 2, {
-            label = CONST.LABEL_PROMPT,
-            content = inst
-        })
+		aip.run.pin("prompt", 2, {
+			label = CONST.LABEL_PROMPT,
+			content = inst
+		})
 	end
 
 	-- === Apply pinned globs (pre and post) as the final step before resolving refs.
