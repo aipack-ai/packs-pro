@@ -496,7 +496,21 @@ aip.file.append(data.ai_responses_for_prompt_path, ai_content_for_prompt)
 
 -- === Update the prompt file
 local ai_content_for_prompt = aip.file.load(data.ai_responses_for_prompt_path).content
-local prompt_content = u_tmpl.sync_prompt(data.first_part, ai_content_for_prompt)
+
+-- Reload the current first part (before the `====`) from disk so the top of the
+-- prompt file reflects what is actually on disk at write time, rather than the
+-- in-memory value captured during the before-all/data stage. Parameters and
+-- instruction are not reprocessed; only the end part of the file is rebuilt.
+local first_part = data.first_part
+local on_disk_prompt = aip.file.load(data.prompt_path)
+if type(on_disk_prompt) == "table" and type(on_disk_prompt.content) == "string" then
+	local disk_first_part = aip.text.split_first(on_disk_prompt.content, "====\n")
+	if type(disk_first_part) == "string" and disk_first_part:find("%S") then
+		first_part = disk_first_part
+	end
+end
+
+local prompt_content = u_tmpl.sync_prompt(first_part, ai_content_for_prompt)
 
 aip.file.save(data.prompt_path, prompt_content)
 
