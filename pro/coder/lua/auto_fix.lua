@@ -91,7 +91,7 @@ local function resolve_auto_fix_config(cfg, env)
 	elseif type(cfg) == "table" then
 		resolved.enabled = cfg.enabled ~= false
 		resolved.model = cfg.model
-        resolved.max_retries = tonumber(cfg.max_retries) or 6
+		resolved.max_retries = tonumber(cfg.max_retries) or 6
 		for k, v in pairs(cfg) do
 			if k ~= "enabled" and k ~= "model" and k ~= "max_retries" then
 				resolved[k] = v
@@ -380,9 +380,9 @@ function build_inprogress_coding_content(files_changed, attempt_num, current_fai
 	return response
 end
 
--- Builds the `(N auto-fixes: F files, H hunks)` summary line from the aggregate counters
--- carried on auto_fix_result. Returns nil when no auto-fix attempt produced any fix (N == 0).
--- Used by: build_auto_fix_completion_response, run_auto_fix_loop
+-- Builds a simple success summary line. Returns `(✅ auto-fix successful)` when any
+-- auto-fix attempt produced a fix, or nil otherwise.
+-- Used by: build_auto_fix_completion_response
 function build_auto_fix_summary_line(auto_fix_result)
 	if type(auto_fix_result) ~= "table" then
 		return nil
@@ -393,13 +393,7 @@ function build_auto_fix_summary_line(auto_fix_result)
 		return nil
 	end
 
-	local files_fixed = tonumber(auto_fix_result.auto_fix_files_fixed) or 0
-	local hunks_fixed = tonumber(auto_fix_result.auto_fix_hunks_fixed) or 0
-
-	local files_txt = files_fixed == 1 and "1 file" or (tostring(files_fixed) .. " files")
-	local hunks_txt = hunks_fixed == 1 and "1 hunk" or (tostring(hunks_fixed) .. " hunks")
-
-	return "(" .. attempts_with_fixes .. " auto-fixes: " .. files_txt .. ", " .. hunks_txt .. ")"
+	return "(✅ auto-fix successful)"
 end
 
 -- Determines whether to defer immediate failure reporting so auto-fix can run first.
@@ -715,7 +709,8 @@ function run_auto_fix_loop(coder_response, report_data, coder_workbench, options
 				base_dir = base_dir,
 				coder_workbench = coder_workbench
 			},
-			options = (not is_null(models_to_use[_attempt]) and models_to_use[_attempt] ~= "" and { model = models_to_use[_attempt] }) or nil,
+			options = (not is_null(models_to_use[_attempt]) and models_to_use[_attempt] ~= "" and { model = models_to_use[_attempt] }) or
+					nil,
 			agent_base_dir = CTX.AGENT_FILE_DIR
 		})
 
