@@ -653,8 +653,11 @@ function run_auto_fix_loop(coder_response, report_data, coder_workbench, options
 			if type(report_data) == "table" then
 				coder_params = report_data.coder_params
 			end
+			---@cast coder_params any
+
 			local tier_models = get_auto_fix_models(coder_params)
 			local coder_model = nil
+
 			if not is_null(coder_params) and type(coder_params.model) == "string" then
 				coder_model = coder_params.model
 			end

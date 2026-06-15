@@ -13,7 +13,7 @@ knowledge_globs:
 
 ## Files the AI will work on (paths & content included in prompt, relative only)
 context_globs:
-  - "*.*"
+  - "*"
   - src/**/*.*      
 
 ## Set to false to disable file writing (response below this file's prompt)
