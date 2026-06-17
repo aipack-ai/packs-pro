@@ -242,15 +242,15 @@ local function build_workbench_prompt_addition(coder_workbench)
 	end
 
 	local lines = {
-		"When the user refers to workbench files by canonical names, it actually means those resolved paths:",
+		"When the user refers to workbench files by file name , it actually means those full paths:",
 		""
 	}
 	for _, item in ipairs(aliases) do
-		table.insert(lines, "- alias `" .. item.alias .. "` - full path `" .. item.path .. "`")
+		table.insert(lines, "- file name: `" .. item.alias .. "` - full path `" .. item.path .. "`")
 	end
 	table.insert(lines, "")
 	table.insert(lines,
-		"Do not create root-level `chat.md`, `plan.md`, or `spec.md` when a matching workbench file is listed above.")
+		"When updating the `chat.md`, `plan.md`, or `spec.md`, always update them in the workbench folder as specified above.")
 
 	return table.concat(lines, "\n")
 end

@@ -149,11 +149,12 @@ if base.coder_workbench then
     add_desc(base.coder_workbench.chat, "Chat")
     add_desc(base.coder_workbench.plan, "Plan")
     add_desc(base.coder_workbench.spec, "Spec")
-    if #parts > 0 then
-        local desc = "Your workbench development files are included among the context files below. They are:\n"
-        desc = desc .. table.concat(parts, "\n") .. "\n\nUse them according to the associated knowledge rules for plan-based, chat, and spec-based development."
-        wb_context_desc = desc
-    end
+    -- NOTE: Might add more confusion. 
+    -- if #parts > 0 then
+    --     local desc = "Your workbench development files are included among the context files below. They are:\n"
+    --     desc = desc .. table.concat(parts, "\n") .. "\n\nUse them according to the associated knowledge rules for plan-based, chat, and spec-based development."
+    --     wb_context_desc = desc
+    -- end
 end
 base.workbench_context_describe = wb_context_desc
 
@@ -321,7 +322,7 @@ The workbench data directory is available for supporting files:
 
 `{{data.coder_workbench.data_dir}}`
 
-If the user ask to read or create workbench files (beside the chat, plan, spec), crate them in this folder. 
+If the user ask to read or create workbench files (beside the chat, plan, spec), create them in this workbench data folder. 
 
 {{/if}}
 
