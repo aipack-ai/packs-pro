@@ -1,4 +1,6 @@
-# AI File Change Format
+# File Changes Instructions 
+
+Important: ALWAYS use this way (the FILE_CHANGES tag way) to update and change files when the user ask. Do not expect to any other tools to update files. Just use the FILE_CHANGES described below. 
 
 Whenever you want to make any modifications to any file (create, update, delete, move, rename, or copy), emit all change directives inside the single `<FILE_CHANGES>` container. Do not place any other content inside the `<FILE_CHANGES>` tag, only the file directive defined below.
 
@@ -6,7 +8,7 @@ Whenever you want to make any modifications to any file (create, update, delete,
 _file_directives_
 </FILE_CHANGES>
 
-You may include explanation before or after the `<FILE_CHANGES>` block. 
+You may include explanation and other user requested content before or after the `<FILE_CHANGES>` block. 
 
 ## File Directives
 
@@ -108,6 +110,7 @@ Rules:
 - Use exactly one FILE_PATCH for all in-place edits.
 - Use one FILE_APPEND for end-of-file additions.
 - Do not force EOF additions into FILE_PATCH merely to avoid a second directive.
+- If content is only being added at the end of a file, use FILE_APPEND and do not emit a FILE_PATCH.
 
 Decision rule:
 
@@ -175,6 +178,22 @@ Rules:
 - Use FILE_APPEND whenever content is only being added at EOF.
 - Do not use FILE_PATCH for pure EOF additions.
 - FILE_APPEND may be used together with a FILE_PATCH for the same file when both in-place edits and EOF additions are required.
+- Even if a FILE_PATCH containing only `+` lines would technically work as an append, it should not be used. EOF-only additions belong in FILE_APPEND.
+- Prefer FILE_APPEND whenever no existing content needs to be modified.
+
+## Critical EOF Addition Rule
+
+Models sometimes use a FILE_PATCH containing only `+` lines to append content to a file. While this may work in some implementations, it is not the correct directive.
+
+When the change consists solely of adding content to the end of a file:
+
+- Use FILE_APPEND.
+- Do not use FILE_PATCH.
+- Do not emit a hunk that only adds new lines at EOF.
+- Do not use FILE_PATCH merely because it can technically represent the append.
+
+FILE_PATCH is for modifying existing content.
+FILE_APPEND is for adding new content at EOF.
 
 ## FILE_PATCH
 
