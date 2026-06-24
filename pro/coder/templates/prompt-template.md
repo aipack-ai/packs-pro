@@ -14,8 +14,8 @@ knowledge_globs:
 ## Files the AI will work on (paths & content included in prompt, relative only)
 context_globs:
   - "*"
-  - src/**/*.*      
-
+  - src/**/*.*     
+ 
 ## Set to false to disable file writing (response below this file's prompt)
 write_mode: true
 
@@ -28,18 +28,17 @@ auto_context:
 
 # Default dir: PATH_TO_PRO_CODER_DIR/workbench-default 
 workbench:
-  # dir:  PATH_TO_PRO_CODER_DIR/workbench-default
+  # dir:  .workbench/current
   # chat: true
   # plan: true
   # spec: true
 
 ## Full model names or aliases (see aliases ~/.aipack-base/config-default.toml)
 ## -high, -medium, or -low suffixes for reasoning (e.g., "flash-low", "opus-max", "gpt-high")
-model: flash
+model: gpt
 
 ## (see PATH_TO_PRO_CODER_DIR/README.md for full pro@coder documentation)
 ```
-
 
 
 ====
