@@ -22,7 +22,7 @@ pub struct SomeType {
     messages: Vec<Message>,
 }
 
-// region:    --- Fluid Constructors & Chainable
+// region:    --- Fluid Constructors & Chainables
 
 /// Constructors
 impl SomeType {
@@ -59,7 +59,7 @@ impl SomeType {
     }
 }
 
-// endregion: --- Fluid Constructors & Chainable
+// endregion: --- Fluid Constructors & Chainables
 
 // region:    --- Froms
 
@@ -94,6 +94,7 @@ Add `with_` and `append_` methods in a separate `impl` block. Consume `self` (no
 Standard `From` trait conversions go in a separate `impl` block, typically after the chainable block.
 
 ## Builder Pattern
+
 Use a separate `Builder` struct when the target has a complex inner architecture (e.g., internal `Arc`) or when construction may be fallible (e.g., validation). The builder's setter methods follow the same fluid, consuming pattern (`with_`/`append_`). The `build()` method produces the final value — `Result<T, E>` for fallible builders, or `T` for infallible ones. Access the builder via `Type::builder()`.
 
 ```rust
@@ -122,55 +123,9 @@ pub struct ClientBuilder {
     max_retries: Option<u32>,
 }
 
-// region:    --- Fluid Constructors & Chainable
+// region:    --- Fluid Constructors & Chainables
 
-/// Constructors
-impl ClientBuilder {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn from_endpoint(endpoint: impl Into<String>) -> Self {
-        Self {
-            endpoint: Some(endpoint.into()),
-            ..Self::default()
-        }
-    }
-}
-
-/// Chainables
-impl ClientBuilder {
-    pub fn with_endpoint(mut self, endpoint: impl Into<String>) -> Self {
-        self.endpoint = Some(endpoint.into());
-        self
-    }
-
-    pub fn with_max_retries(mut self, max_retries: u32) -> Self {
-        self.max_retries = Some(max_retries);
-        self
-    }
-
-    pub fn build(self) -> Result<Client, Box<dyn std::error::Error>> {
-        let endpoint = self.endpoint.ok_or("endpoint is required")?;
-        let max_retries = self.max_retries.unwrap_or(3);
-        Ok(Client {
-            inner: Arc::new(ClientInner { endpoint, max_retries }),
-        })
-    }
-}
-
-// endregion: --- Fluid Constructors & Chainable
-
-// region:    --- Froms
-
-impl From<&str> for ClientBuilder {
-    fn from(endpoint: &str) -> Self {
-        ClientBuilder::from_endpoint(endpoint)
-    }
-}
-
-// endregion: --- Froms
-```
+... same pattern for ClientBuilder ...
 
 ```
 
