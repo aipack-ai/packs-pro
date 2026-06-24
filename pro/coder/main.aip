@@ -138,25 +138,37 @@ base.workbench_data_files = p_utils.load_file_refs(base.base_dir, base.workbench
 base.working_files   = p_utils.load_file_refs(base.base_dir, working_refs)
 base.structure_refs_md = p_utils.format_paths_as_single_nested(base.structure_refs)
 -- Build workbench context description
-local wb_context_desc = nil
-if base.coder_workbench then
-    local parts = {}
-    local function add_desc(cfg, label)
-        if cfg and cfg.path then
-            table.insert(parts, "- " .. label .. ": `" .. cfg.path .. "`")
-        end
-    end
-    add_desc(base.coder_workbench.chat, "Chat")
-    add_desc(base.coder_workbench.plan, "Plan")
-    add_desc(base.coder_workbench.spec, "Spec")
-    -- NOTE: Might add more confusion. 
-    -- if #parts > 0 then
-    --     local desc = "Your workbench development files are included among the context files below. They are:\n"
-    --     desc = desc .. table.concat(parts, "\n") .. "\n\nUse them according to the associated knowledge rules for plan-based, chat, and spec-based development."
-    --     wb_context_desc = desc
-    -- end
-end
-base.workbench_context_describe = wb_context_desc
+ -- Build workbench context description and file alias mapping
+ local wb_context_desc = nil
+ local wb_alias_message = nil
+ if base.coder_workbench then
+     local parts = {}
+     local function add_desc(cfg, label)
+         if cfg and cfg.path then
+             local path = cfg.path
+             table.insert(parts, "- " .. label .. ": `" .. path .. "`")
+         end
+     end
+     add_desc(base.coder_workbench.chat, "Chat")
+     add_desc(base.coder_workbench.plan, "Plan")
+     add_desc(base.coder_workbench.spec, "Spec")
+     if #parts > 0 then
+         local desc = "Your workbench file files are included among the context files below. They are:\n"
+         desc = desc .. table.concat(parts, "\n") .. "\n\n"
+         desc = desc .. "When the user asks to update or read `chat.md`, `plan.md`, or `spec.md`, always use the exact file paths listed above. Do **not** create new files with those names in other directories unless explicitly instructed by the user."
+         wb_context_desc = desc
+
+         -- Also build the dedicated alias mapping for use in the Workbench File Aliases section
+         wb_alias_message = "When the user refers to `chat.md`, `plan.md`, or `spec.md` without a full path, they refer to the following workbench files (use these exact paths):\n\n"
+         wb_alias_message = wb_alias_message .. table.concat(parts, "\n") .. "\n\n"
+         wb_alias_message = wb_alias_message .. "Do **not** create new files with these names in other directories unless explicitly instructed by the user."
+     end
+ end
+ base.workbench_context_describe = wb_context_desc
+ -- Ensure workbench_prompt_addition is populated with the alias message if not already set by utils_before_all
+ if not base.workbench_prompt_addition or base.workbench_prompt_addition == "" then
+     base.workbench_prompt_addition = wb_alias_message
+ end
 
 local raw_auto_fix = base.auto_fix
 if type(base.coder_params) == "table" and not is_null(base.coder_params.auto_fix) then
