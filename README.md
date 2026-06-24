@@ -25,6 +25,6 @@ All of these packs are licensed under MIT or Apache 2 for maximum flexibility an
 
 Except for finding obvious bugs or typos, it's recommended that you open an issue to describe the scope before working on and submitting a PR for a feature enhancement.
 
-<br />
+---
 
 [This GitHub Repo](https://github.com/aipack-ai/packs-pro)
