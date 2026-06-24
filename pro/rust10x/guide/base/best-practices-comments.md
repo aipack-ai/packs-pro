@@ -53,6 +53,29 @@ For large chunks of code, usually groups of types, functions, private/support co
 
 - Sometimes a source file will have some private functions specific to the file's logic. Before the eventual test code region, we have a `Support` code region with the private types/functions there.
 
+**For `From` and similar blanket trait implementations:**
+
+- After the type definitions and public function implementations, group all `impl From<...> for Type` blocks in a `Froms` code region.
+
+```rust
+// region:    --- Froms
+
+impl<'a> From<&'a str> for HtmlContent<'a> {
+	fn from(value: &'a str) -> Self {
+		HtmlContent::Source(value)
+	}
+}
+
+impl<'a> From<&'a HtmlParsed> for HtmlContent<'a> {
+	fn from(value: &'a HtmlParsed) -> Self {
+		HtmlContent::Parsed(value)
+	}
+}
+
+// endregion: --- Froms
+```
+
+
 ### Code Section Marker
 
 In function bodies or types, code section markers `// -- some concise description` can be used to further split the code.
