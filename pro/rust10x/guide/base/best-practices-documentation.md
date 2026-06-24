@@ -70,6 +70,19 @@ src/elem.rs
 
 The inner attribute (`#!`) applies to the enclosing item (the module itself), which is the correct scope for module-level documentation.
 
+### Function and Type Documentation
+
+When a module's primary API is a single function or type (especially when the module merely flattens re-exports), attach the documentation directly to that item rather than the module. This keeps the documentation scoped correctly and avoids an empty module doc.
+
+Use an outer attribute on the item:
+
+```rust
+#[doc = include_str!("../docs/rustdoc/foo/bar/fn_name.md")]
+pub fn my_fn() { ... }
+```
+
+Follow the same directory mapping, using a file named after the item (e.g., `docs/rustdoc/crate/module/fn_name.md` for a function named `fn_name` in `crate::module`).
+
 
 ## Directory Mapping
 
@@ -97,3 +110,4 @@ Mirroring scales better and keeps paths predictable.
 5. Keep AI-oriented documentation under `docs/for-llm`.
 6. Re-export derive macros through a `derive` module for ergonomics.
 7. Prefer a separate `-derive` crate while only derive macros exist.
+8. For silent modules (only re-exports), attach documentation directly to the exported item rather than the module.
