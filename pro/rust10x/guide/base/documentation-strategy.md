@@ -35,25 +35,41 @@ Keep only concise API documentation in Rust source:
 
 ```rust
 /// Parameters accepted by a program.
-pub trait Params {}
+pub trait Params {
+	/// ...concise but complete doc...
+	name: String
+}
 ```
 
-Attach larger documentation via `include_str!`:
+Attach larger documentation via `include_str!` at the very top of the files
 
+src/lib.rs
 ```rust
-// src/lib.rs
 #![doc = include_str!("../docs/rustdoc/lib.md")]
+
+... rest of the code ..
 ```
 
+src/params/schema.rs
 ```rust
-// src/params/mod.rs
-#![doc = include_str!("../../docs/rustdoc/params/mod.md")]
-```
-
-```rust
-// src/params/schema.rs
 #![doc = include_str!("../../docs/rustdoc/params/schema.md")]
+
+... rest of the code ..
 ```
+
+### Module Documentation Attribute Placement
+
+Place the `#![doc = include_str!(...)]` attribute inside the module's own Rust source file, not as an outer attribute on the `mod` declaration in the parent module.
+
+**Do this instead:**
+
+src/elem.rs
+```rust
+#![doc = include_str!("../docs/rustdoc/elem.md")]
+```
+
+The inner attribute (`#!`) applies to the enclosing item (the module itself), which is the correct scope for module-level documentation.
+
 
 ## Directory Mapping
 
@@ -68,13 +84,6 @@ docs/rustdoc/foo/mod.md
 
 src/lib.rs
 docs/rustdoc/lib.md
-```
-
-Avoid flattened names such as:
-
-```text
-docs/rustdoc/foo-bar.md
-docs/rustdoc/runtime-mod.md
 ```
 
 Mirroring scales better and keeps paths predictable.
