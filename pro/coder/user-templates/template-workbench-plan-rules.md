@@ -135,9 +135,11 @@ Each step must be defined in a way that does not break the code or existing func
 
 ## Current completed step and follow-up rules
 
-- The latest completed step may remain marked as `## ✅ Step - ...` so follow-up refinements, fixes, or notes can be attached with minimal edits.
-
-- This is useful in case the user wants new things or if something needs to be fixed, see sub-step below.
+ - The latest completed step may remain marked as `## ✅ Step - ...` so follow-up refinements, fixes, or notes can be attached with minimal edits.
+ 
+ - **Important:** Before completing a new step (i.e., when you are about to start a new `## ■ Step - ...`), you must convert the existing `## ✅ Step - ...` to `## ✔ Step - ...`. Only the single most recently completed step may carry the green check. Having more than one `## ✅ Step - ...` is an error.
+ 
+ - This is useful in case the user wants new things or if something needs to be fixed, see sub-step below.
 
 - Preserve the original body of the step; do not delete details. Add follow-up sections as needed without altering the original text.
 
