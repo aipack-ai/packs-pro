@@ -77,9 +77,9 @@ Rules for this structure:
 - Keep steps ordered from oldest planned step at the top to newest planned step at the bottom.
  - Use the step heading emoji to represent state, and ensure they are updated as the status of the step changes:
   - `## ■ Step - ...` for not started yet
-  - `## ✅ Step - ...` for the step just completed in the current response or the most recently completed step that is still the current focus
   - `## ✔ Step - ...` for older completed steps
-- At most one step should normally use `## ✅ Step - ...` at a time.
+  - `## ✅ Step - ...` for the step just completed in the current response or the most recently completed step that is still the current focus
+- So, at most one step should normally use `## ✅ Step - ...` at a time the previous steps should be change to the `✔` icon
 - Keep these sections in the same file. Do not split them back into multiple files.
 
 ## Step Rules
