@@ -59,6 +59,21 @@ end
 
 -- Compute total size
 local total_size = 0
+-- Per-category sizes (for overflow diagnostics)
+local function sum_size(file_list)
+    local s = 0
+    if file_list then
+        for _, file in ipairs(file_list) do
+            s = s + file.size
+        end
+    end
+    return s
+end
+local knowledge_size      = sum_size(base.knowledge_refs)
+local context_size        = sum_size(new_context_refs)
+local working_size        = sum_size(working_refs)
+local workbench_data_size = sum_size(base.workbench_data_refs)
+
 local all_refs  = {
   base.knowledge_refs or {}, -- making sure it is not nil, otherwise, loop below stops
   new_context_refs or {},
@@ -75,6 +90,31 @@ end
 -- Check that not more than max
 local max_files_size_b = base.max_files_size_kb * 1000
 if total_size > max_files_size_b then
+    -- Build a clear, actionable overflow message. Pin it as a WARNING at both the run
+    -- and task scope so the overflow skip is never surfaced as a silent successful run.
+    local knowledge_count      = base.knowledge_refs and #base.knowledge_refs or 0
+    local context_count        = new_context_refs and #new_context_refs or 0
+    local working_count        = working_refs and #working_refs or 0
+    local workbench_data_count = base.workbench_data_refs and #base.workbench_data_refs or 0
+
+    local warn_msg = "❗❗❗ Max files size reached, run skipped (no AI call, no file changes) ❗❗❗"
+    warn_msg = warn_msg .. "\n\n Actual size: " .. aip.text.format_size(total_size)
+    warn_msg = warn_msg .. "\n    Max size: " .. aip.text.format_size(max_files_size_b)
+    warn_msg = warn_msg .. "\n\nSize breakdown by category:"
+    warn_msg = warn_msg .. "\n- Context Files (" .. context_count .. "): " .. aip.text.format_size(context_size)
+    warn_msg = warn_msg .. "\n- Knowledge Files (" .. knowledge_count .. "): " .. aip.text.format_size(knowledge_size)
+    warn_msg = warn_msg .. "\n- Working Files (" .. working_count .. "): " .. aip.text.format_size(working_size)
+    warn_msg = warn_msg .. "\n- Workbench Data (" .. workbench_data_count .. "): " .. aip.text.format_size(workbench_data_size)
+    warn_msg = warn_msg .. "\n\nRemediations:"
+    warn_msg = warn_msg .. "\n1. Enable `auto_context` to filter `context_globs` (and `knowledge_globs`) down to relevant files."
+    warn_msg = warn_msg .. "\n2. Narrow your `context_globs` / `knowledge_globs` to reduce the total size."
+    warn_msg = warn_msg .. "\n3. Raise `max_files_size_kb` in the coder-prompt.md if the larger context is intended."
+
+    aip.run.pin("size_overflow", 0, { label = "WARNING", content = warn_msg })
+    if input.single_task then
+        aip.task.pin("size_overflow", 0, { label = "WARNING", content = warn_msg })
+    end
+
     local msg = "Max files size reached."
     msg = msg .. "\n Actual size: " .. aip.text.format_size(total_size)
     msg = msg .. "\n    Max size: " .. aip.text.format_size(max_files_size_b)
