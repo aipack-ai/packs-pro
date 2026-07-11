@@ -183,6 +183,7 @@ model: gpt-5.2
 auto_context:
   model: flash                # The model used to analyze the instruction and code map
   enabled: true               # Whether to run the auto-context agent (default true)
+  # cache_explicit: true      # Overrides the root cache_explicit setting for auto-context
   knowledge: true             # Automatically select knowledge files (default true)
   mode: reduce                # "reduce" (replaces) or "expand" (adds to existing) (default "reduce")
   # input_concurrency: 8      # code map building concurrency (default 8, or coder value)
@@ -470,6 +471,7 @@ Example:
 auto_context:
   model: flash                # The model used to analyze the instruction and code map
   enabled: true               # Whether to run the auto-context agent (default true)
+  # cache_explicit: true      # Overrides the root cache_explicit setting for auto-context
   knowledge: true             # Automatically select knowledge files (default true)
   mode: reduce                # "reduce" (replaces) or "expand" (adds to existing) (default "reduce")
   # input_concurrency: 8      # code map building concurrency (default 8, or coder value)
@@ -818,6 +820,7 @@ sub_agents:
 
 - `name`: Set to `pro@coder/auto-context`. This agent automatically identifies relevant files for your prompt by comparing your instruction against a "code map" (summaries of your files).
 - `enabled`: Toggles the sub-agent execution.
+- `cache_explicit`: (Optional) Overrides the root `cache_explicit` value for auto-context. When omitted, auto-context inherits the root value. When neither is set to `true`, explicit caching is disabled.
 - `model`: The model used to analyze your instruction and the code map summaries to perform the file selection.
 - `knowledge`: (Optional, default `true`) If `true`, the agent will also analyze and select relevant files from `knowledge_globs`.
 - `mode`: (Optional, default `"reduce"`)

@@ -135,6 +135,12 @@ local function extract_auto_context_config(sub_input)
 	-- workbench_data_globs
 	local workbench_data_globs = sub_input.coder_params.workbench_data_globs
 
+	-- Auto-context inherits the coder cache setting unless its own config explicitly overrides it.
+	local cache_explicit = sub_input.coder_params.cache_explicit == true
+	if not is_null(input_agent_config.cache_explicit) then
+		cache_explicit = input_agent_config.cache_explicit == true
+	end
+
 	-- Canonical workbench data path flow:
 	-- workbench_dir/data/**/*.* -> data-code-map keys -> selector prompt paths -> selected data paths.
 	-- Existing fields remain pass-through until the later implementation steps replace legacy resolution.
@@ -176,7 +182,7 @@ local function extract_auto_context_config(sub_input)
 		workbench_data_dir         = workbench_data_dir,
 		workbench_cache_dir        = workbench_cache_dir,
 		prompt_base_dir            = sub_input.coder_params.base_dir or "",
-		cache_explicit             = sub_input.coder_params.cache_explicit == true,
+		cache_explicit             = cache_explicit,
 	}
 end
 
