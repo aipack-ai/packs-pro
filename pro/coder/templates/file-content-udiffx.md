@@ -8,13 +8,11 @@ Whenever you want to make any modifications to any file (create, update, delete,
 _file_directives_
 </FILE_CHANGES>
 
-You may include explanation and other user requested content before or after the `<FILE_CHANGES>` block. 
-
-Make sure to not forget to close the FILE_CHANGES tag as shown above. 
+You may include explanation and other user requested content before or after the `<FILE_CHANGES>...</FILE_CHANGES>` block. 
 
 ## Mandatory Response Structure
 
-Any response that changes files MUST contain exactly one complete `<FILE_CHANGES>` block.
+Any response that changes files MUST contain exactly one complete `<FILE_CHANGES>...</FILE_CHANGES>` block.
 
 The block MUST:
 
