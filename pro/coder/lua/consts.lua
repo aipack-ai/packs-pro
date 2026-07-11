@@ -17,5 +17,5 @@ return {
 
 	-- DEBUG
 	-- turn on to get templates/file-content-udiffx.md (otherwise comes from udiffx)
-	UDIFFX_INST_DEBUG         = true,
+	UDIFFX_INST_DEBUG         = false,
 }
