@@ -502,6 +502,7 @@ local data = {
 	workbench_data_mapped_files_count = wd_files_count,
 	workbench_data_files_size  = workbench_data_files_size,
 	mode                = auto_context_config.mode,
+	cache_explicit      = auto_context_config.cache_explicit,
 }
 
 return aip.flow.data_response({
@@ -513,7 +514,7 @@ return aip.flow.data_response({
 
 ```
 
-# System
+# System `cache = {{data.cache_explicit}}`
 
 Your goal is to look at the user prompt, and the files and their descriptions and determine the ones that are needed for that prompt. 
 
@@ -527,7 +528,7 @@ The user will give you:
 Note: When the user ask explicitly to add some files to the context_globs, it means they need to be added in the needed_context_files list. 
 Optional workbench data files, when provided, must be selected separately from context files.
 
-# Instruction
+# Instruction `cache = {{data.cache_explicit}}`
 
 {{#if data.knowledge_enabled}}
 {{#if data.workbench_data_enabled}}
@@ -625,24 +626,6 @@ Here are the available context files and their descriptions
 {{data.c_files_txt}}
 </available_context_files>
 
-{{#if data.workbench_data_enabled}}
-
----
-
-Here are the available workbench data files and their descriptions
-
-Important reminder:
-
-- The files below are workbench data files only.
-- They are not normal context files or knowledge files.
-- If you select any of them, place them only in `needed_workbench_data_files`.
-
-<available_workbench_data_files>
-{{data.workbench_data_files_txt}}
-</available_workbench_data_files>
-
-{{/if}}
-
 {{#if data.knowledge_enabled}}
 
 ---
@@ -661,6 +644,25 @@ Important reminder:
 
 {{/if}}
 
+
+# Instruction
+
+{{#if data.workbench_data_enabled}}
+
+Here are the available workbench data files and their descriptions
+
+Important reminder:
+
+- The files below are workbench data files only.
+- They are not normal context files or knowledge files.
+- If you select any of them, place them only in `needed_workbench_data_files`.
+
+<available_workbench_data_files>
+{{data.workbench_data_files_txt}}
+</available_workbench_data_files>
+
+{{/if}}
+
 ---
 
 {{#if data.helper_files}}
@@ -671,10 +673,12 @@ Also, here are some other files that help termine which file might be needed fro
 <HELPER_FILE name="{{this.path}}">
 {{this.content}}
 </HELPER_FILE>
+
 {{/each}}
 
---- 
 {{/if}}
+
+---
 
 Here is the user prompt:
 

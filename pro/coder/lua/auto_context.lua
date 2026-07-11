@@ -176,6 +176,7 @@ local function extract_auto_context_config(sub_input)
 		workbench_data_dir         = workbench_data_dir,
 		workbench_cache_dir        = workbench_cache_dir,
 		prompt_base_dir            = sub_input.coder_params.base_dir or "",
+		cache_explicit             = sub_input.coder_params.cache_explicit == true,
 	}
 end
 
