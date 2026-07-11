@@ -59,6 +59,7 @@ function M.load_suggest_commit_template(prompt_dir)
 	return M.load_user_template(prompt_dir, "suggest-commit.md")
 end
 
+
 -- Save a prompt file
 -- `prompt_path`    - the destination file path
 function M.save_prompt_file(prompt_path)

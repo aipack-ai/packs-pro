@@ -537,6 +537,7 @@ end
 local function prepare_instructions(file_content_mode, suggest_git_commit, udiffx_inst_debug, prompt_dir)
 	local u_tmpl = require("utils_tmpl")
 	local instructions = {}
+	instructions.general_languages = u_tmpl.load_template("general-languages.md").content
 
 	if file_content_mode.whole then
 		instructions.file_content_change = u_tmpl.load_template("file-content-whole.md").content
