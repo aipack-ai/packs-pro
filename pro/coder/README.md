@@ -362,6 +362,10 @@ Number of concurrent tasks to run when processing `working_globs`. Defaults to t
 
 Maximum total size in KB of all included files (safeguard). Default is 1000 (1MB). If over the limit, the data will NOT be sent, and a message will appear in the terminal.
 
+#### cache_explicit
+
+`cache_explicit` controls explicit prompt caching. It is supported for Anthropic models and GPT-5.6 and later. When enabled, the coder prompt and knowledge files are cached for now. Context files, workbench data, and other prompt inputs are not cached by this setting.
+
 #### model_aliases
 
 Define or override model aliases. These will override the config TOML files.
