@@ -10,6 +10,38 @@ _file_directives_
 
 You may include explanation and other user requested content before or after the `<FILE_CHANGES>` block. 
 
+Make sure to not forget to close the FILE_CHANGES tag as shown above. 
+
+## Mandatory Response Structure
+
+Any response that changes files MUST contain exactly one complete `<FILE_CHANGES>` block.
+
+The block MUST:
+
+1. Begin with the exact text `<FILE_CHANGES>`.
+2. Contain every file directive.
+3. End with the exact text `</FILE_CHANGES>`.
+4. Be fully closed before the response ends.
+
+An unclosed `<FILE_CHANGES>` block is invalid.
+
+Before returning the response, verify:
+
+- There is exactly one `<FILE_CHANGES>` opening tag.
+- There is exactly one `</FILE_CHANGES>` closing tag.
+- The closing tag appears after all file directives.
+- No file directive appears outside the block.
+
+Required shape:
+
+<FILE_CHANGES>
+_file_directives_
+</FILE_CHANGES>
+
+Never stop generating the response before emitting `</FILE_CHANGES>`.
+
+If additional explanation is included after the file changes, the `<FILE_CHANGES>` block MUST already be closed.
+
 ## File Directives
 
 | Directive   | Purpose                             |
@@ -22,6 +54,18 @@ You may include explanation and other user requested content before or after the
 | FILE_DELETE | Delete a file                       |
 
 **VERY IMPORTANT:** File directives can only be inside a single FILE_CHANGES tag. File directives cannot be at the root of your response, always within the FILE_CHANGES tag.
+
+## Directive Closure
+
+Every non-self-closing file directive MUST be closed before the next directive begins.
+
+Before responding, verify:
+
+- Every `<FILE_NEW>` has a matching `</FILE_NEW>`.
+- Every `<FILE_PATCH>` has a matching `</FILE_PATCH>`.
+- Every `<FILE_APPEND>` has a matching `</FILE_APPEND>`.
+- `FILE_COPY`, `FILE_RENAME`, and `FILE_DELETE` are self-closing.
+- No directive is nested inside another directive.
 
 ### Directive Selection Hierarchy
 
@@ -337,3 +381,5 @@ pub fn hello() {
 
 </FILE_CHANGES>
 ```
+
+Always to close the FILE_CHANGES tag at end end of all of the file directives. 
