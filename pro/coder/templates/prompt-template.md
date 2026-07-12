@@ -21,8 +21,8 @@ write_mode: true
 
 ## Optimize context files selection (other properties: code_map_model, helper_globs, ..)
 auto_context: 
-  model: flash3          # Medium/Cheap model enough on this one (mini-high for gpt)
-  code_map_model: lite   # Small/fast model used to code map each individual file
+  model: luna            # Medium/Cheap model enough on this one (gpt-5.6-luna good choice)
+  code_map_model: lite   # Small/fast to code map each file (gemini flash lite the best for this)
   input_concurrency: 16  # (default 8)
   enabled: false         # (Default true) Comment or set to true to enable.
 
@@ -30,11 +30,12 @@ auto_context:
 workbench:
   # dir:  .workbench/current
   # chat: true
+  # goal: true
   # plan: true
   # spec: true
 
 ## Full model names or aliases (see aliases ~/.aipack-base/config-default.toml)
-## -high, -medium, or -low suffixes for reasoning (e.g., "flash-low", "opus-max", "gpt-high")
+## -high, -medium, or -low suffixes for reasoning (e.g., "sol-low", "opus-max")
 model: gpt
 
 ## (see PATH_TO_PRO_CODER_DIR/README.md for full pro@coder documentation)
