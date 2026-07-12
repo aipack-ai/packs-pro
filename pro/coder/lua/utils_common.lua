@@ -323,8 +323,7 @@ local function ensure_workbench_chat_file(workbench_chat_path, options)
 end
 
 local function load_workbench_goal_template_content()
-	return
-	"# Goals\n\nMaintain all information about the discussion goals so the latest decisions and goals to accomplish are clearly captured.\n"
+	return ""
 end
 
 local function ensure_workbench_goal_rules_file(options)
@@ -345,7 +344,7 @@ local function ensure_workbench_goal_file(workbench_goal_path, options)
 		return resolved_path
 	end
 
-	local ensure_res = aip.file.ensure_exists(resolved_path, load_workbench_goal_template_content())
+	local ensure_res = aip.file.ensure_exists(resolved_path)
 	if type(ensure_res) == "table" and ensure_res.error then
 		return nil, ensure_res.error
 	end
