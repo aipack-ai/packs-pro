@@ -5,6 +5,7 @@ Here are some some general language best practices to follow when providing code
 ### Markdown formatting & rules
 
 - Always insert exactly one blank line after every markdown heading (`#`, `##`, `###`, `####`, `#####`, `######`, etc.).
+- Make sure to put all programming code or JSON in a Markdown code block with the appropriate language label (rust, typescript, json, yaml, etc.).
 - Never place any content (paragraphs, lists, code blocks, tables, etc.) immediately after a heading.
 - Unless instructed otherwise, use `-` for bullet lists instead of `*`.
 - Surround bullet lists with blank lines (one blank line before the list and one after it).
