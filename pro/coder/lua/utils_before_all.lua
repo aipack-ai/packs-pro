@@ -183,6 +183,14 @@ local function build_workbench_diagnostics(coder_workbench)
 	if chat_rules_path then
 		table.insert(knowledge_lines, "Chat Rules ➜ " .. chat_rules_path)
 	end
+	local goal_path = coder_workbench and coder_workbench.goal and coder_workbench.goal.path
+	if goal_path then
+		table.insert(lines, "Goal ➜ " .. goal_path .. " (added to context & auto-context)")
+	end
+	local goal_rules_path = coder_workbench and coder_workbench.goal and coder_workbench.goal.rules_path
+	if goal_rules_path then
+		table.insert(knowledge_lines, "Goal Rules ➜ " .. goal_rules_path)
+	end
 	local plan_path = coder_workbench and coder_workbench.plan and coder_workbench.plan.path
 	if plan_path then
 		table.insert(lines, "Plan ➜ " .. plan_path .. " (added to context & auto-context)")
@@ -234,6 +242,7 @@ local function build_workbench_prompt_addition(coder_workbench)
 	end
 
 	add_alias("chat.md", coder_workbench.chat and coder_workbench.chat.path)
+	add_alias("goal.md", coder_workbench.goal and coder_workbench.goal.path)
 	add_alias("plan.md", coder_workbench.plan and coder_workbench.plan.path)
 	add_alias("spec.md", coder_workbench.spec and (coder_workbench.spec.context_path or coder_workbench.spec.path))
 
@@ -250,7 +259,7 @@ local function build_workbench_prompt_addition(coder_workbench)
 	end
 	table.insert(lines, "")
 	table.insert(lines,
-		"When updating the `chat.md`, `plan.md`, or `spec.md`, always update them in the workbench folder as specified above.")
+		"When updating the `chat.md`, `goal.md`, `plan.md`, or `spec.md`, always update them in the workbench folder as specified above.")
 
 	return table.concat(lines, "\n")
 end

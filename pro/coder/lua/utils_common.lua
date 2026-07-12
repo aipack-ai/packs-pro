@@ -95,6 +95,24 @@ local function resolve_workbench_chat_path(workbench_chat_path, options)
 	return normalized_path
 end
 
+local function resolve_workbench_goal_path(workbench_goal_path, options)
+	options = options or {}
+	local workbench_root_dir = resolve_workbench_root_dir(options)
+
+	if is_null(workbench_goal_path) or workbench_goal_path == "" then
+		return workbench_root_dir .. "/goal.md"
+	end
+
+	local normalized_path = workbench_goal_path:gsub("/+$", "")
+	local _dir, file_name = aip.path.split(normalized_path)
+	local has_extension = file_name and file_name:match("^.+%.[^%.]+$") ~= nil
+	if not has_extension then
+		return normalized_path .. "/goal.md"
+	end
+
+	return normalized_path
+end
+
 local function resolve_workbench_plan_paths(workbench_plan_value, options)
 	options = options or {}
 	local workbench_root_dir = resolve_workbench_root_dir(options)
@@ -304,6 +322,37 @@ local function ensure_workbench_chat_file(workbench_chat_path, options)
 	return resolved_path
 end
 
+local function load_workbench_goal_template_content()
+	return
+	"# Goals\n\nMaintain all information about the discussion goals so the latest decisions and goals to accomplish are clearly captured.\n"
+end
+
+local function ensure_workbench_goal_rules_file(options)
+	return ensure_workbench_cached_rules_file("_goal-rules.md", { "workbench-goal-rules.md", "_goal-rules.md" },
+		"# Rules for creating / updating goal.md\n\nMaintain all information about the discussion goals so the latest decisions and goals to accomplish are clearly captured.\n",
+		options)
+end
+
+local function ensure_workbench_goal_file(workbench_goal_path, options)
+	options = options or {}
+	local resolved_path = resolve_workbench_goal_path(workbench_goal_path, options)
+	local _rules_path, rules_err = ensure_workbench_goal_rules_file(options)
+	if rules_err then
+		return nil, rules_err
+	end
+
+	if aip.file.exists(resolved_path) then
+		return resolved_path
+	end
+
+	local ensure_res = aip.file.ensure_exists(resolved_path, load_workbench_goal_template_content())
+	if type(ensure_res) == "table" and ensure_res.error then
+		return nil, ensure_res.error
+	end
+
+	return resolved_path
+end
+
 local function load_dev_plan_rules_template_content()
 	return "# Plan Rules\n\n- Keep plans concise and actionable.\n"
 end
@@ -413,6 +462,7 @@ return {
 	resolve_workbench_root_dir = resolve_workbench_root_dir,
 	resolve_work_cache_dir = resolve_work_cache_dir,
 	resolve_workbench_chat_path = resolve_workbench_chat_path,
+	resolve_workbench_goal_path = resolve_workbench_goal_path,
 	resolve_workbench_plan_dir = resolve_workbench_plan_dir,
 	resolve_workbench_plan_paths = resolve_workbench_plan_paths,
 	resolve_workbench_spec_path = resolve_workbench_spec_path,
@@ -420,6 +470,9 @@ return {
 	load_workbench_chat_template_content = load_workbench_chat_template_content,
 	ensure_workbench_chat_file = ensure_workbench_chat_file,
 	ensure_workbench_chat_rules_file = ensure_workbench_chat_rules_file,
+	load_workbench_goal_template_content = load_workbench_goal_template_content,
+	ensure_workbench_goal_file = ensure_workbench_goal_file,
+	ensure_workbench_goal_rules_file = ensure_workbench_goal_rules_file,
 	ensure_workbench_plan_file = ensure_workbench_plan_file,
 	ensure_workbench_plan_rules_file = ensure_workbench_plan_rules_file,
 	ensure_workbench_spec_file = ensure_workbench_spec_file,
@@ -427,10 +480,13 @@ return {
 	workbench_legacy_file_migrate = workbench_legacy_file_migrate,
 	resolve_dev_root_dir = resolve_workbench_root_dir,
 	resolve_dev_chat_path = resolve_workbench_chat_path,
+	resolve_dev_goal_path = resolve_workbench_goal_path,
 	resolve_dev_plan_dir = resolve_workbench_plan_dir,
 	resolve_dev_spec_path = resolve_workbench_spec_path,
 	load_dev_chat_template_content = load_workbench_chat_template_content,
 	ensure_dev_chat_file = ensure_workbench_chat_file,
+	load_dev_goal_template_content = load_workbench_goal_template_content,
+	ensure_dev_goal_file = ensure_workbench_goal_file,
 	ensure_dev_plan_file = ensure_workbench_plan_file,
 	ensure_dev_spec_file = ensure_workbench_spec_file,
 	dev_legal_file_migrate = workbench_legacy_file_migrate,

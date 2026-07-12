@@ -81,6 +81,7 @@ Current prompt-local templates include:
 
 - `suggest-commit.md`, used for git commit suggestion instructions.
 - `workbench-chat-rules.md`, used to seed generated chat rules.
+- `workbench-goal-rules.md`, used to seed generated goal rules.
 - `workbench-plan-rules.md`, used to seed generated plan rules.
 - `workbench-spec-rules.md`, used to seed generated spec rules.
 
@@ -481,7 +482,7 @@ auto_context:
 ```
 #### workbench
 
-First-class `pro@coder` feature that enables an integrated workbench for managing task context using `chat.md`, `plan.md`, and `spec.md` files, plus task-specific raw files under a `data/` folder.
+First-class `pro@coder` feature that enables an integrated workbench for managing task context using `chat.md`, `goal.md`, `plan.md`, and `spec.md` files, plus task-specific raw files under a `data/` folder.
 
 By default, the workbench files are created in a `workbench-default/` directory next to your `coder-prompt.md` file.
 
@@ -491,11 +492,16 @@ To configure the workbench, use simple boolean switches in your configuration bl
 workbench:
   dir: string  # Dir path relative (default in pro@coder/workbench-default)
   chat: true   # Enables chat.md (default false)
+  goal: true   # Enables goal.md (default false)
   plan: true   # Enables plan.md (default false)
   spec: false  # Enables spec.md (default false)
 ```
 
 There is also a `worbkench.data` to turn off data (by default data folder is on), but it is not recommend to use it. Do not set this property. 
+
+`workbench.goal` is opt-in and accepts `true`, a document path string, or an enabled configuration table. When enabled, it creates `goal.md` in the resolved workbench directory by default, adds it to context and auto-context helper files, and adds its cached rules to knowledge.
+
+The bundled `template-workbench-goal-rules.md` is copied once to `$coder_prompt_dir/user-templates/workbench-goal-rules.md`. Customize this prompt-local file before the first goal workbench initialization to control how `.cache/_goal-rules.md` is seeded. Existing prompt-local templates and cached rules are never overwritten.
 
 When a workbench file is enabled, `pro@coder` adds prompt guidance that maps canonical file names to resolved workbench paths. For example, `chat.md`, `plan.md`, and `spec.md` refer to the configured workbench files when those capabilities are enabled. This helps prevent accidental creation of root-level files with those names.
 
@@ -521,6 +527,11 @@ type CoderWorkbench = {
   chat?: {
     enabled: boolean,
     path: string,
+  },
+  goal?: {
+    enabled: boolean,
+    path: string,
+    rules_path: string,
   },
   plan?: {
     enabled: boolean,
@@ -591,6 +602,11 @@ type CoderWorkbench = {
   chat?: {
     enabled: boolean,
     path: string,
+  },
+  goal?: {
+    enabled: boolean,
+    path: string,
+    rules_path: string,
   },
   plan?: {
     enabled: boolean,

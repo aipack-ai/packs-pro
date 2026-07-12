@@ -50,6 +50,25 @@ local function normalize_workbench_chat_config(workbench_chat, options)
 	return chat
 end
 
+local function normalize_workbench_goal_config(workbench_goal, options)
+	local goal = nil
+	if workbench_goal == true then
+		goal = {
+			enabled = true,
+			path = u_common.resolve_workbench_goal_path(nil, options)
+		}
+	elseif type(workbench_goal) == "string" then
+		goal = {
+			enabled = true,
+			path = u_common.resolve_workbench_goal_path(workbench_goal, options)
+		}
+	elseif type(workbench_goal) == "table" then
+		goal = aip.lua.merge({ enabled = true }, workbench_goal)
+		goal.path = u_common.resolve_workbench_goal_path(goal.path, options)
+	end
+	return goal
+end
+
 local function normalize_workbench_plan_config(workbench_plan, options)
 	local plan = nil
 	if workbench_plan == true then
@@ -134,6 +153,11 @@ local function collect_workbench_content_globs(coder_workbench)
 		append_unique(globs, chat_path)
 	end
 
+	local goal_path = coder_workbench.goal and coder_workbench.goal.path
+	if not is_null(goal_path) and goal_path ~= "" then
+		append_unique(globs, goal_path)
+	end
+
 	local plan_path = coder_workbench.plan and coder_workbench.plan.path
 	if not is_null(plan_path) and plan_path ~= "" then
 		append_unique(globs, plan_path)
@@ -181,6 +205,13 @@ local function prepare_workbench(agent_config, coder_params, options)
 		chat = nil
 	end
 
+	local goal = agent_config.goal
+	if type(goal) ~= "table" then
+		goal = nil
+	elseif goal.enabled == false then
+		goal = nil
+	end
+
 	local plan = agent_config.plan
 	if type(plan) ~= "table" then
 		plan = nil
@@ -206,7 +237,7 @@ local function prepare_workbench(agent_config, coder_params, options)
 
 	local data_enabled = agent_config.data == true
 
-	if chat == nil and plan == nil and spec == nil and not data_enabled then
+	if chat == nil and goal == nil and plan == nil and spec == nil and not data_enabled then
 		return {
 			coder_params = {}
 		}
@@ -267,6 +298,39 @@ local function prepare_workbench(agent_config, coder_params, options)
 		append_unique(next_context_globs_post, path)
 		if not is_null(chat_rules_path) and chat_rules_path ~= "" then
 			append_unique(next_knowledge_globs_post, chat_rules_path)
+		end
+	end
+
+	if goal ~= nil then
+		local path, ensure_err = u_common.ensure_workbench_goal_file(goal.path, workbench_options)
+		if is_null(path) or path == "" then
+			return {
+				success = false,
+				error_msg = "Invalid workbench.goal.path"
+			}
+		end
+
+		if ensure_err then
+			return {
+				success = false,
+				error_msg = "Failed to initialize workbench goal file",
+				error_details = ensure_err
+			}
+		end
+		local goal_rules_path, goal_rules_err = u_common.ensure_workbench_goal_rules_file(workbench_options)
+		if goal_rules_err then
+			return {
+				success = false,
+				error_msg = "Failed to initialize workbench goal rules file",
+				error_details = goal_rules_err
+			}
+		end
+
+		goal.path = path
+		goal.rules_path = goal_rules_path
+		append_unique(next_context_globs_post, path)
+		if not is_null(goal_rules_path) and goal_rules_path ~= "" then
+			append_unique(next_knowledge_globs_post, goal_rules_path)
 		end
 	end
 
@@ -366,6 +430,9 @@ local function prepare_workbench(agent_config, coder_params, options)
 	if chat ~= nil and not is_null(chat.path) and chat.path ~= "" then
 		table.insert(dev_content_globs, chat.path)
 	end
+	if goal ~= nil and not is_null(goal.path) and goal.path ~= "" then
+		table.insert(dev_content_globs, goal.path)
+	end
 	if plan ~= nil and not is_null(plan.dir) and plan.dir ~= "" then
 		table.insert(dev_content_globs, plan.path)
 	end
@@ -423,6 +490,15 @@ local function build_coder_workbench(workbench_config, options)
 		}
 	end
 
+	local goal = nil
+	if not is_null(workbench_config.goal) and workbench_config.goal.enabled ~= false then
+		goal = {
+			enabled = true,
+			path = workbench_config.goal.path,
+			rules_path = workbench_config.goal.rules_path
+		}
+	end
+
 	local plan = nil
 	if not is_null(workbench_config.plan) and workbench_config.plan.enabled ~= false then
 		plan = {
@@ -457,6 +533,7 @@ local function build_coder_workbench(workbench_config, options)
 		cache_dir = cache_dir,
 		prompt_cache_dir = prompt_cache_dir,
 		chat = chat,
+		goal = goal,
 		plan = plan,
 		spec = spec,
 		data_dir = data_dir
@@ -491,13 +568,15 @@ local function new_workbench_sub_agent_config(workbench, options)
 		base.data = workbench.data ~= false
 		local resolve_options = aip.lua.merge({}, options, { workbench_dir = base.dir })
 		base.chat = normalize_workbench_chat_config(base.chat, resolve_options)
+		base.goal = normalize_workbench_goal_config(base.goal, resolve_options)
 		base.plan = normalize_workbench_plan_config(base.plan, resolve_options)
 		base.spec = normalize_workbench_spec_config(base.spec, resolve_options)
 		local chat_enabled = not is_null(base.chat) and base.chat.enabled ~= false
+		local goal_enabled = not is_null(base.goal) and base.goal.enabled ~= false
 		local plan_enabled = not is_null(base.plan) and base.plan.enabled ~= false
 		local spec_enabled = not is_null(base.spec) and base.spec.enabled ~= false
 		local data_enabled = base.data == true
-		if not chat_enabled and not plan_enabled and not spec_enabled and not data_enabled then
+		if not chat_enabled and not goal_enabled and not plan_enabled and not spec_enabled and not data_enabled then
 			base.enabled = false
 		end
 		workbench_config = base
@@ -538,6 +617,7 @@ return {
 	prepare_workbench = prepare_workbench,
 	normalize_workbench_chat_config = normalize_workbench_chat_config,
 	resolve_workbench_chat_path = resolve_workbench_chat_path,
+	normalize_workbench_goal_config = normalize_workbench_goal_config,
 	collect_workbench_content_globs = collect_workbench_content_globs,
 	append_workbench_helper_globs = append_workbench_helper_globs,
 	normalize_workbench_plan_config = normalize_workbench_plan_config,
@@ -546,6 +626,7 @@ return {
 	new_dev_sub_agent_config = new_workbench_sub_agent_config,
 	normalize_dev_chat_config = normalize_workbench_chat_config,
 	resolve_dev_chat_path = resolve_workbench_chat_path,
+	normalize_dev_goal_config = normalize_workbench_goal_config,
 	normalize_dev_plan_config = normalize_workbench_plan_config,
 	resolve_dev_plan_dir = resolve_workbench_plan_dir,
 	normalize_dev_spec_config = normalize_workbench_spec_config,
