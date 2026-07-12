@@ -310,13 +310,21 @@ Note: that sometime, the user will ask to create new files, so, that's ok, you c
 
 Important: This `<missing_files>...` tag needs to be in the root of your answer, do not put it inside another tag. Always the root tag in your answer. 
 
---- 
+---
 
-Also, when you return the answer, we need to set a very short label for this "run." So use the tag `<set_run_label>` like this:
+At the end of your response, return a short label describing the work completed, using this tool tag `<set_run_label>`, with this exact format shown in the code block:
 
-<set_run_label>_run_label_text_</set_run_label>
+```
 
-The _run_label_text_ should be very short, just couple of words, or three max (only when very needed). 
+<set_run_label>Short label</set_run_label>
+
+```
+
+(with empty line before and after)
+
+The label must be two or three words at most. Return exactly one `<set_run_label>` tag, and do not place it inside a code block.
+
+This label will be used as the name of the run.
 
 {{#if data.coder_workbench}}
 
