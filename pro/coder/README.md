@@ -187,6 +187,7 @@ auto_context:
   # cache_explicit: true      # Overrides the root cache_explicit setting for auto-context
   knowledge: true             # Automatically select knowledge files (default true)
   mode: reduce                # "reduce" (replaces) or "expand" (adds to existing) (default "reduce")
+  include_kinds: text         # "text" (default), "all", or an explicit supported-kind array
   # input_concurrency: 8      # code map building concurrency (default 8, or coder value)
   # code_map_model: flash-low # code map model (optional, default auto_context model above)
   helper_globs:               # Files to help select relevant context files
@@ -194,6 +195,7 @@ auto_context:
 
 ## Workbench helpers (shortcut for pro@coder/workbench sub-agent)
 workbench:
+  include_kinds: all          # "all" (default), "text", or an explicit supported-kind array
   chat: true                 # true uses default path below
   # chat: .aipack/.prompt/pro@coder/workbench-default/chat.md
   # chat:
@@ -523,6 +525,7 @@ type CoderWorkbench = {
   dir: string,
   cache_dir: string,
   prompt_cache_dir: string,
+  include_kinds: string[],
   data_dir?: string,
   chat?: {
     enabled: boolean,
@@ -555,6 +558,62 @@ The workbench data code map opts into `text`, `image`, and `pdf` kinds. Selected
 Media code-map records contain `kind`, `summary`, `when_to_use`, and up to seven concise `topics`. Text records continue to use `public_types` and `public_functions`. If a selected model cannot process a media attachment, the model call fails normally without a special fallback.
 
 For string or table values, relative paths are resolved relative to the workspace root unless they are absolute or use pack references.
+
+##### Include-kinds configuration
+
+`auto_context.include_kinds` and `workbench.include_kinds` are independent:
+
+- `auto_context.include_kinds` controls context and knowledge processing and defaults to `"text"`.
+
+- `workbench.include_kinds` controls workbench `data/` processing and defaults to `"all"`.
+
+Both settings accept `"text"`, `"all"`, or an explicit array containing any supported subset of `text`, `pdf`, and `image`. Configuration is normalized immediately:
+
+- `"text"` becomes `["text"]`.
+
+- `"all"` becomes `["text", "pdf", "image"]`.
+
+- Explicit arrays are validated, deduplicated, and retained in their supplied order.
+
+Empty arrays, unsupported shorthand values, unsupported array entries, and invalid value types are rejected. The current normalized setting also filters existing code-map records, so cached records for a previously enabled kind cannot be selected after that kind is disabled.
+
+Text-only configuration:
+
+```yaml
+auto_context:
+  model: flash
+  include_kinds: text
+
+workbench:
+  include_kinds: text
+  data: true
+```
+
+All-supported configuration:
+
+```yaml
+auto_context:
+  model: flash
+  include_kinds: all
+
+workbench:
+  include_kinds: all
+  data: true
+```
+
+Explicit subsets:
+
+```yaml
+auto_context:
+  model: flash
+  include_kinds: [text, pdf]
+
+workbench:
+  include_kinds: [text, image]
+  data: true
+```
+
+Selected text files continue through their existing context, knowledge, or workbench text paths. Selected images and PDFs are attached directly to the final coder request. Normal code maps remain text-only when `include_kinds` is omitted.
 
 #### sub_agents
 
@@ -604,6 +663,7 @@ type CoderWorkbench = {
   dir: string,
   cache_dir: string,
   prompt_cache_dir: string,
+  include_kinds: string[],
   data_dir?: string,
   chat?: {
     enabled: boolean,
@@ -849,6 +909,7 @@ sub_agents:
   - `"reduce"`: Replaces `context_globs` with the AI selection.
   - `"expand"`: Adds the AI selection to existing `context_globs`.
   - *Note: `knowledge_globs` are always reduced (replaced).*
+- `include_kinds`: (Optional, default `"text"`) Controls the file kinds eligible for context and knowledge discovery, code maps, and selection. Accepts `"text"`, `"all"`, or an explicit array containing `text`, `pdf`, and/or `image`. It is normalized before downstream processing.
 - `input_concurrency`: (Optional) The number of concurrent tasks used when generating or updating file summaries for the code map.
 - `code_map_model`: (Optional) The model used to generate file summaries. Defaults to the `model` specified above if not provided.
 - `helper_globs`: (Optional) Pattern for files (like development plans or chat logs) that provide additional guidance to help the sub-agent select the correct context files.
@@ -880,7 +941,7 @@ sub_agents:
 - `enabled`: Toggles the sub-agent execution.
 - `globs`: Array of glob patterns (relative to the workspace) for files to be summarized in the default `code-map.json`.
 - `named_maps`: Array of named map definitions (`name` and `globs`). Each named map will generate its own `[name]-code-map.json`.
-- `include_kinds`: Optional list containing `text`, `image`, and/or `pdf`. It defaults to `["text"]`, so normal and named code maps remain text-only unless they explicitly opt into media. Named maps may override the root value.
+- `include_kinds`: Optional `"text"` or `"all"` shorthand, or an explicit list containing `text`, `image`, and/or `pdf`. It defaults to `["text"]`, so normal and named code maps remain text-only unless they explicitly opt into media. `"all"` normalizes to `["text", "pdf", "image"]`. Named maps may override the root value.
 - `model`: (Optional) The AI model used to generate the summaries and metadata for each file.
 - `input_concurrency`: (Optional) The number of concurrent tasks used to generate or update file summaries.
 
