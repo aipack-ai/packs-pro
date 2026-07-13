@@ -18,6 +18,15 @@ local function append_unique_path(list, value)
 	table.insert(list, value)
 end
 
+local function includes_kind(kinds, expected_kind)
+	for _, kind in ipairs(kinds or {}) do
+		if kind == expected_kind then
+			return true
+		end
+	end
+	return false
+end
+
 local function collect_path_lookup_keys(file_path, base_dirs)
 	local keys = {}
 	local seen = {}
@@ -165,7 +174,9 @@ end
 
 -- === Show status
 local context_globs = sub_agent_input.coder_params.context_globs
-local context_files = u_common.list_likely_text(context_globs)
+local listed_context_files = aip.file.list(context_globs)
+local filtered_context_files = _cm.filter_file_kinds(listed_context_files, auto_context_config.include_kinds)
+local context_files = filtered_context_files.files or {}
 local context_files_size = 0
 for _, cfile in ipairs(context_files) do
 	context_files_size = context_files_size + cfile.size
@@ -176,7 +187,9 @@ local knowledge_globs = auto_context_config.knowledge_globs
 local knowledge_files = {}
 local knowledge_files_size = 0
 if auto_context_config.knowledge and knowledge_globs then
-	knowledge_files = u_common.list_likely_text(knowledge_globs)
+	local listed_knowledge_files = aip.file.list(knowledge_globs)
+	local filtered_knowledge_files = _cm.filter_file_kinds(listed_knowledge_files, auto_context_config.include_kinds)
+	knowledge_files = filtered_knowledge_files.files or {}
 	for _, kfile in ipairs(knowledge_files) do
 		knowledge_files_size = knowledge_files_size + kfile.size
 	end
@@ -227,6 +240,7 @@ local named_maps = {
 		name = "context", 
 		globs = auto_context_config.code_map_globs,
 		path_base_dir = CTX.WORKSPACE_DIR,
+		include_kinds = auto_context_config.include_kinds,
 	}
 }
 
@@ -236,6 +250,7 @@ if auto_context_config.knowledge and knowledge_globs then
 		name = "knowledge",
 		globs = knowledge_globs,
 		path_base_dir = CTX.WORKSPACE_DIR,
+		include_kinds = auto_context_config.include_kinds,
 	})
 end
 
@@ -303,10 +318,13 @@ if not user_prompt or not user_prompt:find("%S") then
 end
 
 -- === Extract base_files (the upper bound file set)
-local available_files = u_common.list_likely_text(auto_context_config.code_map_globs)
+local listed_available_files = aip.file.list(auto_context_config.code_map_globs)
+local filtered_available_files = _cm.filter_file_kinds(listed_available_files, auto_context_config.include_kinds)
+local available_files = filtered_available_files.files or {}
 
 -- === Extract c_files (the code map files info)
 local c_files = {}
+local context_kind_by_path = {}
 local file_map = code_map.file_map
 for _, bfile in ipairs(available_files) do
 	local cfile = _cm.find_file_map_entry(file_map, bfile.path, {
@@ -315,6 +333,9 @@ for _, bfile in ipairs(available_files) do
 	})
 	if cfile then
 		table.insert(c_files, cfile)
+		local mapped_kind = cfile.kind or _cm.classify_file_kind(bfile)
+		context_kind_by_path[cfile.file_path] = mapped_kind
+		context_kind_by_path[bfile.path] = mapped_kind
 	end
 end
 
@@ -339,14 +360,23 @@ for _, cfile in ipairs(c_files) do
 	if cfile.public_functions and type(cfile.public_functions) == "table" and next(cfile.public_functions) then
 		txt = txt .. "    - Functions: " .. table.concat(cfile.public_functions, ", ")  .. "\n"
 	end
+	if cfile.topics and type(cfile.topics) == "table" and next(cfile.topics) then
+		txt = txt .. "    - Topics: " .. table.concat(cfile.topics, ", ")  .. "\n"
+	end
 	c_files_txt = c_files_txt .. txt .. "\n"
 end
 
 -- === Build/Format the k_files_txt (md format) for knowledge files
 local k_files_txt = ""
 local k_files_count = 0
+local knowledge_kind_by_path = {}
 if auto_context_config.knowledge and knowledge_code_map then
-	local available_knowledge_files = u_common.list_likely_text(knowledge_globs)
+	local listed_available_knowledge_files = aip.file.list(knowledge_globs)
+	local filtered_available_knowledge_files = _cm.filter_file_kinds(
+		listed_available_knowledge_files,
+		auto_context_config.include_kinds
+	)
+	local available_knowledge_files = filtered_available_knowledge_files.files or {}
 	local k_files = {}
 	local k_file_map = knowledge_code_map.file_map
 	for _, kfile in ipairs(available_knowledge_files) do
@@ -356,6 +386,9 @@ if auto_context_config.knowledge and knowledge_code_map then
 		})
 		if mapped then
 			table.insert(k_files, mapped)
+			local mapped_kind = mapped.kind or _cm.classify_file_kind(kfile)
+			knowledge_kind_by_path[mapped.file_path] = mapped_kind
+			knowledge_kind_by_path[kfile.path] = mapped_kind
 		end
 	end
 
@@ -377,6 +410,9 @@ if auto_context_config.knowledge and knowledge_code_map then
 		end
         if not is_null(kfile.public_functions) and #kfile.public_functions > 0 then
 			txt = txt .. "    - Functions: " .. table.concat(kfile.public_functions, ", ")  .. "\n"
+		end
+        if not is_null(kfile.topics) and #kfile.topics > 0 then
+			txt = txt .. "    - Topics: " .. table.concat(kfile.topics, ", ")  .. "\n"
 		end
 		k_files_txt = k_files_txt .. txt .. "\n"
 	end
@@ -505,6 +541,11 @@ local data = {
 	knowledge_globs     = knowledge_globs,
 	knowledge_files_count = #knowledge_files,
 	knowledge_files_size  = knowledge_files_size,
+	attachments_enabled   = includes_kind(auto_context_config.include_kinds, "image")
+		or includes_kind(auto_context_config.include_kinds, "pdf")
+		or workbench_data_selection_enabled,
+	context_kind_by_path = context_kind_by_path,
+	knowledge_kind_by_path = knowledge_kind_by_path,
 	workbench_data_enabled = workbench_data_selection_enabled,
 	workbench_data_files_txt = wd_files_txt,
 	workbench_data_files_count = #workbench_data_files,
@@ -549,8 +590,10 @@ You will select files from two categories: **context files** and **knowledge fil
 
 Important rule:
 
-- Files listed under `<available_context_files>` can only be selected in `needed_context_files`.
-- Files listed under `<available_knowledge_files>` can only be selected in `needed_knowledge_files`.
+- Text files listed under `<available_context_files>` can only be selected in `needed_context_files`.
+- Image and PDF files listed under `<available_context_files>` can only be selected in `attachments`.
+- Text files listed under `<available_knowledge_files>` can only be selected in `needed_knowledge_files`.
+- Image and PDF files listed under `<available_knowledge_files>` can only be selected in `attachments`.
 {{#if data.workbench_data_enabled}}
 - Text files listed under `<available_workbench_data_files>` can only be selected in `needed_workbench_data_files`.
 - Image and PDF files listed under `<available_workbench_data_files>` can only be selected in `attachments`.
@@ -586,7 +629,9 @@ Then, put the workbench data reasoning under a `workbench_data_reasoning` tag:
 _concise_reasoning_as_text_
 </workbench_data_reasoning>
 
-Then, put selected workbench image and PDF paths under an `attachments` tag:
+{{/if}}
+{{#if data.attachments_enabled}}
+Then, put selected image and PDF paths under an `attachments` tag:
 
 <attachments>
 _selected_media_paths_as_json_array_
@@ -631,7 +676,9 @@ Then, put the workbench data reasoning under a `workbench_data_reasoning` tag:
 _concise_reasoning_as_text_
 </workbench_data_reasoning>
 
-Then, put selected workbench image and PDF paths under an `attachments` tag:
+{{/if}}
+{{#if data.attachments_enabled}}
+Then, put selected image and PDF paths under an `attachments` tag:
 
 <attachments>
 _selected_media_paths_as_json_array_
@@ -818,6 +865,8 @@ local tag_names = {"needed_context_files", "context_reasoning"}
 if data.workbench_data_enabled then
 	table.insert(tag_names, "needed_workbench_data_files")
 	table.insert(tag_names, "workbench_data_reasoning")
+end
+if data.attachments_enabled then
 	table.insert(tag_names, "attachments")
 end
 if data.knowledge_enabled then
@@ -839,6 +888,19 @@ if res_map.context_reasoning and res_map.context_reasoning.content then
     context_reasoning = res_map.context_reasoning.content
 end
 
+local selected_context_media_files = {}
+local selected_context_text_files = {}
+local context_kind_by_path = data.context_kind_by_path or {}
+for _, file_path in ipairs(needed_context_files) do
+	local kind = context_kind_by_path[file_path]
+	if kind == "image" or kind == "pdf" then
+		append_unique_path(selected_context_media_files, file_path)
+	else
+		append_unique_path(selected_context_text_files, file_path)
+	end
+end
+needed_context_files = selected_context_text_files
+
 local needed_workbench_data_files = {}
 if data.workbench_data_enabled and res_map.needed_workbench_data_files and res_map.needed_workbench_data_files.content then
 	local ok, parsed = pcall(aip.json.parse, res_map.needed_workbench_data_files.content)
@@ -847,7 +909,7 @@ if data.workbench_data_enabled and res_map.needed_workbench_data_files and res_m
 	end
 end
 local requested_attachment_paths = {}
-if data.workbench_data_enabled and res_map.attachments and res_map.attachments.content then
+if data.attachments_enabled and res_map.attachments and res_map.attachments.content then
 	local ok, parsed = pcall(aip.json.parse, res_map.attachments.content)
 	if ok and type(parsed) == "table" then
 		requested_attachment_paths = parsed
@@ -872,6 +934,10 @@ for _, file_path in ipairs(requested_attachment_paths) do
 	else
 		append_unique_path(selected_workbench_media_files, file_path)
 	end
+end
+
+for _, file_path in ipairs(selected_context_media_files) do
+	append_unique_path(selected_workbench_media_files, file_path)
 end
 
 local new_workbench_data_globs = nil
@@ -905,11 +971,6 @@ if data.workbench_data_enabled then
 		table.move(addl_files, 1, #addl_files, #new_workbench_data_globs + 1, new_workbench_data_globs)
 	end
 end
-
-local normalized_attachment_paths = normalize_workbench_data_paths_to_prompt_base(
-	selected_workbench_media_files,
-	data.auto_context_config
-)
 
 -- Ensure all new_workbench_data_globs are relative to prompt_base_dir for return
 if new_workbench_data_globs and #new_workbench_data_globs > 0 then
@@ -959,12 +1020,31 @@ end
 local new_knowledge_globs = nil
 local knowledge_reasoning = nil
 if data.knowledge_enabled and res_map.needed_knowledge_files then
-	local needed_knowledge_files = aip.json.parse(res_map.needed_knowledge_files.content)
-	new_knowledge_globs = _ac.sort_files_by_mtime(needed_knowledge_files) -- always "reduce" for knowledge
+	local needed_knowledge_files = {}
+	local ok, parsed = pcall(aip.json.parse, res_map.needed_knowledge_files.content)
+	if ok and type(parsed) == "table" then
+		needed_knowledge_files = parsed
+	end
+	local selected_knowledge_text_files = {}
+	local knowledge_kind_by_path = data.knowledge_kind_by_path or {}
+	for _, file_path in ipairs(needed_knowledge_files) do
+		local kind = knowledge_kind_by_path[file_path]
+		if kind == "image" or kind == "pdf" then
+			append_unique_path(selected_workbench_media_files, file_path)
+		else
+			append_unique_path(selected_knowledge_text_files, file_path)
+		end
+	end
+	new_knowledge_globs = _ac.sort_files_by_mtime(selected_knowledge_text_files) -- always "reduce" for knowledge
 	if res_map.knowledge_reasoning then
 		knowledge_reasoning = res_map.knowledge_reasoning.content
 	end
 end
+
+local normalized_attachment_paths = normalize_workbench_data_paths_to_prompt_base(
+	selected_workbench_media_files,
+	data.auto_context_config
+)
 
 -- === Process workbench data reasoning
 local workbench_data_reasoning = nil
