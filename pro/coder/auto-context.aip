@@ -188,6 +188,7 @@ end
 local workbench_data_files = {}
 local workbench_data_files_size = 0
 local workbench_data_selection_enabled = false
+local workbench_data_include_kinds = { "text", "image", "pdf" }
 if auto_context_config.workbench_data_enabled
 	and not is_null(auto_context_config.workbench_dir)
 	and auto_context_config.workbench_dir ~= ""
@@ -201,7 +202,7 @@ if auto_context_config.workbench_data_enabled
 	if not (type(data_globs) == "table" and #data_globs == 0) then
 		listed_workbench_data_files = aip.file.list(data_globs)
 	end
-	local filtered_workbench_data_files = _cm.filter_text_files(listed_workbench_data_files)
+	local filtered_workbench_data_files = _cm.filter_file_kinds(listed_workbench_data_files, workbench_data_include_kinds)
 	workbench_data_files = filtered_workbench_data_files.files or {}
 	for _, dfile in ipairs(workbench_data_files) do
 		workbench_data_files_size = workbench_data_files_size + dfile.size
@@ -254,6 +255,7 @@ if workbench_data_selection_enabled then
 			base_dir = CTX.WORKSPACE_DIR,
 			path_base_dir = CTX.WORKSPACE_DIR,
 			file_path = workbench_data_code_map_file_path,
+			include_kinds = workbench_data_include_kinds,
 		}
 	end
 end
@@ -384,6 +386,7 @@ end
 local wd_files_txt = ""
 local wd_files_count = 0
 local wd_files_map_miss_content = nil
+local workbench_data_kind_by_path = {}
 if workbench_data_selection_enabled and workbench_data_code_map then
 	local wd_files = {}
 	local wd_file_map = workbench_data_code_map.file_map
@@ -396,6 +399,9 @@ if workbench_data_selection_enabled and workbench_data_code_map then
 		})
 		if mapped then
 			table.insert(wd_files, mapped)
+			local mapped_kind = mapped.kind or _cm.classify_file_kind(wdfile)
+			workbench_data_kind_by_path[mapped.file_path] = mapped_kind
+			workbench_data_kind_by_path[wdfile.path] = mapped_kind
 		end
 	end
 
@@ -420,6 +426,9 @@ if workbench_data_selection_enabled and workbench_data_code_map then
 		end
         if not is_null(wdfile.public_functions) and #wdfile.public_functions > 0 then
 			txt = txt .. "    - Functions: " .. table.concat(wdfile.public_functions, ", ")  .. "\n"
+		end
+        if not is_null(wdfile.topics) and #wdfile.topics > 0 then
+			txt = txt .. "    - Topics: " .. table.concat(wdfile.topics, ", ")  .. "\n"
 		end
 		wd_files_txt = wd_files_txt .. txt .. "\n"
 	end
@@ -501,6 +510,7 @@ local data = {
 	workbench_data_files_count = #workbench_data_files,
 	workbench_data_mapped_files_count = wd_files_count,
 	workbench_data_files_size  = workbench_data_files_size,
+	workbench_data_kind_by_path = workbench_data_kind_by_path,
 	mode                = auto_context_config.mode,
 	cache_explicit      = auto_context_config.cache_explicit,
 }
@@ -542,7 +552,8 @@ Important rule:
 - Files listed under `<available_context_files>` can only be selected in `needed_context_files`.
 - Files listed under `<available_knowledge_files>` can only be selected in `needed_knowledge_files`.
 {{#if data.workbench_data_enabled}}
-- Files listed under `<available_workbench_data_files>` can only be selected in `needed_workbench_data_files`.
+- Text files listed under `<available_workbench_data_files>` can only be selected in `needed_workbench_data_files`.
+- Image and PDF files listed under `<available_workbench_data_files>` can only be selected in `attachments`.
 {{/if}}
 - Never put a knowledge file in `needed_context_files`.
 - Never put a context file in `needed_knowledge_files`.
@@ -574,6 +585,12 @@ Then, put the workbench data reasoning under a `workbench_data_reasoning` tag:
 <workbench_data_reasoning>
 _concise_reasoning_as_text_
 </workbench_data_reasoning>
+
+Then, put selected workbench image and PDF paths under an `attachments` tag:
+
+<attachments>
+_selected_media_paths_as_json_array_
+</attachments>
 
 {{/if}}
 Then, for knowledge files, put the result under a `needed_knowledge_files` tag:
@@ -613,6 +630,12 @@ Then, put the workbench data reasoning under a `workbench_data_reasoning` tag:
 <workbench_data_reasoning>
 _concise_reasoning_as_text_
 </workbench_data_reasoning>
+
+Then, put selected workbench image and PDF paths under an `attachments` tag:
+
+<attachments>
+_selected_media_paths_as_json_array_
+</attachments>
 
 {{/if}}
 {{/if}}
@@ -655,7 +678,8 @@ Important reminder:
 
 - The files below are workbench data files only.
 - They are not normal context files or knowledge files.
-- If you select any of them, place them only in `needed_workbench_data_files`.
+- If you select a text file, place it only in `needed_workbench_data_files`.
+- If you select an image or PDF, place it only in `attachments`.
 
 <available_workbench_data_files>
 {{data.workbench_data_files_txt}}
@@ -822,9 +846,37 @@ if data.workbench_data_enabled and res_map.needed_workbench_data_files and res_m
 		needed_workbench_data_files = parsed
 	end
 end
+local requested_attachment_paths = {}
+if data.workbench_data_enabled and res_map.attachments and res_map.attachments.content then
+	local ok, parsed = pcall(aip.json.parse, res_map.attachments.content)
+	if ok and type(parsed) == "table" then
+		requested_attachment_paths = parsed
+	end
+end
+
+local selected_workbench_text_files = {}
+local selected_workbench_media_files = {}
+local workbench_data_kind_by_path = data.workbench_data_kind_by_path or {}
+for _, file_path in ipairs(needed_workbench_data_files) do
+	local kind = workbench_data_kind_by_path[file_path]
+	if kind == "image" or kind == "pdf" then
+		append_unique_path(selected_workbench_media_files, file_path)
+	else
+		append_unique_path(selected_workbench_text_files, file_path)
+	end
+end
+for _, file_path in ipairs(requested_attachment_paths) do
+	local kind = workbench_data_kind_by_path[file_path]
+	if kind == "text" then
+		append_unique_path(selected_workbench_text_files, file_path)
+	else
+		append_unique_path(selected_workbench_media_files, file_path)
+	end
+end
+
 local new_workbench_data_globs = nil
 if data.workbench_data_enabled then
-	local normalized_needed_workbench_data_files = normalize_workbench_data_paths_to_prompt_base(needed_workbench_data_files, data.auto_context_config)
+	local normalized_needed_workbench_data_files = normalize_workbench_data_paths_to_prompt_base(selected_workbench_text_files, data.auto_context_config)
 	if mode == "reduce" then
 		new_workbench_data_globs = _ac.sort_files_by_mtime(normalized_needed_workbench_data_files)
 	else -- augment
@@ -854,13 +906,10 @@ if data.workbench_data_enabled then
 	end
 end
 
-local normalized_attachment_paths = {}
-if data.workbench_data_enabled and res_map.attachments and res_map.attachments.content then
-	local ok, parsed = pcall(aip.json.parse, res_map.attachments.content)
-	if ok and type(parsed) == "table" then
-		normalized_attachment_paths = normalize_workbench_data_paths_to_prompt_base(parsed, data.auto_context_config)
-	end
-end
+local normalized_attachment_paths = normalize_workbench_data_paths_to_prompt_base(
+	selected_workbench_media_files,
+	data.auto_context_config
+)
 
 -- Ensure all new_workbench_data_globs are relative to prompt_base_dir for return
 if new_workbench_data_globs and #new_workbench_data_globs > 0 then
