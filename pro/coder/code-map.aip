@@ -38,8 +38,10 @@ if aip.path.exists(tmp_in_progress_path) then
 				if fpath and file_info_data then
 					local record = {
 						file_path = fpath,
+						kind = file_info_data.kind,
 						summary = file_info_data.summary,
 						when_to_use = file_info_data.when_to_use,
+						topics = file_info_data.topics,
 						public_types = file_info_data.public_types,
 						public_functions = file_info_data.public_functions,
 						mtime = entry.mtime,
@@ -87,6 +89,8 @@ local files_to_process = {}
 
 local file_status_by_path = {}
 local non_text_file_count = 0
+local unsupported_file_count = 0
+local excluded_kind_count = 0
 local oversized_file_count = 0
 local oversized_paths = {}
 local max_file_size_bytes = code_map_config.max_file_size_kb * 1024
@@ -95,13 +99,17 @@ for _, mdef in ipairs(code_map_config.map_defs) do
 	local map_data = loaded_maps[mdef.file_path]
 	local file_map = map_data.file_map
 	local u_common = require("utils_common")
-	local filtered_result = u_common.list_likely_text_with_stats(mdef.globs, { base_dir = mdef.base_dir, absolute = true })
+	local listed_files = aip.file.list(mdef.globs, { base_dir = mdef.base_dir, absolute = true })
+	local filtered_result = u_common.filter_file_kinds(listed_files, mdef.include_kinds)
 	local map_files = filtered_result.files
-	non_text_file_count = non_text_file_count + filtered_result.non_text_file_count
+	unsupported_file_count = unsupported_file_count + filtered_result.unsupported_file_count
+	excluded_kind_count = excluded_kind_count + filtered_result.excluded_kind_count
+	non_text_file_count = non_text_file_count + filtered_result.unsupported_file_count + filtered_result.excluded_kind_count
 	
 	for _, orig_file in ipairs(map_files) do
 		local source_path = orig_file.path
 		local code_map_path = _cm.normalize_code_map_path(source_path, mdef.path_base_dir)
+		local file_kind = u_common.classify_file_kind(orig_file)
 
 		if orig_file.size and orig_file.size > max_file_size_bytes then
 			if not oversized_paths[code_map_path] then
@@ -114,6 +122,7 @@ for _, mdef in ipairs(code_map_config.map_defs) do
 					file = orig_file,
 					source_path = source_path,
 					code_map_path = code_map_path,
+					kind = file_kind,
 					maps_to_process_for = {},
 					maps_up_to_date_for = {},
 					map_names = {},
@@ -150,8 +159,9 @@ for _, mdef in ipairs(code_map_config.map_defs) do
 				-- mtime is up to date; check if hash exists (backfill for older code map files)
 				if file_map_file.hash then
 					-- check if file_path is missing and backfill if needed
-					if code_map_entry_migrated or file_map_file.file_path ~= code_map_path then
+					if code_map_entry_migrated or file_map_file.file_path ~= code_map_path or file_map_file.kind ~= file_kind then
 						file_map_file.file_path = code_map_path
+						file_map_file.kind = file_kind
 						fstatus.maps_up_to_date_for[mdef.file_path] = HASH_MTIME_UPDATED_MARKER
 					else
 						fstatus.maps_up_to_date_for[mdef.file_path] = true
@@ -163,6 +173,7 @@ for _, mdef in ipairs(code_map_config.map_defs) do
 					file_map_file.hash = current_hash
 					file_map_file.mtime = orig_file.mtime
 					file_map_file.file_path = code_map_path
+					file_map_file.kind = file_kind
 					fstatus.maps_up_to_date_for[mdef.file_path] = HASH_MTIME_UPDATED_MARKER
 					fstatus.cached_data = file_map_file
 				end
@@ -173,6 +184,7 @@ for _, mdef in ipairs(code_map_config.map_defs) do
 					-- Content unchanged, just update mtime in the cached entry
 					file_map_file.mtime = orig_file.mtime
 					file_map_file.file_path = code_map_path
+					file_map_file.kind = file_kind
 					fstatus.maps_up_to_date_for[mdef.file_path] = HASH_MTIME_UPDATED_MARKER
 					fstatus.cached_data = file_map_file
 				else
@@ -206,6 +218,7 @@ for fpath, fstatus in pairs(file_status_by_path) do
 			file          = fstatus.file,
 			source_path    = fstatus.source_path,
 			code_map_path  = fstatus.code_map_path or fpath,
+			kind           = fstatus.kind,
 			file_map_file = fstatus.cached_data,
 			map_names     = fstatus.map_names,
 			maps_to_process_for = fstatus.maps_to_process_for,
@@ -231,7 +244,8 @@ if to_process_count == 0 then
 	status_msg = "✅ Total code-map files: " .. total_files .. " (" .. up_to_date_count .. " already processed)"
 	local details = {}
 	if legacy_path_migrated_count > 0 then table.insert(details, legacy_path_migrated_count .. " legacy path entries migrated") end
-	if non_text_file_count > 0 then table.insert(details, non_text_file_count .. " non text files ignored") end
+	if unsupported_file_count > 0 then table.insert(details, unsupported_file_count .. " unsupported files ignored") end
+	if excluded_kind_count > 0 then table.insert(details, excluded_kind_count .. " files outside enabled kinds ignored") end
 	if oversized_file_count > 0 then table.insert(details, oversized_file_count .. " oversized files skipped") end
 	if #details > 0 then
 		status_msg = status_msg .. "\n   " .. table.concat(details, " | ")
@@ -242,7 +256,8 @@ else
 	if new_count > 0 then table.insert(details, new_count .. " creation") end
 	if update_count > 0 then table.insert(details, update_count .. " updating") end
 	if legacy_path_migrated_count > 0 then table.insert(details, legacy_path_migrated_count .. " legacy path entries migrated") end
-	if non_text_file_count > 0 then table.insert(details, non_text_file_count .. " non text files ignored") end
+	if unsupported_file_count > 0 then table.insert(details, unsupported_file_count .. " unsupported files ignored") end
+	if excluded_kind_count > 0 then table.insert(details, excluded_kind_count .. " files outside enabled kinds ignored") end
 	if oversized_file_count > 0 then table.insert(details, oversized_file_count .. " oversized files skipped") end
 	if #details > 0 then
 		status_msg = status_msg .. "\n   " .. table.concat(details, " | ")
@@ -279,6 +294,8 @@ return aip.flow.before_all_response({
 		tmp_in_progress_path = tmp_in_progress_path,
 		recovered_count    = recovered_count,
 		non_text_file_count = non_text_file_count,
+		unsupported_file_count = unsupported_file_count,
+		excluded_kind_count = excluded_kind_count,
 		oversized_file_count = oversized_file_count,
 		legacy_path_migrated_count = legacy_path_migrated_count,
 	}
@@ -289,17 +306,39 @@ return aip.flow.before_all_response({
 
 ```lua
 if input then
-	local file = aip.file.load(input.file.path)
+	local kind = input.kind or "text"
+	local file
+	if kind == "text" then
+		file = aip.file.load(input.source_path or input.file.path)
+	else
+		file = input.file
+	end
 	local file_map_file_txt = nil
 	if input.file_map_file then
 			file_map_file_txt = aip.json.stringify_pretty(input.file_map_file)
 	end
 	
-	return {
+	local response_data = {
 		_display = input.code_map_path or file.path,
 		file = file,
+		kind = kind,
+		is_text = kind == "text",
+		is_image = kind == "image",
+		is_pdf = kind == "pdf",
 		file_map_file_txt = file_map_file_txt
 	}
+	if kind == "text" then
+		return response_data
+	end
+
+	return aip.flow.data_response({
+		data = response_data,
+		attachments = {
+			file_source = input.source_path or input.file.path,
+			file_name = input.file.name,
+			title = "Code-map " .. kind .. ": " .. (input.code_map_path or input.file.path),
+		}
+	})
 else
 	return nil
 end
@@ -310,7 +349,11 @@ end
 
 {{#if data.file}}
 
-Below is the file content (under the `FILE_CONTENT` tag) that you need to extract some information
+{{#if data.is_text}}
+Below is the text file content under the `FILE_CONTENT` tag. Extract the requested code-map information.
+{{else}}
+Inspect the attached {{data.kind}} file and extract the requested code-map information.
+{{/if}}
 
 Respond with a `FILE_INFO` tag like 
 <FILE_INFO>
@@ -322,20 +365,27 @@ Here is the `_file_raw_json_format_` schema
 ```typescript
 {
 	file_path: string,
+	kind: "{{data.kind}}",
 	summary: string,             // short summary of the file, it's responsibility/purpose
 	when_to_use: string,         // concise information of when this file should be included in the context
+{{#if data.is_text}}
 	public_types?: string[],     // list of public types this file exposes (if any)
 	public_functions?: string[], // list of public functions this file exposes (if any)
+{{else}}
+	topics: string[],            // at most 7 concise topics, each containing 1 to 3 words
+{{/if}}
 }
 ```
 
 `_file_raw_json_format_` should just be the json, no need to put it in markdown code bock. 
 
+{{#if data.is_text}}
 Here is the file content
 
 <FILE_CONTENT file_path="{{data.file.path}}">
 {{data.file.content}}
 </FILE_CONTENT>
+{{/if}}
 
 
 {{#if data.file_map_file_txt}}
@@ -355,9 +405,32 @@ Here is the preview previous file info
 # Output
 
 ```lua
+local function normalize_topics(topics)
+	local normalized = {}
+	if type(topics) ~= "table" then
+		return normalized
+	end
+	for _, topic in ipairs(topics) do
+		if type(topic) == "string" and #normalized < 7 then
+			local words = {}
+			for word in topic:gmatch("%S+") do
+				table.insert(words, word)
+				if #words == 3 then
+					break
+				end
+			end
+			if #words > 0 then
+				table.insert(normalized, table.concat(words, " "))
+			end
+		end
+	end
+	return normalized
+end
+
 if ai_response then
-	local source_file_path = data.file.path
+	local source_file_path = input.source_path or data.file.path
 	local code_map_path = input.code_map_path or source_file_path
+	local file_kind = input.kind or data.kind or "text"
 	local output_content = ai_response.content or ""
 	local tag_map = aip.tag.extract_as_map(output_content, "FILE_INFO")
 
@@ -365,9 +438,18 @@ if ai_response then
 		local raw_content = tag_map.FILE_INFO.content
 		raw_content = aip.md.outer_block_content_or_raw(raw_content)
 		local ok, json_content_res = pcall(aip.json.parse, raw_content)
-		if ok then
+		if ok and type(json_content_res) == "table" then
 			local mtime_val = input.file.mtime
 			local hash_val = input.current_hash or aip.file.hash_blake3(source_file_path)
+			local topics = nil
+			local public_types = nil
+			local public_functions = nil
+			if file_kind == "text" then
+				public_types = json_content_res.public_types
+				public_functions = json_content_res.public_functions
+			else
+				topics = normalize_topics(json_content_res.topics)
+			end
 
 			-- Build maps_to_process_for and maps_up_to_date_for as lists for jsonl
 			local maps_to_process_list = {}
@@ -386,10 +468,12 @@ if ai_response then
 				maps_to_process_for = maps_to_process_list,
 				maps_up_to_date_for = maps_up_to_date_list,
 				file_info = {
+					kind = file_kind,
 					summary = json_content_res.summary,
 					when_to_use = json_content_res.when_to_use,
-					public_types = json_content_res.public_types,
-					public_functions = json_content_res.public_functions,
+					topics = topics,
+					public_types = public_types,
+					public_functions = public_functions,
 				}
 			}
 
@@ -435,8 +519,10 @@ if ai_response then
 				maps_to_process_for = maps_to_process_list,
 				maps_up_to_date_for = maps_up_to_date_list,
 				file_info = {
+					kind = file_kind,
 					summary = input.file_map_file.summary,
 					when_to_use = input.file_map_file.when_to_use,
+					topics = input.file_map_file.topics,
 					public_types = input.file_map_file.public_types,
 					public_functions = input.file_map_file.public_functions,
 				}
@@ -496,8 +582,10 @@ if before_all.to_process_count > 0 then
 		if fpath and file_info_data then
 			local record = {
 				file_path = fpath,
+				kind = file_info_data.kind,
 				summary = file_info_data.summary,
 				when_to_use = file_info_data.when_to_use,
+				topics = file_info_data.topics,
 				public_types = file_info_data.public_types,
 				public_functions = file_info_data.public_functions,
 				mtime = entry.mtime,
@@ -555,7 +643,8 @@ if before_all.to_process_count > 0 then
 	if same_count > 0 then table.insert(details, same_count .. " same (no change)") end
 	if same_no_file_info_count > 0 then table.insert(details, same_no_file_info_count .. " same-marker persisted") end
 	if legacy_path_migrated_count > 0 then table.insert(details, legacy_path_migrated_count .. " legacy path entries migrated") end
-	if before_all.non_text_file_count and before_all.non_text_file_count > 0 then table.insert(details, before_all.non_text_file_count .. " non text files ignored") end
+	if before_all.unsupported_file_count and before_all.unsupported_file_count > 0 then table.insert(details, before_all.unsupported_file_count .. " unsupported files ignored") end
+	if before_all.excluded_kind_count and before_all.excluded_kind_count > 0 then table.insert(details, before_all.excluded_kind_count .. " files outside enabled kinds ignored") end
 	if oversized_file_count > 0 then table.insert(details, oversized_file_count .. " oversized files skipped") end
 	if #details > 0 then
 		status_msg = status_msg .. "\n   " .. table.concat(details, " | ")

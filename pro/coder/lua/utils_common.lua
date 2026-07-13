@@ -19,7 +19,11 @@ local function file_extension(file)
 		return nil
 	end
 
-	return path:match("%.([^./\\]+)$"):lower()
+	local matched_extension = path:match("%.([^./\\]+)$")
+	if matched_extension then
+		return matched_extension:lower()
+	end
+	return nil
 end
 
 local function classify_file_kind(file)
