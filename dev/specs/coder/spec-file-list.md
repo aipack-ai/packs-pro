@@ -12,6 +12,19 @@ The goal is to have one shared policy for handling `is_likely_text` across the m
 
 This avoids duplicated filtering logic and ensures text-oriented prompts do not accidentally include binary or non-text files.
 
+## Media-aware code-map exception
+
+Likely-text filtering remains the default policy for normal context, knowledge, helper, and code-map file selection. Code maps may explicitly opt into a limited set of non-text files through `include_kinds`.
+
+- `include_kinds` accepts `text`, `image`, and `pdf`.
+- When omitted, it defaults to `["text"]`.
+- Supported images are `.png`, `.jpeg`, and `.jpg`.
+- Supported PDFs use `.pdf`.
+- Extension matching is case-insensitive.
+- The existing maximum file-size limit applies to every enabled kind.
+
+The workbench data code map opts into all three kinds. Other configured code maps and named maps remain text-only unless they explicitly enable additional kinds.
+
 ## Core Design
 
 The shared implementation lives in `pro/coder/lua/utils_common.lua`.
@@ -137,6 +150,17 @@ Rationale:
 
 - The available file universe for selection should exclude non-text files.
 
+#### Workbench data files
+
+Workbench data discovery is the intentional exception to likely-text-only selection. It uses shared file-kind classification with `text`, `image`, and `pdf` enabled.
+
+Rationale:
+
+- Selected workbench text files continue through the existing text-loading path.
+- Selected images and PDFs are returned through `attachments` and attached directly to the final coder request.
+- Media code-map records provide `kind`, `summary`, `when_to_use`, and concise `topics` for selection.
+- Models without attachment support may fail normally; no special fallback is applied.
+
 ### `pro/coder/code-map.aip`
 
 For code-map file discovery, the design preserves non-text ignored counts.
@@ -224,6 +248,7 @@ The implemented design gives `pro@coder`:
 - consistent selection behavior across major flows
 - preserved permissive fallback behavior when metadata is missing
 - accurate ignored-file stats where needed
+- explicit, opt-in image and PDF code-map handling without weakening text-only defaults
 - no unnecessary API expansion
 
 This document reflects the intended and implemented design direction captured from the dev chat and the shared helpers in `utils_common.lua`.

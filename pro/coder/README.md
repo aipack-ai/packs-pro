@@ -548,6 +548,12 @@ type CoderWorkbench = {
 }
 ```
 
+Workbench data auto-context supports likely-text files, images with `.png`, `.jpeg`, or `.jpg` extensions, and PDF files with the `.pdf` extension. Extension matching is case-insensitive.
+
+The workbench data code map opts into `text`, `image`, and `pdf` kinds. Selected text files are loaded through the existing context path, while selected images and PDFs are attached directly to the final coder request. The existing `max_file_size_kb` limit applies to every supported kind.
+
+Media code-map records contain `kind`, `summary`, `when_to_use`, and up to seven concise `topics`. Text records continue to use `public_types` and `public_functions`. If a selected model cannot process a media attachment, the model call fails normally without a special fallback.
+
 For string or table values, relative paths are resolved relative to the workspace root unless they are absolute or use pack references.
 
 #### sub_agents
@@ -861,9 +867,11 @@ sub_agents:
     enabled: true
     globs: 
       - src/**/*.ts
+    # include_kinds: ["text"]  # Optional: text, image, and/or pdf
     # named_maps:               # Optional: multiple maps with custom names
     #   - name: my-project
     #     globs: ["src/**/*.ts"]
+    #     include_kinds: ["text", "image", "pdf"]
     # model: flash-low          # Optional: model used for summarization
     # input_concurrency: 8      # Optional: concurrency for map building
 ```
@@ -872,8 +880,11 @@ sub_agents:
 - `enabled`: Toggles the sub-agent execution.
 - `globs`: Array of glob patterns (relative to the workspace) for files to be summarized in the default `code-map.json`.
 - `named_maps`: Array of named map definitions (`name` and `globs`). Each named map will generate its own `[name]-code-map.json`.
+- `include_kinds`: Optional list containing `text`, `image`, and/or `pdf`. It defaults to `["text"]`, so normal and named code maps remain text-only unless they explicitly opt into media. Named maps may override the root value.
 - `model`: (Optional) The AI model used to generate the summaries and metadata for each file.
 - `input_concurrency`: (Optional) The number of concurrent tasks used to generate or update file summaries.
+
+Supported media extensions are `.png`, `.jpeg`, `.jpg`, and `.pdf`, matched case-insensitively. Images and PDFs are sent directly to the code-map model as attachments and use media records with `summary`, `when_to_use`, and `topics`. The configured `max_file_size_kb` limit applies to text and media files alike.
 
 ## AI Response Utility Tags
 
