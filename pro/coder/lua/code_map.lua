@@ -8,6 +8,7 @@ local LABEL_RECOVERED           = "Recovered:"
 local WORKBENCH_DATA_MAP_NAME   = "data"
 local WORKBENCH_DATA_MAP_GLOBS  = { "**/*.*" }
 local DEFAULT_INCLUDE_KINDS     = { "text" }
+local ALL_INCLUDE_KINDS         = { "text", "pdf", "image" }
 local VALID_INCLUDE_KINDS       = {
 	text = true,
 	image = true,
@@ -62,19 +63,27 @@ local function clone_array(values)
 	return out
 end
 
-local function normalize_include_kinds(include_kinds)
-	if is_null(include_kinds) then
+local function normalize_include_kinds(include_kinds, default_include_kinds)
+	local value = include_kinds
+	if is_null(value) then
+		value = default_include_kinds or DEFAULT_INCLUDE_KINDS
+	end
+
+	if value == "text" then
 		return clone_array(DEFAULT_INCLUDE_KINDS)
 	end
-	if type(include_kinds) ~= "table" then
-		error("code map `include_kinds` must be a list containing `text`, `image`, or `pdf`")
+	if value == "all" then
+		return clone_array(ALL_INCLUDE_KINDS)
+	end
+	if type(value) ~= "table" then
+		error("code map `include_kinds` must be `text`, `all`, or a list containing `text`, `pdf`, or `image`")
 	end
 
 	local normalized = {}
 	local seen = {}
-	for _, kind in ipairs(include_kinds) do
+	for _, kind in ipairs(value) do
 		if type(kind) ~= "string" or not VALID_INCLUDE_KINDS[kind] then
-			error("invalid code map include kind `" .. tostring(kind) .. "`, expected `text`, `image`, or `pdf`")
+			error("invalid code map include kind `" .. tostring(kind) .. "`, expected `text`, `pdf`, or `image`")
 		end
 		if not seen[kind] then
 			seen[kind] = true
@@ -468,6 +477,7 @@ return {
 	WORKBENCH_DATA_MAP_NAME = WORKBENCH_DATA_MAP_NAME,
 	WORKBENCH_DATA_MAP_GLOBS = WORKBENCH_DATA_MAP_GLOBS,
 	DEFAULT_INCLUDE_KINDS = DEFAULT_INCLUDE_KINDS,
+	ALL_INCLUDE_KINDS = ALL_INCLUDE_KINDS,
 	collect_path_lookup_keys = collect_path_lookup_keys,
 	find_file_map_entry = find_file_map_entry,
 	migrate_file_map_keys = migrate_file_map_keys,

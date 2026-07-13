@@ -1,5 +1,6 @@
 local u_common = require("utils_common")
 local CONST = require("consts")
+local _cm = require("code_map")
 
 local function resolve_workbench_chat_path(workbench_chat_path, options)
 	return u_common.resolve_workbench_chat_path(workbench_chat_path, options)
@@ -532,6 +533,7 @@ local function build_coder_workbench(workbench_config, options)
 		dir = dir,
 		cache_dir = cache_dir,
 		prompt_cache_dir = prompt_cache_dir,
+		include_kinds = _cm.normalize_include_kinds(workbench_config.include_kinds, _cm.ALL_INCLUDE_KINDS),
 		chat = chat,
 		goal = goal,
 		plan = plan,
@@ -552,7 +554,8 @@ local function new_workbench_sub_agent_config(workbench, options)
 		workbench_config = {
 			name = "pro@coder/workbench",
 			enabled = true,
-			data = true
+			data = true,
+			include_kinds = _cm.normalize_include_kinds(nil, _cm.ALL_INCLUDE_KINDS)
 		}
 	elseif workbench == false then
 		workbench_config = {
@@ -566,6 +569,7 @@ local function new_workbench_sub_agent_config(workbench, options)
 			base.dir = u_common.resolve_workbench_root_dir(options)
 		end
 		base.data = workbench.data ~= false
+		base.include_kinds = _cm.normalize_include_kinds(workbench.include_kinds, _cm.ALL_INCLUDE_KINDS)
 		local resolve_options = aip.lua.merge({}, options, { workbench_dir = base.dir })
 		base.chat = normalize_workbench_chat_config(base.chat, resolve_options)
 		base.goal = normalize_workbench_goal_config(base.goal, resolve_options)

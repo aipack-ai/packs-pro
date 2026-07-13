@@ -101,6 +101,8 @@ local function extract_auto_context_config(sub_input)
 		model = sub_input.coder_params.model
 	end
 
+	local include_kinds = _cm.normalize_include_kinds(input_agent_config.include_kinds, _cm.DEFAULT_INCLUDE_KINDS)
+
 	-- code_map_globs
 	local code_map_globs = sub_input.coder_params.context_globs -- default for reduce
 	if mode == "expand" then
@@ -170,6 +172,7 @@ local function extract_auto_context_config(sub_input)
 		user_prompt                = user_prompt,
 		mode                       = mode,
 		model                      = model,
+		include_kinds              = include_kinds,
 		helper_globs               = helper_globs,
 		code_map_globs             = code_map_globs,
 		code_map_model             = code_map_model,
