@@ -201,7 +201,9 @@ end
 local workbench_data_files = {}
 local workbench_data_files_size = 0
 local workbench_data_selection_enabled = false
-local workbench_data_include_kinds = { "text", "image", "pdf" }
+local workbench_data_include_kinds = auto_context_config.workbench_include_kinds or _cm.ALL_INCLUDE_KINDS
+local workbench_data_media_enabled = includes_kind(workbench_data_include_kinds, "image")
+	or includes_kind(workbench_data_include_kinds, "pdf")
 if auto_context_config.workbench_data_enabled
 	and not is_null(auto_context_config.workbench_dir)
 	and auto_context_config.workbench_dir ~= ""
@@ -543,7 +545,7 @@ local data = {
 	knowledge_files_size  = knowledge_files_size,
 	attachments_enabled   = includes_kind(auto_context_config.include_kinds, "image")
 		or includes_kind(auto_context_config.include_kinds, "pdf")
-		or workbench_data_selection_enabled,
+		or (workbench_data_selection_enabled and workbench_data_media_enabled),
 	context_kind_by_path = context_kind_by_path,
 	knowledge_kind_by_path = knowledge_kind_by_path,
 	workbench_data_enabled = workbench_data_selection_enabled,

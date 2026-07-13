@@ -153,12 +153,16 @@ local function extract_auto_context_config(sub_input)
 	local workbench_dir = nil
 	local workbench_data_dir = nil
 	local workbench_cache_dir = nil
+	local workbench_include_kinds = _cm.ALL_INCLUDE_KINDS
 
 	if type(workbench) == "table" and not is_null(workbench.data_dir) and workbench.data_dir ~= "" then
 		workbench_data_enabled = true
 		workbench_dir = workbench.dir
 		workbench_data_dir = workbench.data_dir
 		workbench_cache_dir = workbench.cache_dir
+		if type(workbench.include_kinds) == "table" then
+			workbench_include_kinds = workbench.include_kinds
+		end
 	end
 
 	if workbench_data_enabled and has_no_globs(workbench_data_globs) then
@@ -184,6 +188,7 @@ local function extract_auto_context_config(sub_input)
 		workbench_dir              = workbench_dir,
 		workbench_data_dir         = workbench_data_dir,
 		workbench_cache_dir        = workbench_cache_dir,
+		workbench_include_kinds    = workbench_include_kinds,
 		prompt_base_dir            = sub_input.coder_params.base_dir or "",
 		cache_explicit             = cache_explicit,
 	}
