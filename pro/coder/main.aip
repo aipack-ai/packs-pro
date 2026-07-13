@@ -122,6 +122,58 @@ if total_size > max_files_size_b then
 end
 
 -- extract attachments (nil if empty or undefined)
+local coder_attachments = nil
+if type(base.coder_params) == "table" and type(base.coder_params.attachments) == "table" then
+  coder_attachments = base.coder_params.attachments
+end
+if coder_attachments and #coder_attachments > 0 then
+  local merged_attachments = {}
+  local attachment_sources = {}
+
+  local function add_attachment(attachment, resolve_from_base)
+    local normalized_attachment = attachment
+    local file_source = nil
+
+    if type(attachment) == "string" then
+      file_source = attachment
+      normalized_attachment = { file_source = file_source }
+    elseif type(attachment) == "table" and type(attachment.file_source) == "string" then
+      file_source = attachment.file_source
+      normalized_attachment = aip.lua.merge({}, attachment)
+    end
+
+    if not file_source or file_source == "" then
+      return
+    end
+
+    if resolve_from_base
+        and file_source:sub(1, 1) ~= "/"
+        and file_source:sub(1, 1) ~= "~"
+        and not file_source:match("^%a:[/\\]")
+        and not file_source:match("^[^/]+@[^/]+/") then
+      local ok, resolved_source = pcall(aip.path.join, base.base_dir, file_source)
+      if ok and type(resolved_source) == "string" and resolved_source ~= "" then
+        file_source = resolved_source
+        normalized_attachment.file_source = resolved_source
+      end
+    end
+
+    if not attachment_sources[file_source] then
+      attachment_sources[file_source] = true
+      table.insert(merged_attachments, normalized_attachment)
+    end
+  end
+
+  for _, attachment in ipairs(base.attachments or {}) do
+    add_attachment(attachment, false)
+  end
+  for _, attachment in ipairs(coder_attachments) do
+    add_attachment(attachment, true)
+  end
+
+  base.attachments = merged_attachments
+end
+
 local attachments = nil
 if base.attachments and #base.attachments > 0 then
   attachments = base.attachments

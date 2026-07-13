@@ -794,6 +794,7 @@ local tag_names = {"needed_context_files", "context_reasoning"}
 if data.workbench_data_enabled then
 	table.insert(tag_names, "needed_workbench_data_files")
 	table.insert(tag_names, "workbench_data_reasoning")
+	table.insert(tag_names, "attachments")
 end
 if data.knowledge_enabled then
 	table.insert(tag_names, "needed_knowledge_files")
@@ -850,6 +851,14 @@ if data.workbench_data_enabled then
 		end
 
 		table.move(addl_files, 1, #addl_files, #new_workbench_data_globs + 1, new_workbench_data_globs)
+	end
+end
+
+local normalized_attachment_paths = {}
+if data.workbench_data_enabled and res_map.attachments and res_map.attachments.content then
+	local ok, parsed = pcall(aip.json.parse, res_map.attachments.content)
+	if ok and type(parsed) == "table" then
+		normalized_attachment_paths = normalize_workbench_data_paths_to_prompt_base(parsed, data.auto_context_config)
 	end
 end
 
@@ -935,11 +944,15 @@ local coder_params = { context_globs = new_context_globs }
 if new_knowledge_globs then
 	coder_params.knowledge_globs = new_knowledge_globs
 end
+if #normalized_attachment_paths > 0 then
+	coder_params.attachments = normalized_attachment_paths
+end
 local agent_result = nil
 if data.workbench_data_enabled then
 	agent_result = {
 		workbench_data_globs = new_workbench_data_globs or {},
 		workbench_data_selection_attempted = true,
+		attachments = normalized_attachment_paths,
 	}
 end
 
