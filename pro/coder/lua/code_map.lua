@@ -7,6 +7,12 @@ local LABEL_STATUS              = "   Status:"
 local LABEL_RECOVERED           = "Recovered:"
 local WORKBENCH_DATA_MAP_NAME   = "data"
 local WORKBENCH_DATA_MAP_GLOBS  = { "**/*.*" }
+local DEFAULT_INCLUDE_KINDS     = { "text" }
+local VALID_INCLUDE_KINDS       = {
+	text = true,
+	image = true,
+	pdf = true,
+}
 
 -- === Public Functions
 
@@ -54,6 +60,33 @@ local function clone_array(values)
 		table.insert(out, value)
 	end
 	return out
+end
+
+local function normalize_include_kinds(include_kinds)
+	if is_null(include_kinds) then
+		return clone_array(DEFAULT_INCLUDE_KINDS)
+	end
+	if type(include_kinds) ~= "table" then
+		error("code map `include_kinds` must be a list containing `text`, `image`, or `pdf`")
+	end
+
+	local normalized = {}
+	local seen = {}
+	for _, kind in ipairs(include_kinds) do
+		if type(kind) ~= "string" or not VALID_INCLUDE_KINDS[kind] then
+			error("invalid code map include kind `" .. tostring(kind) .. "`, expected `text`, `image`, or `pdf`")
+		end
+		if not seen[kind] then
+			seen[kind] = true
+			table.insert(normalized, kind)
+		end
+	end
+
+	if #normalized == 0 then
+		error("code map `include_kinds` must contain at least one kind")
+	end
+
+	return normalized
 end
 
 local function normalize_code_map_path(file_path, path_base_dir)
@@ -302,6 +335,7 @@ local function new_workbench_data_named_map(workbench_data_config)
 		file_path = file_path,
 		base_dir = data_dir,
 		path_base_dir = path_base_dir,
+		include_kinds = normalize_include_kinds(workbench_data_config.include_kinds),
 	}
 end
 
@@ -334,6 +368,7 @@ local function extract_code_map_config(sub_input)
 	local code_map_max_file_size_kb = agent_config.max_file_size_kb or DEFAULT_MAX_FILE_SIZE_KB
 
 	local map_defs = {}
+	local include_kinds = normalize_include_kinds(agent_config.include_kinds)
 
 	if agent_config.globs then
 		table.insert(map_defs, {
@@ -341,17 +376,23 @@ local function extract_code_map_config(sub_input)
 			globs = agent_config.globs,
 			file_path = code_map_dir .. "/code-map.json",
 			base_dir = base_dir,
+			include_kinds = clone_array(include_kinds),
 		})
 	end
 
 	if agent_config.named_maps then
 		for _, nm in ipairs(agent_config.named_maps) do
+			local named_map_include_kinds = include_kinds
+			if not is_null(nm.include_kinds) then
+				named_map_include_kinds = normalize_include_kinds(nm.include_kinds)
+			end
 			table.insert(map_defs, {
 				name = nm.name,
 				globs = nm.globs,
 				file_path = nm.file_path or (code_map_dir .. "/" .. nm.name .. "-code-map.json"),
 				base_dir = nm.base_dir or base_dir,
 				path_base_dir = nm.path_base_dir,
+				include_kinds = clone_array(named_map_include_kinds),
 			})
 		end
 	end
@@ -373,6 +414,7 @@ local function extract_code_map_config(sub_input)
 		input_concurrency = code_map_input_concurrency,
 		base_dir          = base_dir,
 		max_file_size_kb  = code_map_max_file_size_kb,
+		include_kinds     = include_kinds,
 	}
 end
 
@@ -416,12 +458,16 @@ return {
 	filter_text_files       = filter_text_files,
 	new_workbench_data_named_map = new_workbench_data_named_map,
 	normalize_code_map_path = normalize_code_map_path,
+	normalize_include_kinds = normalize_include_kinds,
+	classify_file_kind = u_common.classify_file_kind,
+	filter_file_kinds = u_common.filter_file_kinds,
 
 	-- consts
 	LABEL_STATUS            = LABEL_STATUS,
 	LABEL_RECOVERED         = LABEL_RECOVERED,
 	WORKBENCH_DATA_MAP_NAME = WORKBENCH_DATA_MAP_NAME,
 	WORKBENCH_DATA_MAP_GLOBS = WORKBENCH_DATA_MAP_GLOBS,
+	DEFAULT_INCLUDE_KINDS = DEFAULT_INCLUDE_KINDS,
 	collect_path_lookup_keys = collect_path_lookup_keys,
 	find_file_map_entry = find_file_map_entry,
 	migrate_file_map_keys = migrate_file_map_keys,

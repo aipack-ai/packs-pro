@@ -1,3 +1,79 @@
+local SUPPORTED_IMAGE_EXTENSIONS = {
+	jpeg = true,
+	jpg = true,
+	png = true,
+}
+
+local function file_extension(file)
+	if type(file) ~= "table" then
+		return nil
+	end
+
+	local extension = file.ext
+	if type(extension) == "string" and extension ~= "" then
+		return extension:lower():gsub("^%.", "")
+	end
+
+	local path = file.path
+	if type(path) ~= "string" then
+		return nil
+	end
+
+	return path:match("%.([^./\\]+)$"):lower()
+end
+
+local function classify_file_kind(file)
+	local extension = file_extension(file)
+	if extension and SUPPORTED_IMAGE_EXTENSIONS[extension] then
+		return "image"
+	end
+	if extension == "pdf" then
+		return "pdf"
+	end
+	if type(file) == "table" and file.is_likely_text ~= false then
+		return "text"
+	end
+	return "unsupported"
+end
+
+local function filter_file_kinds(files, include_kinds)
+	local input_files = files or {}
+	local enabled_kinds = {}
+	local configured_kinds = include_kinds
+	if type(configured_kinds) ~= "table" or #configured_kinds == 0 then
+		configured_kinds = { "text" }
+	end
+	for _, kind in ipairs(configured_kinds) do
+		enabled_kinds[kind] = true
+	end
+
+	local result = {
+		files = {},
+		unsupported_file_count = 0,
+		excluded_kind_count = 0,
+		kind_counts = {
+			text = 0,
+			image = 0,
+			pdf = 0,
+			unsupported = 0,
+		},
+	}
+
+	for _, file in ipairs(input_files) do
+		local kind = classify_file_kind(file)
+		result.kind_counts[kind] = result.kind_counts[kind] + 1
+		if kind == "unsupported" then
+			result.unsupported_file_count = result.unsupported_file_count + 1
+		elseif enabled_kinds[kind] then
+			table.insert(result.files, file)
+		else
+			result.excluded_kind_count = result.excluded_kind_count + 1
+		end
+	end
+
+	return result
+end
+
 local function filter_likely_text(files)
 	if files == nil or #files == 0 then
 		return files
@@ -454,6 +530,8 @@ local function workbench_legacy_file_migrate(options)
 end
 
 return {
+	classify_file_kind = classify_file_kind,
+	filter_file_kinds = filter_file_kinds,
 	filter_likely_text = filter_likely_text,
 	list_likely_text = list_likely_text,
 	list_likely_text_with_stats = list_likely_text_with_stats,
