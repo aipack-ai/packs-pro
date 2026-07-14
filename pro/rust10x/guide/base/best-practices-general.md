@@ -2,9 +2,17 @@
 
 ## When to use this file
 
-Always use this file when writing and updating Rust code as this is general guide for writing clean, idiomatic Rust code, covering error handling (avoiding unwrap), modern syntax (if-let-chains, match ergonomics), macro usage, async closures, iterator patterns, and standardized file organization using regions.
+Use this file every time you write or update Rust code. It is the general guide for writing clean, idiomatic Rust code, covering error handling (avoiding unwrap), modern syntax (if-let-chains, match ergonomics), macro usage, async closures, iterator patterns, and standardized file organization using regions.
 
 ## Common Rules & Best Practices
+
+### Implementation Blocks by Category
+
+Organize methods into separate `impl` blocks according to their purpose when doing so keeps related APIs together and makes the public interface easier to scan and maintain. Common categories include constructors, consuming chainable setters such as `with_...`, `append_...`, and `extend_...`, and property setters such as `set_...` methods taking `&mut self`. Treat these as useful examples rather than rigid requirements, and choose groupings that fit the type and its API.
+
+- Keep trait implementations, such as `From`, `Default`, and iterator implementations, in separate blocks from inherent methods.
+
+- Use meaningful code regions when a file contains enough implementation blocks to benefit from additional organization.
 
 - Never use `.unwrap()` and `.expect("...")` even in test or example codes. 
   - For test and example, use the `.ok_or("should have ...")?` scheme which works well and production safer with the ?.
