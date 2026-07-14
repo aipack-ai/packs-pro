@@ -22,8 +22,6 @@ pub struct SomeType {
     messages: Vec<Message>,
 }
 
-// region:    --- Fluid Constructors & Chainables
-
 /// Constructors
 impl SomeType {
     pub fn new(name: impl Into<String>) -> Self {
@@ -41,7 +39,7 @@ impl SomeType {
     }
 }
 
-/// Chainables
+/// Chainable setters
 impl SomeType {
     pub fn with_max_token(mut self, max_token: u16) -> Self {
         self.max_token = Some(max_token);
@@ -58,8 +56,6 @@ impl SomeType {
         self
     }
 }
-
-// endregion: --- Fluid Constructors & Chainables
 
 // region:    --- Froms
 
@@ -123,8 +119,7 @@ pub struct ClientBuilder {
     max_retries: Option<u32>,
 }
 
-// region:    --- Fluid Constructors & Chainables
-
+/// Constructors & Chainables
 ... same pattern for ClientBuilder ...
 
 ```

@@ -12,7 +12,7 @@ Organize methods into separate `impl` blocks according to their purpose when doi
 
 - Keep trait implementations, such as `From`, `Default`, and iterator implementations, in separate blocks from inherent methods.
 
-- Use meaningful code regions when a file contains enough implementation blocks to benefit from additional organization.
+- Use meaningful code regions for larger code sections when they improve file organization. Splitting methods into separate `impl` blocks by category does not require a code region; use a concise documentation comment such as `/// Accessors` when a label helps explain the block.
 
 - Never use `.unwrap()` and `.expect("...")` even in test or example codes. 
   - For test and example, use the `.ok_or("should have ...")?` scheme which works well and production safer with the ?.

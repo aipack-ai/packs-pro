@@ -37,6 +37,7 @@ For large chunks of code, usually groups of types, functions, private/support co
 - The `Region Name` is short, usually one or two words max.
 - The spacing is important; it has to be exactly this number of spaces, for example, before and after the `---` to be fully aligned.
 - These regions can be at the top level of a file or even within some function bodies if very large.
+- Splitting methods into separate `impl` blocks by category does not require a code region. When a label is useful, use a concise documentation comment such as `/// Accessors` directly before the `impl` block.
 
 #### Typical Code Regions
 
