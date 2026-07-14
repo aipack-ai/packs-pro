@@ -87,7 +87,7 @@ Add `with_` and `append_` methods in a separate `impl` block. Consume `self` (no
 
 ### From Implementations
 
-Standard `From` trait conversions go in a separate `impl` block, typically after the chainable block.
+Standard `From` trait conversions go in separate `impl` blocks grouped together in one `Froms` code region, typically after the chainable block.
 
 ## Builder Pattern
 

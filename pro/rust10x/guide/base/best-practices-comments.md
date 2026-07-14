@@ -39,6 +39,14 @@ For large chunks of code, usually groups of types, functions, private/support co
 - These regions can be at the top level of a file or even within some function bodies if very large.
 - Splitting methods into separate `impl` blocks by category does not require a code region. When a label is useful, use a concise documentation comment such as `/// Accessors` directly before the `impl` block.
 
+Good candidates for code regions include:
+
+- `From` implementations, grouped in one `Froms` region.
+- Private support functions, implementations, or types specific to the current module, grouped in a `Support` region.
+- Unit tests, grouped in a `Tests` region.
+
+When these sections are present, each should use its corresponding code region. `Support` and `Tests` regions follow the same structural convention as the `Froms` region.
+
 #### Typical Code Regions
 
 **In `main.rs`, `lib.rs`, and all `mod.rs` files:**

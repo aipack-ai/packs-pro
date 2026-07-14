@@ -123,13 +123,27 @@ Now supported for tuples of length 1 through 12. You can collect into multiple c
 
 When writing or adding code to a file, follow this structure.
 
-- Public types in that file, if any, should be at the top, from the "container" type(s) to leaf ones.
+- Types in that file, if any, should be at the top, from the "container" type(s) to leaf ones.
 
 - If there are many types, put them in a code comment region called "Types" (see comments-best-practices.md for code comment regions).
 
-- Then add the public function or struct implementations for this module.
+- Then add the public functions for this module.
 
-- Then, if there are any private functions, implementations, or types for this module, put them in the "Support" code comment regions.
+- Then add public `impl` blocks, grouping related methods by category when that improves readability.
 
-- Then, at the end, if appropriate, add the unit tests under the "Tests" code region.
+- Then, if there are any `From` implementations, put them together in one `Froms` code region:
+
+  ```rust
+  // region:    --- Froms
+
+  // endregion: --- Froms
+  ```
+
+- Then, if there are any private functions, implementations, or types specific to this file, put them in a "Support" code region.
+
+- Finally, if appropriate, add the unit tests under a "Tests" code region.
+
+`Froms`, `Support`, and `Tests` are code regions like one another. Use the corresponding region whenever that section is present.
+
+Good candidates for code regions include `From` implementations, private support code for the current module, and tests. When these sections are present, enclose them in dedicated `Froms`, `Support`, and `Tests` code regions, respectively. Use regions for meaningful sections of code, not merely to label every `impl` block.
 
