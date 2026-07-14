@@ -3,8 +3,11 @@ local DEFAULT_INPUT_CONCURRENCY = 8
 local DEFAULT_MAX_FILE_SIZE_KB = 1500
 local u_common = require("utils_common")
 
-local LABEL_STATUS              = "   Status:"
-local LABEL_RECOVERED           = "Recovered:"
+local LABEL_STATUS              = "     Status:"
+local LABEL_RECOVERED           = "  Recovered:"
+local LABEL_UNSUPPORTED         = "Unsupported:"
+local LABEL_DISABLED            = "   Disabled:"
+local LABEL_OVERSIZED           = "  Oversized:"
 local WORKBENCH_DATA_MAP_NAME   = "data"
 local WORKBENCH_DATA_MAP_GLOBS  = { "**/*.*" }
 local DEFAULT_INCLUDE_KINDS     = { "text" }
@@ -476,6 +479,9 @@ return {
 	-- consts
 	LABEL_STATUS            = LABEL_STATUS,
 	LABEL_RECOVERED         = LABEL_RECOVERED,
+	LABEL_UNSUPPORTED       = LABEL_UNSUPPORTED,
+	LABEL_DISABLED          = LABEL_DISABLED,
+	LABEL_OVERSIZED         = LABEL_OVERSIZED,
 	WORKBENCH_DATA_MAP_NAME = WORKBENCH_DATA_MAP_NAME,
 	WORKBENCH_DATA_MAP_GLOBS = WORKBENCH_DATA_MAP_GLOBS,
 	DEFAULT_INCLUDE_KINDS = DEFAULT_INCLUDE_KINDS,

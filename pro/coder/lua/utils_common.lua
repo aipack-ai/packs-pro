@@ -40,6 +40,13 @@ local function classify_file_kind(file)
 	return "unsupported"
 end
 
+local function format_simple_plural_label(num, text_singular, text_plural)
+	if num == 1 then
+		return text_singular
+	end
+	return text_plural or (text_singular .. "s")
+end
+
 local function filter_file_kinds(files, include_kinds)
 	local input_files = files or {}
 	local enabled_kinds = {}
@@ -53,6 +60,8 @@ local function filter_file_kinds(files, include_kinds)
 
 	local result = {
 		files = {},
+		unsupported_files = {},
+		excluded_kind_files = {},
 		unsupported_file_count = 0,
 		excluded_kind_count = 0,
 		kind_counts = {
@@ -68,10 +77,12 @@ local function filter_file_kinds(files, include_kinds)
 		result.kind_counts[kind] = result.kind_counts[kind] + 1
 		if kind == "unsupported" then
 			result.unsupported_file_count = result.unsupported_file_count + 1
+			table.insert(result.unsupported_files, file)
 		elseif enabled_kinds[kind] then
 			table.insert(result.files, file)
 		else
 			result.excluded_kind_count = result.excluded_kind_count + 1
+			table.insert(result.excluded_kind_files, file)
 		end
 	end
 
@@ -535,6 +546,7 @@ end
 
 return {
 	classify_file_kind = classify_file_kind,
+	format_simple_plural_label = format_simple_plural_label,
 	filter_file_kinds = filter_file_kinds,
 	filter_likely_text = filter_likely_text,
 	list_likely_text = list_likely_text,

@@ -94,17 +94,88 @@ local excluded_kind_count = 0
 local oversized_file_count = 0
 local oversized_paths = {}
 local max_file_size_bytes = code_map_config.max_file_size_kb * 1024
+local unsupported_paths = {}
+local excluded_kind_paths = {}
+local u_common = require("utils_common")
+
+local function retain_file_record(records, file, path_base_dir)
+	local source_path = file.path
+	local display_path = _cm.normalize_code_map_path(source_path, path_base_dir)
+	if records[display_path] then
+		return false
+	end
+	records[display_path] = {
+		path = display_path,
+		size = file.size or 0,
+	}
+	return true
+end
+
+local function sorted_file_records(records)
+	local sorted = {}
+	for _, record in pairs(records) do
+		table.insert(sorted, record)
+	end
+	table.sort(sorted, function(a, b)
+		return a.path < b.path
+	end)
+	return sorted
+end
+
+local function format_integer(value)
+	local formatted = tostring(math.floor(value))
+	local sign, digits = formatted:match("^([%-]?)(%d+)$")
+	if not digits then
+		return formatted
+	end
+	local reversed = digits:reverse():gsub("(%d%d%d)", "%1,"):reverse()
+	reversed = reversed:gsub("^,", "")
+	return sign .. reversed
+end
+
+local function build_detail_content(records, count_label, include_size)
+	local sorted = sorted_file_records(records)
+	local lines = { count_label }
+	local display_count = math.min(#sorted, 7)
+	for i = 1, display_count do
+		local record = sorted[i]
+		local line = "- " .. record.path
+		if include_size then
+			line = line .. " (size: " .. format_integer(math.ceil(record.size / 1024)) .. " KB)"
+		end
+		table.insert(lines, line)
+	end
+	if #sorted > display_count then
+		table.insert(lines, "- ... and " .. (#sorted - display_count) .. " more")
+	end
+	return table.concat(lines, "\n")
+end
+
+local function append_status_detail(details, count, singular, plural, suffix)
+	if count > 0 then
+		local label = u_common.format_simple_plural_label(count, singular, plural)
+		table.insert(details, "   " .. count .. " " .. label .. suffix)
+	end
+end
 
 for _, mdef in ipairs(code_map_config.map_defs) do
 	local map_data = loaded_maps[mdef.file_path]
 	local file_map = map_data.file_map
-	local u_common = require("utils_common")
 	local listed_files = aip.file.list(mdef.globs, { base_dir = mdef.base_dir, absolute = true })
 	local filtered_result = u_common.filter_file_kinds(listed_files, mdef.include_kinds)
 	local map_files = filtered_result.files
-	unsupported_file_count = unsupported_file_count + filtered_result.unsupported_file_count
-	excluded_kind_count = excluded_kind_count + filtered_result.excluded_kind_count
-	non_text_file_count = non_text_file_count + filtered_result.unsupported_file_count + filtered_result.excluded_kind_count
+	for _, file in ipairs(filtered_result.unsupported_files) do
+		if retain_file_record(unsupported_paths, file, mdef.path_base_dir) then
+			unsupported_file_count = unsupported_file_count + 1
+			non_text_file_count = non_text_file_count + 1
+		end
+	end
+	for _, file in ipairs(filtered_result.excluded_kind_files) do
+		if retain_file_record(excluded_kind_paths, file, mdef.path_base_dir) then
+			excluded_kind_count = excluded_kind_count + 1
+			non_text_file_count = non_text_file_count + 1
+		end
+	end
 	
 	for _, orig_file in ipairs(map_files) do
 		local source_path = orig_file.path
@@ -113,7 +184,10 @@ for _, mdef in ipairs(code_map_config.map_defs) do
 
 		if orig_file.size and orig_file.size > max_file_size_bytes then
 			if not oversized_paths[code_map_path] then
-				oversized_paths[code_map_path] = true
+				oversized_paths[code_map_path] = {
+					path = code_map_path,
+					size = orig_file.size,
+				}
 				oversized_file_count = oversized_file_count + 1
 			end
 		else
@@ -243,28 +317,57 @@ local status_msg = ""
 if to_process_count == 0 then
 	status_msg = "✅ Total code-map files: " .. total_files .. " (" .. up_to_date_count .. " already processed)"
 	local details = {}
-	if legacy_path_migrated_count > 0 then table.insert(details, legacy_path_migrated_count .. " legacy path entries migrated") end
-	if unsupported_file_count > 0 then table.insert(details, unsupported_file_count .. " unsupported files ignored") end
-	if excluded_kind_count > 0 then table.insert(details, excluded_kind_count .. " files outside enabled kinds ignored") end
-	if oversized_file_count > 0 then table.insert(details, oversized_file_count .. " oversized files skipped") end
+	append_status_detail(details, legacy_path_migrated_count, "legacy path entry", "legacy path entries", " migrated")
+	append_status_detail(details, unsupported_file_count, "unsupported file", nil, " ignored")
+	append_status_detail(details, excluded_kind_count, "file", "files", " outside enabled kinds ignored")
+	append_status_detail(details, oversized_file_count, "oversized file", nil, " skipped")
 	if #details > 0 then
-		status_msg = status_msg .. "\n   " .. table.concat(details, " | ")
+		status_msg = status_msg .. "\n" .. table.concat(details, "\n")
 	end
 else 
 	status_msg = ".. Total code-map files: " .. total_files .. " (" .. to_process_count .. " to process, " .. up_to_date_count .. " already processed)"
 	local details = {}
-	if new_count > 0 then table.insert(details, new_count .. " creation") end
-	if update_count > 0 then table.insert(details, update_count .. " updating") end
-	if legacy_path_migrated_count > 0 then table.insert(details, legacy_path_migrated_count .. " legacy path entries migrated") end
-	if unsupported_file_count > 0 then table.insert(details, unsupported_file_count .. " unsupported files ignored") end
-	if excluded_kind_count > 0 then table.insert(details, excluded_kind_count .. " files outside enabled kinds ignored") end
-	if oversized_file_count > 0 then table.insert(details, oversized_file_count .. " oversized files skipped") end
+	append_status_detail(details, new_count, "creation", nil, "")
+	append_status_detail(details, update_count, "updating", "updating", "")
+	append_status_detail(details, legacy_path_migrated_count, "legacy path entry", "legacy path entries", " migrated")
+	append_status_detail(details, unsupported_file_count, "unsupported file", nil, " ignored")
+	append_status_detail(details, excluded_kind_count, "file", "files", " outside enabled kinds ignored")
+	append_status_detail(details, oversized_file_count, "oversized file", nil, " skipped")
 	if #details > 0 then
-		status_msg = status_msg .. "\n   " .. table.concat(details, " | ")
+		status_msg = status_msg .. "\n" .. table.concat(details, "\n")
 	end
 end
 
 aip.run.pin("status", 1, { label = _cm.LABEL_STATUS, content = status_msg })
+
+if unsupported_file_count > 0 then
+	local count_label = unsupported_file_count .. " "
+		.. u_common.format_simple_plural_label(unsupported_file_count, "unsupported file")
+	aip.run.pin("unsupported", 2, {
+		label = _cm.LABEL_UNSUPPORTED,
+		content = build_detail_content(unsupported_paths, count_label, false)
+	})
+end
+
+if excluded_kind_count > 0 then
+	local count_label = excluded_kind_count .. " "
+		.. u_common.format_simple_plural_label(excluded_kind_count, "file", "files")
+		.. " outside enabled kinds"
+	aip.run.pin("disabled", 3, {
+		label = _cm.LABEL_DISABLED,
+		content = build_detail_content(excluded_kind_paths, count_label, false)
+	})
+end
+
+if oversized_file_count > 0 then
+	local count_label = oversized_file_count .. " "
+		.. u_common.format_simple_plural_label(oversized_file_count, "oversized file")
+		.. " (over " .. format_integer(code_map_config.max_file_size_kb) .. " KB)"
+	aip.run.pin("oversized", 4, {
+		label = _cm.LABEL_OVERSIZED,
+		content = build_detail_content(oversized_paths, count_label, true)
+	})
+end
 
 -- If all files resolved via hash comparison (none need AI), save updated mtime values now
 if #files_to_process == 0 and (hash_mtime_updated or recovered_count > 0 or legacy_path_migrated_count > 0) then
@@ -547,6 +650,7 @@ end
 
 ```lua
 local _cm = require("code_map")
+local u_common = require("utils_common")
 
 local code_map_config    = before_all.code_map_config
 local loaded_maps        = before_all.loaded_maps
@@ -636,18 +740,22 @@ if before_all.to_process_count > 0 then
 	local total_files = before_all.to_process_count + before_all.up_to_date_count
 	local status_msg = "✅ Total code-map files: " .. total_files .. " (" .. before_all.to_process_count .. " to process, " .. before_all.up_to_date_count .. " already processed)"
 	local details = {}
-	if created_count > 0 then table.insert(details, created_count .. " created") end
-	if updated_count > 0 then
-		table.insert(details, updated_count .. " updated")
+	local function append_status_detail(count, singular, plural, suffix)
+		if count and count > 0 then
+			local label = u_common.format_simple_plural_label(count, singular, plural)
+			table.insert(details, "   " .. count .. " " .. label .. suffix)
+		end
 	end
-	if same_count > 0 then table.insert(details, same_count .. " same (no change)") end
-	if same_no_file_info_count > 0 then table.insert(details, same_no_file_info_count .. " same-marker persisted") end
-	if legacy_path_migrated_count > 0 then table.insert(details, legacy_path_migrated_count .. " legacy path entries migrated") end
-	if before_all.unsupported_file_count and before_all.unsupported_file_count > 0 then table.insert(details, before_all.unsupported_file_count .. " unsupported files ignored") end
-	if before_all.excluded_kind_count and before_all.excluded_kind_count > 0 then table.insert(details, before_all.excluded_kind_count .. " files outside enabled kinds ignored") end
-	if oversized_file_count > 0 then table.insert(details, oversized_file_count .. " oversized files skipped") end
+	append_status_detail(created_count, "created", "created", "")
+	append_status_detail(updated_count, "updated", "updated", "")
+	append_status_detail(same_count, "same", "same", " (no change)")
+	append_status_detail(same_no_file_info_count, "same-marker", "same-markers", " persisted")
+	append_status_detail(legacy_path_migrated_count, "legacy path entry", "legacy path entries", " migrated")
+	append_status_detail(before_all.unsupported_file_count, "unsupported file", nil, " ignored")
+	append_status_detail(before_all.excluded_kind_count, "file", "files", " outside enabled kinds ignored")
+	append_status_detail(oversized_file_count, "oversized file", nil, " skipped")
 	if #details > 0 then
-		status_msg = status_msg .. "\n   " .. table.concat(details, " | ")
+		status_msg = status_msg .. "\n" .. table.concat(details, "\n")
 	end
 	aip.run.pin("status", 1, { label = _cm.LABEL_STATUS, content = status_msg })
 end
