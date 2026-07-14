@@ -374,7 +374,9 @@ local function extract_code_map_config(sub_input)
 
 	local user_prompt = sub_input.coder_prompt:find("%S") and sub_input.coder_prompt or nil
 
-	local code_map_max_file_size_kb = agent_config.max_file_size_kb or DEFAULT_MAX_FILE_SIZE_KB
+	local code_map_max_file_size_kb = agent_config.max_file_size_kb
+		or sub_input.coder_params.max_file_size_kb
+		or DEFAULT_MAX_FILE_SIZE_KB
 
 	local map_defs = {}
 	local include_kinds = normalize_include_kinds(agent_config.include_kinds)
