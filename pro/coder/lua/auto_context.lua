@@ -204,6 +204,45 @@ local function new_auto_context_sub_agent_config(auto_context)
 	return ac_config
 end
 
+local function resolve_selected_files(globs, attachment_paths)
+	local files = {}
+	local seen = {}
+
+	local function add_file(file, fallback_path)
+		local path = type(file) == "table" and file.path or fallback_path
+		if is_null(path) or path == "" or seen[path] then
+			return
+		end
+
+		seen[path] = true
+		if type(file) == "table" and not file.error then
+			table.insert(files, {
+				path = path,
+				size = file.size or 0
+			})
+		else
+			table.insert(files, {
+				path = path,
+				size = 0
+			})
+		end
+	end
+
+	if type(globs) == "table" and #globs > 0 then
+		for _, file in ipairs(aip.file.list(globs)) do
+			add_file(file)
+		end
+	end
+
+	if type(attachment_paths) == "table" then
+		for _, path in ipairs(attachment_paths) do
+			add_file(aip.file.info(path), path)
+		end
+	end
+
+	return files
+end
+
 -- ctx: {
 --    context_files_count: number,
 --    context_files_size: number,
@@ -221,56 +260,52 @@ local function pin_status(auto_context_config, ctx, is_task)
 		is_task = not is_null(CTX.TASK_UID) and CTX.TASK_UID ~= ""
 	end
 	local mode = auto_context_config.mode
-	local done = false
-	if ctx.new_context_globs then
-		done = true
-	end
+	local done = ctx.new_context_globs ~= nil or ctx.new_context_attachment_paths ~= nil
 	-- For knowledge, done when new_knowledge_globs is set (or knowledge not enabled)
 	local knowledge_done = false
 	if not auto_context_config.knowledge then
 		knowledge_done = true
-	elseif ctx.new_knowledge_globs then
+	elseif ctx.new_knowledge_globs ~= nil or ctx.new_knowledge_attachment_paths ~= nil then
 		knowledge_done = true
 	end
 	local workbench_data_enabled = auto_context_config.workbench_data_enabled and (ctx.workbench_data_files_count or 0) > 0
 	local workbench_data_done = false
 	if not workbench_data_enabled then
 		workbench_data_done = true
-	elseif ctx.new_workbench_data_globs then
+	elseif ctx.new_workbench_data_globs ~= nil or ctx.new_workbench_data_attachment_paths ~= nil then
 		workbench_data_done = true
 	end
 
 	local new_context_files = nil
 	local new_context_files_size = nil
-	if ctx.new_context_globs then
+	if done then
 		new_context_files_size = 0
-		new_context_files = aip.file.list(ctx.new_context_globs)
+		new_context_files = resolve_selected_files(ctx.new_context_globs, ctx.new_context_attachment_paths)
 		for _, file in ipairs(new_context_files) do
-			new_context_files_size = new_context_files_size + file.size
+			new_context_files_size = new_context_files_size + (file.size or 0)
 		end
 	end
 
 	local new_knowledge_files = nil
 	local new_knowledge_files_size = nil
-	if ctx.new_knowledge_globs then
+	if knowledge_done and auto_context_config.knowledge then
 		new_knowledge_files_size = 0
-		new_knowledge_files = aip.file.list(ctx.new_knowledge_globs)
+		new_knowledge_files = resolve_selected_files(ctx.new_knowledge_globs, ctx.new_knowledge_attachment_paths)
 		for _, file in ipairs(new_knowledge_files) do
-			new_knowledge_files_size = new_knowledge_files_size + file.size
+			new_knowledge_files_size = new_knowledge_files_size + (file.size or 0)
 		end
 	end
 
 	local new_workbench_data_files = nil
 	local new_workbench_data_files_size = nil
-	if ctx.new_workbench_data_globs then
+	if workbench_data_done and auto_context_config.workbench_data_enabled then
 		new_workbench_data_files_size = 0
-		if #ctx.new_workbench_data_globs > 0 then
-			new_workbench_data_files = aip.file.list(ctx.new_workbench_data_globs)
-		else
-			new_workbench_data_files = {}
-		end
+		new_workbench_data_files = resolve_selected_files(
+			ctx.new_workbench_data_globs,
+			ctx.new_workbench_data_attachment_paths
+		)
 		for _, file in ipairs(new_workbench_data_files) do
-			new_workbench_data_files_size = new_workbench_data_files_size + file.size
+			new_workbench_data_files_size = new_workbench_data_files_size + (file.size or 0)
 		end
 	end
 
@@ -288,7 +323,7 @@ local function pin_status(auto_context_config, ctx, is_task)
 	msg = msg .. string.format("%-35s", label .. " " .. ctx.context_files_count .. " context files")
 	msg = msg .. " (" .. context_files_size_fmt .. ")"
 
-	if ctx.new_context_globs then
+	if done then
 		msg = msg .. '\n' .. " ➜"
 		msg = msg .. string.format("%-35s", " Now " .. #new_context_files .. " context files")
 		local new_context_files_size_fmt = aip.text.format_size(new_context_files_size)
@@ -305,7 +340,7 @@ local function pin_status(auto_context_config, ctx, is_task)
 		msg = msg .. string.format("%-35s", " Reducing " .. (ctx.knowledge_files_count or 0) .. " knowledge files")
 		msg = msg .. " (" .. knowledge_files_size_fmt .. ")"
 
-		if ctx.new_knowledge_globs then
+		if knowledge_done then
 			msg = msg .. '\n' .. " ➜"
 			msg = msg .. string.format("%-35s", " Now " .. #new_knowledge_files .. " knowledge files")
 			local new_knowledge_files_size_fmt = aip.text.format_size(new_knowledge_files_size)
@@ -323,7 +358,7 @@ local function pin_status(auto_context_config, ctx, is_task)
 		msg = msg .. string.format("%-35s", wd_label)
 		msg = msg .. " (" .. workbench_data_files_size_fmt .. ")"
 
-		if ctx.new_workbench_data_globs then
+		if workbench_data_done then
 			msg = msg .. '\n' .. " ➜"
 			msg = msg .. string.format("%-35s", " Now " .. #new_workbench_data_files .. " workbench data files")
 			local new_workbench_data_files_size_fmt = aip.text.format_size(new_workbench_data_files_size)

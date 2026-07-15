@@ -920,6 +920,7 @@ end
 
 local selected_workbench_text_files = {}
 local selected_workbench_media_files = {}
+local selected_knowledge_media_files = {}
 local workbench_data_kind_by_path = data.workbench_data_kind_by_path or {}
 for _, file_path in ipairs(needed_workbench_data_files) do
 	local kind = workbench_data_kind_by_path[file_path]
@@ -930,16 +931,18 @@ for _, file_path in ipairs(needed_workbench_data_files) do
 	end
 end
 for _, file_path in ipairs(requested_attachment_paths) do
-	local kind = workbench_data_kind_by_path[file_path]
-	if kind == "text" then
+	local context_kind = context_kind_by_path[file_path]
+	local knowledge_kind = (data.knowledge_kind_by_path or {})[file_path]
+	local workbench_kind = workbench_data_kind_by_path[file_path]
+	if context_kind == "image" or context_kind == "pdf" then
+		append_unique_path(selected_context_media_files, file_path)
+	elseif knowledge_kind == "image" or knowledge_kind == "pdf" then
+		append_unique_path(selected_knowledge_media_files, file_path)
+	elseif workbench_kind == "text" then
 		append_unique_path(selected_workbench_text_files, file_path)
 	else
 		append_unique_path(selected_workbench_media_files, file_path)
 	end
-end
-
-for _, file_path in ipairs(selected_context_media_files) do
-	append_unique_path(selected_workbench_media_files, file_path)
 end
 
 local new_workbench_data_globs = nil
@@ -1032,7 +1035,7 @@ if data.knowledge_enabled and res_map.needed_knowledge_files then
 	for _, file_path in ipairs(needed_knowledge_files) do
 		local kind = knowledge_kind_by_path[file_path]
 		if kind == "image" or kind == "pdf" then
-			append_unique_path(selected_workbench_media_files, file_path)
+			append_unique_path(selected_knowledge_media_files, file_path)
 		else
 			append_unique_path(selected_knowledge_text_files, file_path)
 		end
@@ -1043,10 +1046,28 @@ if data.knowledge_enabled and res_map.needed_knowledge_files then
 	end
 end
 
-local normalized_attachment_paths = normalize_workbench_data_paths_to_prompt_base(
+local normalized_context_attachment_paths = normalize_workbench_data_paths_to_prompt_base(
+	selected_context_media_files,
+	data.auto_context_config
+)
+local normalized_knowledge_attachment_paths = normalize_workbench_data_paths_to_prompt_base(
+	selected_knowledge_media_files,
+	data.auto_context_config
+)
+local normalized_workbench_data_attachment_paths = normalize_workbench_data_paths_to_prompt_base(
 	selected_workbench_media_files,
 	data.auto_context_config
 )
+local normalized_attachment_paths = {}
+for _, file_path in ipairs(normalized_context_attachment_paths) do
+	append_unique_path(normalized_attachment_paths, file_path)
+end
+for _, file_path in ipairs(normalized_knowledge_attachment_paths) do
+	append_unique_path(normalized_attachment_paths, file_path)
+end
+for _, file_path in ipairs(normalized_workbench_data_attachment_paths) do
+	append_unique_path(normalized_attachment_paths, file_path)
+end
 
 -- === Process workbench data reasoning
 local workbench_data_reasoning = nil
@@ -1069,6 +1090,9 @@ _ac.pin_status(data.auto_context_config, {
 	workbench_data_mapped_files_count = data.workbench_data_mapped_files_count,
 	workbench_data_files_size  = data.workbench_data_files_size,
 	new_workbench_data_globs   = new_workbench_data_globs,
+	new_context_attachment_paths = normalized_context_attachment_paths,
+	new_knowledge_attachment_paths = normalized_knowledge_attachment_paths,
+	new_workbench_data_attachment_paths = normalized_workbench_data_attachment_paths,
 })
 
 local coder_params = { context_globs = new_context_globs }
