@@ -14,6 +14,7 @@ return {
 	LABEL_CHAT                = " Chat:",
 	LABEL_PLAN                = " Plan:",
 	LABEL_SPEC                = " Spec:",
+	LABEL_ATTACHMENTS         = "Attachments:",
 
 	-- DEBUG
 	-- turn on to get templates/file-content-udiffx.md (otherwise comes from udiffx)

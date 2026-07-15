@@ -19,6 +19,7 @@ return aip.flow.before_all_response({
 # Data
 
 ```lua
+local CONST = require("consts")
 local p_utils  = require("utils_data")
 local u_auto_fix = require("auto_fix")
 
@@ -177,6 +178,26 @@ end
 local attachments = nil
 if base.attachments and #base.attachments > 0 then
   attachments = base.attachments
+end
+
+if attachments then
+  local attachment_lines = {}
+  for _, attachment in ipairs(attachments) do
+    local path = attachment.file_source
+    local line = "- " .. path
+    local info = aip.file.info(path)
+    if type(info) == "table" and not info.error and type(info.size) == "number" then
+      local formatted_size = aip.text.format_size(info.size)
+      if formatted_size then
+        line = line .. " (" .. formatted_size .. ")"
+      end
+    end
+    table.insert(attachment_lines, line)
+  end
+  aip.run.pin("attachments", 1, {
+    label = CONST.LABEL_ATTACHMENTS,
+    content = table.concat(attachment_lines, "\n")
+  })
 end
 
 -- Save the prompt_file_paths
