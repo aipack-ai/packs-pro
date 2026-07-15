@@ -364,19 +364,11 @@ Important: This `<missing_files>...` tag needs to be in the root of your answer,
 
 ---
 
-At the end of your response, return a short label describing the work completed, using this tool tag `<set_run_label>`, with this exact format shown in the code block:
-
-```
+At the end of every response, include a short label describing the work completed, using this exact format:
 
 <set_run_label>Short label</set_run_label>
 
-```
-
-(with empty line before and after)
-
-The label must be two or three words at most. Return exactly one `<set_run_label>` tag, and do not place it inside a code block.
-
-This label will be used as the name of the run.
+The label must contain no more than three words.
 
 {{#if data.coder_workbench}}
 
