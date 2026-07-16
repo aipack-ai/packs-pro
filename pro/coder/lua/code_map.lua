@@ -1,6 +1,6 @@
 -- === Consts
 local DEFAULT_INPUT_CONCURRENCY = 8
-local DEFAULT_MAX_FILE_SIZE_KB = 1500
+local DEFAULT_MAX_SIZE_KB = 1500
 local u_common = require("utils_common")
 
 local LABEL_STATUS              = "     Status:"
@@ -379,7 +379,9 @@ local function extract_code_map_config(sub_input)
 
 	local code_map_max_file_size_kb = agent_config.max_file_size_kb
 		or sub_input.coder_params.max_file_size_kb
-		or DEFAULT_MAX_FILE_SIZE_KB
+		or agent_config.max_size_kb
+		or sub_input.coder_params.max_size_kb
+		or DEFAULT_MAX_SIZE_KB
 
 	local map_defs = {}
 	local include_kinds = normalize_include_kinds(agent_config.include_kinds)

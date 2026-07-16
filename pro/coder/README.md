@@ -140,11 +140,12 @@ working_globs:
   - ["css/*.css"]      # When in a sub array, this will put all of the css in the same working group
 input_concurrency: 2   # Number of concurrent tasks (default set in the config TOML files)
 
-# Max combined size in KB of all included files (safeguard, default 1500, for 1.5MB)
-max_files_size_kb: 1500
+# Default size limit in KB for combined prompt files and each code-map file
+max_size_kb: 1500
 
-# Max size in KB per file processed by the code-map agent (default 1500)
-max_file_size_kb: 1500
+# Optional job-specific overrides
+# max_files_size_kb: 1500 # Combined main-coder request limit
+# max_file_size_kb: 1500  # Per-file code-map processing limit
 
 ## Explicit cache (Default false)
 cache_explicit: false  # Explicit cache for pro@coder prompt and knowledge files (Anthropic only)
@@ -365,17 +366,23 @@ This will create the following tasks/working groups:
 
 Number of concurrent tasks to run when processing `working_globs`. Defaults to the value set in config TOML files.
 
+#### max_size_kb
+
+Shared default size limit in KB. The default is `1500` KB, or 1.5 MB.
+
+When the more specific settings are omitted, `max_files_size_kb` and `max_file_size_kb` inherit this value. Set either specific setting to override `max_size_kb` only for its corresponding job.
+
 #### max_files_size_kb
 
-Maximum combined size in KB of all files included in a main coder request. Default is 1500 (1.5MB). The total includes knowledge, context, working, and workbench-data files. If the total exceeds the limit, the coder run is skipped before an AI call is made.
+Optional override for the maximum combined size in KB of all files included in a main coder request. When omitted, it inherits `max_size_kb`. The total includes knowledge, context, working, and workbench-data files. If the total exceeds the limit, the coder run is skipped before an AI call is made.
 
-This setting does not control the per-file size limit used by the `code-map` agent. Use `max_file_size_kb` to configure that limit.
+This setting does not control the per-file size limit used by the `code-map` agent.
 
 #### max_file_size_kb
 
-Maximum size in KB of each individual file processed by the `code-map` agent. The default is 1500 KB. Files larger than this limit are skipped during code-map generation and reported as oversized.
+Optional override for the maximum size in KB of each individual file processed by the `code-map` agent. When omitted, it inherits `max_size_kb`. Files larger than this limit are skipped during code-map generation and reported as oversized.
 
-Set `max_file_size_kb` at the root of the coder parameters to apply it to the built-in auto-context code-map configuration. A custom `pro@coder/code-map` sub-agent may also set `max_file_size_kb` in its own agent configuration. This setting does not increase the combined main-coder request limit, which is controlled separately by `max_files_size_kb`.
+Set `max_file_size_kb` at the root of the coder parameters to override the shared limit for the built-in auto-context code-map configuration. A custom `pro@coder/code-map` sub-agent may also set `max_file_size_kb` or `max_size_kb` in its own agent configuration. This setting does not increase the combined main-coder request limit, which is controlled separately by `max_files_size_kb`.
 
 #### cache_explicit
 
