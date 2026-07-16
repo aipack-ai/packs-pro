@@ -89,7 +89,8 @@ for _, file_list in ipairs(all_refs) do
 end
 
 -- Check that not more than max
-local max_files_size_b = base.max_files_size_kb * 1000
+local max_files_size_kb = base.max_files_size_kb or 1500
+local max_files_size_b = max_files_size_kb * 1000
 if total_size > max_files_size_b then
     -- Build a clear, actionable overflow message. Pin it as a WARNING at both the run
     -- and task scope so the overflow skip is never surfaced as a silent successful run.

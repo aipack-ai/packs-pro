@@ -140,8 +140,11 @@ working_globs:
   - ["css/*.css"]      # When in a sub array, this will put all of the css in the same working group
 input_concurrency: 2   # Number of concurrent tasks (default set in the config TOML files)
 
-# Max size in KB of all included files (safeguard, default 1000, for 1MB)
-max_files_size_kb: 1000
+# Max combined size in KB of all included files (safeguard, default 1500, for 1.5MB)
+max_files_size_kb: 1500
+
+# Max size in KB per file processed by the code-map agent (default 1500)
+max_file_size_kb: 1500
 
 ## Explicit cache (Default false)
 cache_explicit: false  # Explicit cache for pro@coder prompt and knowledge files (Anthropic only)
@@ -364,7 +367,15 @@ Number of concurrent tasks to run when processing `working_globs`. Defaults to t
 
 #### max_files_size_kb
 
-Maximum total size in KB of all included files (safeguard). Default is 1000 (1MB). If over the limit, the data will NOT be sent, and a message will appear in the terminal.
+Maximum combined size in KB of all files included in a main coder request. Default is 1500 (1.5MB). The total includes knowledge, context, working, and workbench-data files. If the total exceeds the limit, the coder run is skipped before an AI call is made.
+
+This setting does not control the per-file size limit used by the `code-map` agent. Use `max_file_size_kb` to configure that limit.
+
+#### max_file_size_kb
+
+Maximum size in KB of each individual file processed by the `code-map` agent. The default is 1500 KB. Files larger than this limit are skipped during code-map generation and reported as oversized.
+
+Set `max_file_size_kb` at the root of the coder parameters to apply it to the built-in auto-context code-map configuration. A custom `pro@coder/code-map` sub-agent may also set `max_file_size_kb` in its own agent configuration. This setting does not increase the combined main-coder request limit, which is controlled separately by `max_files_size_kb`.
 
 #### cache_explicit
 
