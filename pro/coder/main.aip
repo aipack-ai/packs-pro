@@ -203,7 +203,7 @@ if attachments then
     end
     table.insert(attachment_lines, line)
   end
-  aip.run.pin("attachments", 1, {
+  aip.run.pin("attachments", 10, {
     label = CONST.LABEL_ATTACHMENTS,
     content = table.concat(attachment_lines, "\n")
   })

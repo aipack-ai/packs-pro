@@ -340,10 +340,20 @@ end
 
 aip.run.pin("status", 1, { label = _cm.LABEL_STATUS, content = status_msg })
 
+if oversized_file_count > 0 then
+	local count_label = oversized_file_count .. " "
+		.. u_common.format_simple_plural_label(oversized_file_count, "oversized file")
+		.. " (over " .. format_integer(code_map_config.max_file_size_kb) .. " KB)"
+	aip.run.pin("oversized", 2, {
+		label = _cm.LABEL_OVERSIZED,
+		content = build_detail_content(oversized_paths, count_label, true)
+	})
+end
+
 if unsupported_file_count > 0 then
 	local count_label = unsupported_file_count .. " "
 		.. u_common.format_simple_plural_label(unsupported_file_count, "unsupported file")
-	aip.run.pin("unsupported", 2, {
+	aip.run.pin("unsupported", 3, {
 		label = _cm.LABEL_UNSUPPORTED,
 		content = build_detail_content(unsupported_paths, count_label, false)
 	})
@@ -353,19 +363,9 @@ if excluded_kind_count > 0 then
 	local count_label = excluded_kind_count .. " "
 		.. u_common.format_simple_plural_label(excluded_kind_count, "file", "files")
 		.. " outside enabled kinds"
-	aip.run.pin("disabled", 3, {
+	aip.run.pin("disabled", 4, {
 		label = _cm.LABEL_DISABLED,
 		content = build_detail_content(excluded_kind_paths, count_label, false)
-	})
-end
-
-if oversized_file_count > 0 then
-	local count_label = oversized_file_count .. " "
-		.. u_common.format_simple_plural_label(oversized_file_count, "oversized file")
-		.. " (over " .. format_integer(code_map_config.max_file_size_kb) .. " KB)"
-	aip.run.pin("oversized", 4, {
-		label = _cm.LABEL_OVERSIZED,
-		content = build_detail_content(oversized_paths, count_label, true)
 	})
 end
 
