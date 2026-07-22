@@ -350,23 +350,19 @@ if oversized_file_count > 0 then
 	})
 end
 
+local unsupported_content = nil
 if unsupported_file_count > 0 then
 	local count_label = unsupported_file_count .. " "
 		.. u_common.format_simple_plural_label(unsupported_file_count, "unsupported file")
-	aip.run.pin("unsupported", 3, {
-		label = _cm.LABEL_UNSUPPORTED,
-		content = build_detail_content(unsupported_paths, count_label, false)
-	})
+	unsupported_content = build_detail_content(unsupported_paths, count_label, false)
 end
 
+local disabled_content = nil
 if excluded_kind_count > 0 then
 	local count_label = excluded_kind_count .. " "
 		.. u_common.format_simple_plural_label(excluded_kind_count, "file", "files")
 		.. " outside enabled kinds"
-	aip.run.pin("disabled", 4, {
-		label = _cm.LABEL_DISABLED,
-		content = build_detail_content(excluded_kind_paths, count_label, false)
-	})
+	disabled_content = build_detail_content(excluded_kind_paths, count_label, false)
 end
 
 -- If all files resolved via hash comparison (none need AI), save updated mtime values now
@@ -401,6 +397,8 @@ return aip.flow.before_all_response({
 		excluded_kind_count = excluded_kind_count,
 		oversized_file_count = oversized_file_count,
 		legacy_path_migrated_count = legacy_path_migrated_count,
+		unsupported_content = unsupported_content,
+		disabled_content = disabled_content,
 	}
 })
 ```
@@ -758,6 +756,14 @@ if before_all.to_process_count > 0 then
 		status_msg = status_msg .. "\n" .. table.concat(details, "\n")
 	end
 	aip.run.pin("status", 1, { label = _cm.LABEL_STATUS, content = status_msg })
+end
+
+if before_all.unsupported_content then
+	print(before_all.unsupported_content)
+end
+
+if before_all.disabled_content then
+	print(before_all.disabled_content)
 end
 
 -- Empty the tmp in-progress file now that everything is committed
