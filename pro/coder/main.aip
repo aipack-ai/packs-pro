@@ -394,7 +394,7 @@ Important: This `<missing_files>...` tag needs to be in the root of your answer,
 
 ---
 
-Make sure that, at the end of every response, you include a `<set_run_label>` tag with a short label describing the work completed, using this exact format:
+Always make sure that at the end of every of your response, you include a `<set_run_label>` top tag with a short label describing the work completed, using this exact format:
 
 <set_run_label>Short label</set_run_label>
 
