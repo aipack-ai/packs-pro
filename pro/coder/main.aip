@@ -367,13 +367,24 @@ When providing text or comments, do not use em dash (—) as a sentence part sep
 
 {{data.instructions.general_languages}}
 
----
 
 {{#if data.instructions.suggest_commit}}
+---
+
 {{data.instructions.suggest_commit}}
+
 {{/if}}
 
+---
+
+Always make sure that every response ends with a `<set_run_label>` tag containing a short label describing the work completed, using this exact format:
+
+<set_run_label>Short label</set_run_label>
+
+The label must contain no more than three words.
+
 --- 
+
 
 When ask to update some files, if you do not have have some files that you should have, answer the missing files under a `<missing_files>` top tag of your response, like for example: 
 
@@ -391,14 +402,6 @@ HERE_THE_MESSAGE_TO_THE_USER
 Note: that sometime, the user will ask to create new files, so, that's ok, you can create them. 
 
 Important: This `<missing_files>...` tag needs to be in the root of your answer, do not put it inside another tag. Always the root tag in your answer. 
-
----
-
-Always make sure that every response ends with a `<set_run_label>` tag containing a short label describing the work completed, using this exact format:
-
-<set_run_label>Short label</set_run_label>
-
-The label must contain no more than three words.
 
 {{#if data.coder_workbench}}
 
