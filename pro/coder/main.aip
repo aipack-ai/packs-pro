@@ -377,7 +377,7 @@ When providing text or comments, do not use em dash (—) as a sentence part sep
 
 ---
 
-Always make sure that every response ends with a `<set_run_label>` tag containing a short label describing the work completed, using this exact format:
+Always make sure that your response ends with a `<set_run_label>` tag containing a short label describing the work completed, using this exact format:
 
 <set_run_label>Short label</set_run_label>
 
