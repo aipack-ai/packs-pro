@@ -367,6 +367,13 @@ When providing text or comments, do not use em dash (—) as a sentence part sep
 
 {{data.instructions.general_languages}}
 
+---
+
+For all of your response make sure that yo always add a top tag `<set_run_label>` tag containing a short label describing the work completed, using this exact format:
+
+<set_run_label>Short label</set_run_label>
+
+The label must contain no more than three words.
 
 {{#if data.instructions.suggest_commit}}
 ---
@@ -375,16 +382,7 @@ When providing text or comments, do not use em dash (—) as a sentence part sep
 
 {{/if}}
 
----
-
-Always make sure that your response ends with a `<set_run_label>` tag containing a short label describing the work completed, using this exact format:
-
-<set_run_label>Short label</set_run_label>
-
-The label must contain no more than three words.
-
 --- 
-
 
 When ask to update some files, if you do not have have some files that you should have, answer the missing files under a `<missing_files>` top tag of your response, like for example: 
 
