@@ -657,9 +657,9 @@ function run_auto_fix_loop(coder_response, report_data, coder_workbench, options
 		end
 		local explicit_auto_fix_model = nil
 		if type(raw_auto_fix) == "string" and raw_auto_fix ~= "" then
-			explicit_auto_fix_model = raw_auto_fix
+			explicit_auto_fix_model = normalize_auto_fix_model_value(raw_auto_fix)
 		elseif type(raw_auto_fix) == "table" and type(raw_auto_fix.model) == "string" and raw_auto_fix.model ~= "" then
-			explicit_auto_fix_model = raw_auto_fix.model
+			explicit_auto_fix_model = normalize_auto_fix_model_value(raw_auto_fix.model)
 		end
 
 		if explicit_auto_fix_model then
