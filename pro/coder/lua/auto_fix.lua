@@ -4,6 +4,25 @@
 local u_output = require("utils_output")
 local CONST = require("consts")
 
+local function normalize_auto_fix_model_value(value)
+	if type(value) ~= "string" or not value:find(",", 1, true) then
+		return value
+	end
+
+	local models = {}
+	for model in value:gmatch("[^,]+") do
+		local trimmed_model = model:match("^%s*(.-)%s*$")
+		if trimmed_model ~= "" then
+			table.insert(models, trimmed_model)
+		end
+	end
+
+	if #models == 0 then
+		return nil
+	end
+	return models
+end
+
 -- Resolves the model used by auto-fix from coder params.
 -- Explicit auto_fix model settings win, then auto_context model fallbacks, then the coder model.
 local function resolve_auto_fix_model(coder_params)
@@ -16,14 +35,14 @@ local function resolve_auto_fix_model(coder_params)
 		return nil
 	end
 	if type(auto_fix) == "string" and auto_fix ~= "" then
-		return auto_fix
+		return normalize_auto_fix_model_value(auto_fix)
 	end
 	if type(auto_fix) == "table" then
 		if auto_fix.enabled == false then
 			return nil
 		end
 		if type(auto_fix.model) == "string" and auto_fix.model ~= "" then
-			return auto_fix.model
+			return normalize_auto_fix_model_value(auto_fix.model)
 		end
 	end
 
@@ -87,10 +106,10 @@ local function resolve_auto_fix_config(cfg, env)
 		resolved.enabled = cfg
 	elseif type(cfg) == "string" then
 		resolved.enabled = true
-		resolved.model = cfg
+		resolved.model = normalize_auto_fix_model_value(cfg)
 	elseif type(cfg) == "table" then
 		resolved.enabled = cfg.enabled ~= false
-		resolved.model = cfg.model
+		resolved.model = normalize_auto_fix_model_value(cfg.model)
 		resolved.max_retries = tonumber(cfg.max_retries) or 6
 		for k, v in pairs(cfg) do
 			if k ~= "enabled" and k ~= "model" and k ~= "max_retries" then
@@ -644,8 +663,12 @@ function run_auto_fix_loop(coder_response, report_data, coder_workbench, options
 		end
 
 		if explicit_auto_fix_model then
-			for _ = 1, max_retries do
-				table.insert(models_to_use, explicit_auto_fix_model)
+			for attempt = 1, max_retries do
+				local model = explicit_auto_fix_model
+				if type(explicit_auto_fix_model) == "table" then
+					model = explicit_auto_fix_model[math.min(attempt, #explicit_auto_fix_model)]
+				end
+				table.insert(models_to_use, model)
 			end
 		else
 			-- Tiered strategy: ordered list of up to three models.
@@ -868,6 +891,7 @@ end
 return {
 	resolve_auto_fix_config = resolve_auto_fix_config,
 	resolve_auto_fix_model = resolve_auto_fix_model,
+	normalize_auto_fix_model_value = normalize_auto_fix_model_value,
 	get_auto_fix_models = get_auto_fix_models,
 	load_text_file = load_text_file,
 	normalize_failed_change_path = normalize_failed_change_path,
