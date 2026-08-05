@@ -108,6 +108,12 @@ local function extract_auto_context_config(sub_input)
 	if mode == "expand" then
 		code_map_globs = sub_input.coder_params.structure_globs
 	end
+	local context_globs, explicit_context_code_maps = _cm.partition_explicit_code_map_paths(
+		sub_input.coder_params.context_globs or {}
+	)
+	if mode == "reduce" then
+		code_map_globs = context_globs
+	end
 
 	-- code_map_model
 	local code_map_model = input_agent_config.code_map_model
@@ -125,10 +131,13 @@ local function extract_auto_context_config(sub_input)
 	-- knowledge
 	local knowledge = input_agent_config.knowledge ~= false
 	local knowledge_globs = nil
+	local explicit_knowledge_code_maps = {}
 	if knowledge then
-		knowledge_globs = sub_input.coder_params.knowledge_globs
+		knowledge_globs, explicit_knowledge_code_maps = _cm.partition_explicit_code_map_paths(
+			sub_input.coder_params.knowledge_globs or {}
+		)
 		-- If knowledge is true but no knowledge_globs, silently skip
-		if is_null(knowledge_globs) or #knowledge_globs == 0 then
+		if (is_null(knowledge_globs) or #knowledge_globs == 0) and #explicit_knowledge_code_maps == 0 then
 			knowledge = false
 			knowledge_globs = nil
 		end
@@ -178,11 +187,14 @@ local function extract_auto_context_config(sub_input)
 		model                      = model,
 		include_kinds              = include_kinds,
 		helper_globs               = helper_globs,
+		context_globs              = context_globs,
 		code_map_globs             = code_map_globs,
 		code_map_model             = code_map_model,
 		code_map_input_concurrency = code_map_input_concurrency,
 		knowledge                  = knowledge,
 		knowledge_globs            = knowledge_globs,
+		explicit_context_code_maps = explicit_context_code_maps,
+		explicit_knowledge_code_maps = explicit_knowledge_code_maps,
 		workbench_data_globs       = workbench_data_globs,
 		workbench_data_enabled     = workbench_data_enabled,
 		workbench_dir              = workbench_dir,
@@ -492,6 +504,30 @@ local function pin_status(auto_context_config, ctx, is_task)
 		aip.run.pin("kreason", 8, kreason_pin)
 		if is_task then
 			aip.task.pin("kreason", 8, kreason_pin)
+		end
+	end
+
+	if type(ctx.explicit_map_groups) == "table" then
+		for index, group in ipairs(ctx.explicit_map_groups) do
+			local selected_files = group.selected_files or {}
+			local lines = {
+				"Map: " .. tostring(group.display_path or group.map_path),
+				"Candidates: " .. tostring(group.candidate_count or 0),
+				"Selected: " .. tostring(#selected_files),
+			}
+			for _, file_path in ipairs(selected_files) do
+				table.insert(lines, "  - " .. file_path)
+			end
+
+			local pin_id = "explicit_map_" .. tostring(group.id or index)
+			local pin = {
+				label = group.category == "knowledge" and "Knowledge Map:" or " Context Map:",
+				content = table.concat(lines, "\n")
+			}
+			aip.run.pin(pin_id, 20 + index, pin)
+			if is_task then
+				aip.task.pin(pin_id, 20 + index, pin)
+			end
 		end
 	end
 end

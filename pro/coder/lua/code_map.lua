@@ -55,6 +55,53 @@ local function has_text(value)
 	return type(value) == "string" and value ~= ""
 end
 
+local function is_explicit_code_map_path(value)
+	if not has_text(value) or value:find("[%*%?%[%]{}]") then
+		return false
+	end
+
+	local _dir, file_name = aip.path.split(value)
+	if not has_text(file_name) then
+		return false
+	end
+
+	local normalized_name = file_name:lower()
+	if not normalized_name:match("%.json$") then
+		return false
+	end
+
+	return normalized_name:find("code%-map", 1, false) ~= nil
+		or normalized_name:find("content%-map", 1, false) ~= nil
+end
+
+local function partition_explicit_code_map_paths(values)
+	local regular_paths = {}
+	local code_map_paths = {}
+
+	for _, value in ipairs(values or {}) do
+		if is_explicit_code_map_path(value) then
+			table.insert(code_map_paths, value)
+		else
+			table.insert(regular_paths, value)
+		end
+	end
+
+	return regular_paths, code_map_paths
+end
+
+local function explicit_code_map_cache_stem(file_path)
+	if not has_text(file_path) then
+		return "code-map"
+	end
+
+	local stem = file_path:gsub("%.[Jj][Ss][Oo][Nn]$", "")
+	stem = stem:lower():gsub("[^a-z0-9]+", "-"):gsub("^%-+", ""):gsub("%-+$", "")
+	if stem == "" then
+		return "code-map"
+	end
+	return stem
+end
+
 local function clone_array(values)
 	local out = {}
 	if type(values) ~= "table" then
@@ -525,6 +572,9 @@ return {
 	normalize_include_kinds = normalize_include_kinds,
 	classify_file_kind = u_common.classify_file_kind,
 	filter_file_kinds = u_common.filter_file_kinds,
+	is_explicit_code_map_path = is_explicit_code_map_path,
+	partition_explicit_code_map_paths = partition_explicit_code_map_paths,
+	explicit_code_map_cache_stem = explicit_code_map_cache_stem,
 
 	-- consts
 	LABEL_STATUS            = LABEL_STATUS,

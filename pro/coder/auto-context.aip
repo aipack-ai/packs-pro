@@ -193,6 +193,132 @@ local function resolve_mapped_file(code_map_file_path, code_map, mapped, prompt_
 	return resolved
 end
 
+local function sanitize_home_path(file_path)
+	if type(file_path) ~= "string" or file_path == "" then
+		return file_path
+	end
+
+	local ok, home_dir = pcall(aip.path.resolve, "~")
+	if not ok or type(home_dir) ~= "string" or home_dir == "" then
+		return file_path
+	end
+
+	local normalized_home = home_dir:gsub("/+$", "")
+	if file_path == normalized_home then
+		return "~"
+	end
+	local home_prefix = normalized_home .. "/"
+	if file_path:sub(1, #home_prefix) == home_prefix then
+		return "~/" .. file_path:sub(#home_prefix + 1)
+	end
+	return file_path
+end
+
+local function resolve_explicit_map_display_path(file_path, prompt_base_dir)
+	local ok, resolved_path = pcall(aip.path.resolve, file_path)
+	if not ok or type(resolved_path) ~= "string" or resolved_path == "" then
+		return sanitize_home_path(file_path)
+	end
+
+	local display_base_dir = prompt_base_dir
+	if is_null(display_base_dir) or display_base_dir == "" then
+		display_base_dir = CTX.WORKSPACE_DIR
+	end
+	local normalized_path = _cm.normalize_code_map_path(resolved_path, display_base_dir)
+	return sanitize_home_path(normalized_path)
+end
+
+local function build_mapped_file_description(mapped)
+	local txt = "- " .. mapped.file_path .. "\n"
+	txt = txt .. "    - Summary: " .. tostring(mapped.summary or "") .. "\n"
+	txt = txt .. "    - When To Use: " .. tostring(mapped.when_to_use or "") .. "\n"
+	if type(mapped.public_types) == "table" and #mapped.public_types > 0 then
+		txt = txt .. "    - Types: " .. table.concat(mapped.public_types, ", ") .. "\n"
+	end
+	if type(mapped.public_functions) == "table" and #mapped.public_functions > 0 then
+		txt = txt .. "    - Functions: " .. table.concat(mapped.public_functions, ", ") .. "\n"
+	end
+	if type(mapped.topics) == "table" and #mapped.topics > 0 then
+		txt = txt .. "    - Topics: " .. table.concat(mapped.topics, ", ") .. "\n"
+	end
+	return txt
+end
+
+local function load_explicit_map_group(map_path, category, prompt_base_dir, cache_file_name, group_id)
+	local ok, code_map = pcall(_cm.load_code_map_file, map_path)
+	if not ok or type(code_map) ~= "table" then
+		code_map = { file_map = {} }
+	end
+
+	local entries = {}
+	for stored_path, mapped in pairs(code_map.file_map or {}) do
+		if type(mapped) == "table" then
+			table.insert(entries, {
+				stored_path = stored_path,
+				mapped = mapped,
+			})
+		end
+	end
+	table.sort(entries, function(a, b)
+		return a.stored_path < b.stored_path
+	end)
+
+	local candidates = {}
+	local descriptions = {}
+	for _, entry in ipairs(entries) do
+		local mapped = aip.lua.merge({}, entry.mapped)
+		local stored_source_path = mapped.file_path or entry.stored_path
+		local source_path = _cm.resolve_code_map_source_path(map_path, code_map, stored_source_path)
+		mapped.file_path = resolve_explicit_map_display_path(source_path, prompt_base_dir)
+		if is_null(mapped.kind) then
+			local info = aip.file.info(source_path)
+			mapped.kind = _cm.classify_file_kind(info or { path = source_path })
+		end
+		table.insert(candidates, mapped)
+		table.insert(descriptions, build_mapped_file_description(mapped))
+	end
+
+	return {
+		id = group_id,
+		category = category,
+		map_path = map_path,
+		display_path = resolve_explicit_map_display_path(map_path, prompt_base_dir),
+		cache_file_name = cache_file_name,
+		candidates = candidates,
+		candidate_count = #candidates,
+		descriptions_txt = table.concat(descriptions, "\n"),
+	}
+end
+
+local function load_explicit_map_groups(auto_context_config)
+	local groups = {}
+	local used_cache_names = {}
+	local group_num = 0
+
+	local function add_groups(paths, category)
+		for _, map_path in ipairs(paths or {}) do
+			group_num = group_num + 1
+			local cache_stem = _cm.explicit_code_map_cache_stem(map_path)
+			local cache_file_name = cache_stem .. ".md"
+			if used_cache_names[cache_file_name] and used_cache_names[cache_file_name] ~= map_path then
+				cache_file_name = cache_stem .. "-" .. aip.hash.sha256(map_path):sub(1, 8) .. ".md"
+			end
+			used_cache_names[cache_file_name] = map_path
+			table.insert(groups, load_explicit_map_group(
+				map_path,
+				category,
+				auto_context_config.prompt_base_dir,
+				cache_file_name,
+				group_num
+			))
+		end
+	end
+
+	add_groups(auto_context_config.explicit_context_code_maps, "context")
+	add_groups(auto_context_config.explicit_knowledge_code_maps, "knowledge")
+	return groups
+end
+
 aip.run.set_label("auto-context")
 
 local sub_agent_input = input
@@ -209,7 +335,7 @@ end
 
 
 -- === Show status
-local context_globs = sub_agent_input.coder_params.context_globs
+local context_globs = auto_context_config.context_globs
 local listed_context_files = aip.file.list(context_globs)
 local filtered_context_files = _cm.filter_file_kinds(listed_context_files, auto_context_config.include_kinds)
 local context_files = filtered_context_files.files or {}
@@ -338,10 +464,12 @@ local code_map        = _cm.load_code_map_file(code_map_file_path)
 -- === Extract knowledge code map (if enabled)
 local knowledge_code_map = nil
 local knowledge_code_map_file_path = nil
-if auto_context_config.knowledge and knowledge_globs then
+if auto_context_config.knowledge and knowledge_globs and #knowledge_globs > 0 then
 	knowledge_code_map_file_path = code_map_dir .. "/knowledge-code-map.json"
 	knowledge_code_map = _cm.load_code_map_file(knowledge_code_map_file_path)
 end
+
+local explicit_map_groups = load_explicit_map_groups(auto_context_config)
 
 -- === Determine if we have a prompt
 local user_prompt = sub_agent_input.coder_prompt
@@ -469,6 +597,27 @@ if auto_context_config.knowledge and knowledge_code_map then
 	end
 end
 
+local generated_c_files_txt = c_files_txt
+local generated_k_files_txt = k_files_txt
+for _, group in ipairs(explicit_map_groups) do
+	local heading = "## Explicit Code Map: " .. group.display_path .. "\n\n"
+	local descriptions = group.descriptions_txt
+	if type(descriptions) ~= "string" or not descriptions:find("%S") then
+		descriptions = "None\n"
+	end
+	if group.category == "context" then
+		c_files_txt = c_files_txt .. "\n" .. heading .. descriptions .. "\n"
+		for _, candidate in ipairs(group.candidates) do
+			context_kind_by_path[candidate.file_path] = candidate.kind
+		end
+	else
+		k_files_txt = k_files_txt .. "\n" .. heading .. descriptions .. "\n"
+		for _, candidate in ipairs(group.candidates) do
+			knowledge_kind_by_path[candidate.file_path] = candidate.kind
+		end
+	end
+end
+
 -- === Build/Format the workbench data files text (md format)
 local wd_files_txt = ""
 local wd_files_count = 0
@@ -538,7 +687,7 @@ local ac_cache_dir = sub_agent_input.coder_prompt_dir .. "/.cache/auto-context"
 local ctx_cache_file = ac_cache_dir .. "/last_context_file_descriptions.md"
 local ctx_cache_content = build_description_cache_content({
 	title = "Context Files Descriptions",
-	descriptions_txt = c_files_txt,
+	descriptions_txt = generated_c_files_txt,
 	detected_count = #context_files,
 	mapped_count = #c_files,
 	code_map_file_path = code_map_file_path,
@@ -549,13 +698,26 @@ aip.file.save(ctx_cache_file, ctx_cache_content)
 local knl_cache_file = ac_cache_dir .. "/last_knowledge_file_descriptions.md"
 local knl_cache_content = build_description_cache_content({
 	title = "Knowledge Files Descriptions",
-	descriptions_txt = k_files_txt,
+	descriptions_txt = generated_k_files_txt,
 	detected_count = #knowledge_files,
 	mapped_count = k_files_count,
 	code_map_file_path = knowledge_code_map_file_path,
 	sent = k_files_count > 0 and not is_null(k_files_txt) and k_files_txt:find("%S") ~= nil,
 })
 aip.file.save(knl_cache_file, knl_cache_content)
+
+for _, group in ipairs(explicit_map_groups) do
+	local explicit_cache_file = ac_cache_dir .. "/" .. group.cache_file_name
+	local explicit_cache_content = build_description_cache_content({
+		title = (group.category == "knowledge" and "Knowledge" or "Context") .. " Code Map Descriptions",
+		descriptions_txt = group.descriptions_txt,
+		detected_count = group.candidate_count,
+		mapped_count = group.candidate_count,
+		code_map_file_path = group.display_path,
+		sent = group.candidate_count > 0,
+	})
+	aip.file.save(explicit_cache_file, explicit_cache_content)
+end
 
 if auto_context_config.workbench_data_enabled
 	and not is_null(auto_context_config.workbench_cache_dir)
@@ -614,6 +776,7 @@ local data = {
 	workbench_data_mapped_files_count = wd_files_count,
 	workbench_data_files_size  = workbench_data_files_size,
 	workbench_data_kind_by_path = workbench_data_kind_by_path,
+	explicit_map_groups = explicit_map_groups,
 	mode                = auto_context_config.mode,
 	cache_explicit      = auto_context_config.cache_explicit,
 }
@@ -1135,6 +1298,38 @@ if data.workbench_data_enabled and res_map.workbench_data_reasoning then
 	workbench_data_reasoning = res_map.workbench_data_reasoning.content
 end
 
+local selected_context_paths = {}
+for _, file_path in ipairs(needed_context_files) do
+	selected_context_paths[file_path] = true
+end
+for _, file_path in ipairs(selected_context_media_files) do
+	selected_context_paths[file_path] = true
+end
+local selected_knowledge_paths = {}
+for _, file_path in ipairs(new_knowledge_globs or {}) do
+	selected_knowledge_paths[file_path] = true
+end
+for _, file_path in ipairs(selected_knowledge_media_files) do
+	selected_knowledge_paths[file_path] = true
+end
+
+local explicit_code_map_selections = {}
+for _, group in ipairs(data.explicit_map_groups or {}) do
+	local selected_files = {}
+	local selected_paths = group.category == "knowledge" and selected_knowledge_paths or selected_context_paths
+	for _, candidate in ipairs(group.candidates or {}) do
+		if selected_paths[candidate.file_path] then
+			append_unique_path(selected_files, candidate.file_path)
+		end
+	end
+	group.selected_files = selected_files
+	table.insert(explicit_code_map_selections, {
+		category = group.category,
+		map_path = group.display_path,
+		selected_files = selected_files,
+	})
+end
+
 _ac.pin_status(data.auto_context_config, {
 	context_files_count = data.context_files_count,
 	context_files_size  = data.context_files_size,
@@ -1153,6 +1348,7 @@ _ac.pin_status(data.auto_context_config, {
 	new_context_attachment_paths = normalized_context_attachment_paths,
 	new_knowledge_attachment_paths = normalized_knowledge_attachment_paths,
 	new_workbench_data_attachment_paths = normalized_workbench_data_attachment_paths,
+	explicit_map_groups = data.explicit_map_groups,
 })
 
 local coder_params = { context_globs = new_context_globs }
@@ -1161,6 +1357,9 @@ if new_knowledge_globs then
 end
 if #normalized_attachment_paths > 0 then
 	coder_params.attachments = normalized_attachment_paths
+end
+if #explicit_code_map_selections > 0 then
+	coder_params.explicit_code_map_selections = explicit_code_map_selections
 end
 local agent_result = nil
 if data.workbench_data_enabled then

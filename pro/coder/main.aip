@@ -243,6 +243,22 @@ local function build_section(title, all, pre, post)
 end
 prompt_files_content = prompt_files_content .. build_section("Knowledge Files", base.knowledge_refs, base.knowledge_refs_pre, base.knowledge_refs_post)
 prompt_files_content = prompt_files_content .. build_section("Context Files", new_context_refs, new_context_refs_pre, new_context_refs_post)
+if type(base.coder_params) == "table" and type(base.coder_params.explicit_code_map_selections) == "table"
+    and #base.coder_params.explicit_code_map_selections > 0 then
+    prompt_files_content = prompt_files_content .. "# Explicit Code-map Selections\n\n"
+    for _, group in ipairs(base.coder_params.explicit_code_map_selections) do
+        local category = group.category == "knowledge" and "Knowledge" or "Context"
+        prompt_files_content = prompt_files_content .. "## " .. category .. " Map: " .. tostring(group.map_path) .. "\n\n"
+        if type(group.selected_files) == "table" and #group.selected_files > 0 then
+            for _, file_path in ipairs(group.selected_files) do
+                prompt_files_content = prompt_files_content .. "- " .. file_path .. "\n"
+            end
+        else
+            prompt_files_content = prompt_files_content .. "None\n"
+        end
+        prompt_files_content = prompt_files_content .. "\n"
+    end
+end
 prompt_files_content = prompt_files_content .. build_section("Workbench Data Files", base.workbench_data_refs)
 prompt_files_content = prompt_files_content .. "# Working Files"   .. "\n\n" .. p_utils.file_refs_to_md(working_refs) .. "\n\n"
 prompt_files_content = prompt_files_content .. "# Structure Files"  .. "\n\n" .. p_utils.file_refs_to_md(base.structure_refs, {
