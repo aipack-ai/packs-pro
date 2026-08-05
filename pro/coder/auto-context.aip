@@ -27,6 +27,16 @@ local function includes_kind(kinds, expected_kind)
 	return false
 end
 
+local function exclude_code_map_json_files(files)
+	local filtered = {}
+	for _, file in ipairs(files or {}) do
+		if not _cm.is_explicit_code_map_path(file.path) then
+			table.insert(filtered, file)
+		end
+	end
+	return filtered
+end
+
 local function collect_path_lookup_keys(file_path, base_dirs)
 	local keys = {}
 	local seen = {}
@@ -336,7 +346,7 @@ end
 
 -- === Show status
 local context_globs = auto_context_config.context_globs
-local listed_context_files = aip.file.list(context_globs)
+local listed_context_files = exclude_code_map_json_files(aip.file.list(context_globs))
 local filtered_context_files = _cm.filter_file_kinds(listed_context_files, auto_context_config.include_kinds)
 local context_files = filtered_context_files.files or {}
 local context_files_size = 0
@@ -349,7 +359,7 @@ local knowledge_globs = auto_context_config.knowledge_globs
 local knowledge_files = {}
 local knowledge_files_size = 0
 if auto_context_config.knowledge and knowledge_globs then
-	local listed_knowledge_files = aip.file.list(knowledge_globs)
+	local listed_knowledge_files = exclude_code_map_json_files(aip.file.list(knowledge_globs))
 	local filtered_knowledge_files = _cm.filter_file_kinds(listed_knowledge_files, auto_context_config.include_kinds)
 	knowledge_files = filtered_knowledge_files.files or {}
 	for _, kfile in ipairs(knowledge_files) do
@@ -484,7 +494,7 @@ if not user_prompt or not user_prompt:find("%S") then
 end
 
 -- === Extract base_files (the upper bound file set)
-local listed_available_files = aip.file.list(auto_context_config.code_map_globs)
+local listed_available_files = exclude_code_map_json_files(aip.file.list(auto_context_config.code_map_globs))
 local filtered_available_files = _cm.filter_file_kinds(listed_available_files, auto_context_config.include_kinds)
 local available_files = filtered_available_files.files or {}
 
@@ -539,7 +549,7 @@ local k_files_txt = ""
 local k_files_count = 0
 local knowledge_kind_by_path = {}
 if auto_context_config.knowledge and knowledge_code_map then
-	local listed_available_knowledge_files = aip.file.list(knowledge_globs)
+	local listed_available_knowledge_files = exclude_code_map_json_files(aip.file.list(knowledge_globs))
 	local filtered_available_knowledge_files = _cm.filter_file_kinds(
 		listed_available_knowledge_files,
 		auto_context_config.include_kinds

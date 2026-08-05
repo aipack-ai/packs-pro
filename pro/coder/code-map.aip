@@ -159,12 +159,25 @@ local function append_status_detail(details, count, singular, plural, suffix)
 	end
 end
 
+local function exclude_code_map_json_files(files)
+	local filtered = {}
+	for _, file in ipairs(files or {}) do
+		if not _cm.is_explicit_code_map_path(file.path) then
+			table.insert(filtered, file)
+		end
+	end
+	return filtered
+end
+
 for _, mdef in ipairs(code_map_config.map_defs) do
 	local map_data = loaded_maps[mdef.file_path]
 	local file_map = map_data.file_map
 	local effective_base_dir = mdef.resolved_rel_base or mdef.base_dir
 	local effective_path_base_dir = mdef.resolved_rel_base or mdef.path_base_dir
 	local listed_files = aip.file.list(mdef.globs, { base_dir = effective_base_dir, absolute = true })
+	if mdef.name == "context" or mdef.name == "knowledge" then
+		listed_files = exclude_code_map_json_files(listed_files)
+	end
 	local filtered_result = u_common.filter_file_kinds(listed_files, mdef.include_kinds)
 	local map_files = filtered_result.files
 	for _, file in ipairs(filtered_result.unsupported_files) do

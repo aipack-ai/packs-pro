@@ -4,8 +4,23 @@ local u_pinned = require("utils_pinned")
 local u_auto_context = require("auto_context")
 local u_common = require("utils_common")
 local u_workbench = require("workbench")
+local u_code_map = require("code_map")
 
 -- === Support Functions
+
+local function exclude_code_map_json_refs(refs)
+	if type(refs) ~= "table" then
+		return refs
+	end
+
+	local filtered = {}
+	for _, ref in ipairs(refs) do
+		if not u_code_map.is_explicit_code_map_path(ref.path) then
+			table.insert(filtered, ref)
+		end
+	end
+	return filtered
+end
 
 local function clone_ref_list(refs)
 	if type(refs) ~= "table" then return nil end
@@ -407,7 +422,9 @@ local function resolve_refs(meta, coder_workbench, workbench_data_selection)
 	local u_utils = require("utils_data")
 	local knowledge_refs = nil
 	if u_utils.is_not_empty(meta.knowledge_globs) then
-		knowledge_refs = u_common.list_likely_text(meta.knowledge_globs, { base_dir = CTX.WORKSPACE_DIR })
+		knowledge_refs = exclude_code_map_json_refs(
+			u_common.list_likely_text(meta.knowledge_globs, { base_dir = CTX.WORKSPACE_DIR })
+		)
 	end
 
 	local base_dir = meta.base_dir or ""
@@ -425,7 +442,9 @@ local function resolve_refs(meta, coder_workbench, workbench_data_selection)
 		end
 
 		if u_utils.is_not_empty(meta.context_globs) then
-			context_refs = u_common.list_likely_text(meta.context_globs, { base_dir = base_dir })
+			context_refs = exclude_code_map_json_refs(
+				u_common.list_likely_text(meta.context_globs, { base_dir = base_dir })
+			)
 		end
 
 		-- Workbench data selection has three states:
@@ -877,16 +896,16 @@ function run_before_all(inputs)
 	-- then do a single ordered merge per ref type.
 	local ctx_pre_refs                                                                                   = #final_ctx_pre >
 			0 and
-			aip.file.list(final_ctx_pre, { base_dir = base_dir }) or {}
+			exclude_code_map_json_refs(aip.file.list(final_ctx_pre, { base_dir = base_dir })) or {}
 	local ctx_post_refs                                                                                  = #final_ctx_post >
 			0 and
-			aip.file.list(final_ctx_post, { base_dir = base_dir }) or {}
+			exclude_code_map_json_refs(aip.file.list(final_ctx_post, { base_dir = base_dir })) or {}
 	local knl_pre_refs                                                                                   = #final_knl_pre >
 			0 and
-			aip.file.list(final_knl_pre, { base_dir = CTX.WORKSPACE_DIR }) or {}
+			exclude_code_map_json_refs(aip.file.list(final_knl_pre, { base_dir = CTX.WORKSPACE_DIR })) or {}
 	local knl_post_refs                                                                                  = #final_knl_post >
 			0 and
-			aip.file.list(final_knl_post, { base_dir = CTX.WORKSPACE_DIR }) or {}
+			exclude_code_map_json_refs(aip.file.list(final_knl_post, { base_dir = CTX.WORKSPACE_DIR })) or {}
 
 	context_refs                                                                                         = u_pinned
 			.merge_pinned(ctx_pre_refs,
