@@ -212,6 +212,8 @@ local function resolve_code_map_source_path(code_map_file_path, code_map_data, s
 		return stored_path
 	end
 
+	---@cast rel_base string
+
 	local ok_join, joined = pcall(aip.path.join, rel_base, stored_path)
 	if not ok_join or not has_text(joined) then
 		joined = rel_base:gsub("/+$", "") .. "/" .. stored_path:gsub("^/+", "")

@@ -932,6 +932,53 @@ sub_agents:
 - `code_map_model`: (Optional) The model used to generate file summaries. Defaults to the `model` specified above if not provided.
 - `helper_globs`: (Optional) Pattern for files (like development plans or chat logs) that provide additional guidance to help the sub-agent select the correct context files.
 
+#### Explicit code-map inputs
+
+Auto-context can use an existing code map as an additional source of context or knowledge candidates. Add the explicit path to a JSON file whose file name contains `code-map` or `content-map`, matched case-insensitively, to `context_globs` or `knowledge_globs`.
+
+```yaml
+auto_context:
+  model: flash
+  enabled: true
+
+context_globs:
+  - src/**/*.lua
+  - path/to/external-code-map.json
+
+knowledge_globs:
+  - pro@rust10x/code-map.json
+```
+
+Explicit map behavior:
+
+- A map declared in `context_globs` contributes context candidates.
+- A map declared in `knowledge_globs` contributes knowledge candidates.
+- The JSON map itself is excluded from regular source processing.
+- JSON files whose names contain `code-map` or `content-map` are also ignored when encountered through context or knowledge glob results. They must be listed explicitly to act as map inputs.
+- `content-map` is only an additional file-name trigger. It uses the same schema and behavior as `code-map`.
+- Selected map entries are merged into the corresponding context or knowledge result without mixing categories.
+- Each explicit map has a separate Markdown description cache under the auto-context cache directory.
+- Explicit map candidates and selections are shown separately in auto-context pins and in `last_prompt_file_paths.md`.
+
+An existing code map can declare an optional top-level `rel_base` property alongside `file_map`:
+
+```json
+{
+  "rel_base": "../some/content/dir",
+  "file_map": {
+    "feature/main.lua": {
+      "file_path": "feature/main.lua",
+      "summary": "Feature entry point",
+      "when_to_use": "Use when modifying the feature entry point"
+    }
+  }
+}
+```
+
+A relative `rel_base` is resolved from the directory containing the code-map JSON file. An absolute `rel_base` is used directly. Stored map keys and `file_path` values remain relative to that base, while auto-context resolves them before generating selector Markdown or loading selected files.
+
+Maps without `rel_base` retain the existing workspace-relative behavior. Generated maps do not add `rel_base` automatically. Files outside the workspace remain selectable, and paths under the user's home directory are displayed with `~/` when possible.
+
 ### Sub Agent - pro@coder/code-map
 
 _since v0.4.0_
