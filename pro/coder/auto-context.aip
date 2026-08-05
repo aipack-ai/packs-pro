@@ -157,6 +157,42 @@ local function build_description_cache_content(options)
 	return table.concat(lines, "\n") .. "\n"
 end
 
+local function append_lookup_base_dir(base_dirs, base_dir)
+	if is_null(base_dir) or type(base_dir) ~= "string" or base_dir == "" then
+		return
+	end
+	for _, existing in ipairs(base_dirs) do
+		if existing == base_dir then
+			return
+		end
+	end
+	table.insert(base_dirs, base_dir)
+end
+
+local function build_code_map_lookup_base_dirs(code_map_file_path, code_map, base_dirs)
+	local result = {}
+	append_lookup_base_dir(result, _cm.resolve_code_map_rel_base(code_map_file_path, code_map))
+	for _, base_dir in ipairs(base_dirs or {}) do
+		append_lookup_base_dir(result, base_dir)
+	end
+	return result
+end
+
+local function resolve_mapped_file(code_map_file_path, code_map, mapped, prompt_base_dir)
+	if type(mapped) ~= "table" then
+		return mapped
+	end
+
+	local source_path = _cm.resolve_code_map_source_path(code_map_file_path, code_map, mapped.file_path)
+	local display_base_dir = prompt_base_dir
+	if is_null(display_base_dir) or display_base_dir == "" then
+		display_base_dir = CTX.WORKSPACE_DIR
+	end
+	local resolved = aip.lua.merge({}, mapped)
+	resolved.file_path = _cm.normalize_code_map_path(source_path, display_base_dir)
+	return resolved
+end
+
 aip.run.set_label("auto-context")
 
 local sub_agent_input = input
@@ -328,12 +364,14 @@ local available_files = filtered_available_files.files or {}
 local c_files = {}
 local context_kind_by_path = {}
 local file_map = code_map.file_map
+local context_lookup_base_dirs = build_code_map_lookup_base_dirs(code_map_file_path, code_map, {
+	CTX.WORKSPACE_DIR,
+	auto_context_config.prompt_base_dir,
+})
 for _, bfile in ipairs(available_files) do
-	local cfile = _cm.find_file_map_entry(file_map, bfile.path, {
-		CTX.WORKSPACE_DIR,
-		auto_context_config.prompt_base_dir,
-	})
+	local cfile = _cm.find_file_map_entry(file_map, bfile.path, context_lookup_base_dirs)
 	if cfile then
+		cfile = resolve_mapped_file(code_map_file_path, code_map, cfile, auto_context_config.prompt_base_dir)
 		table.insert(c_files, cfile)
 		local mapped_kind = cfile.kind or _cm.classify_file_kind(bfile)
 		context_kind_by_path[cfile.file_path] = mapped_kind
@@ -381,12 +419,23 @@ if auto_context_config.knowledge and knowledge_code_map then
 	local available_knowledge_files = filtered_available_knowledge_files.files or {}
 	local k_files = {}
 	local k_file_map = knowledge_code_map.file_map
-	for _, kfile in ipairs(available_knowledge_files) do
-		local mapped = _cm.find_file_map_entry(k_file_map, kfile.path, {
+	local knowledge_lookup_base_dirs = build_code_map_lookup_base_dirs(
+		knowledge_code_map_file_path,
+		knowledge_code_map,
+		{
 			CTX.WORKSPACE_DIR,
 			auto_context_config.prompt_base_dir,
-		})
+		}
+	)
+	for _, kfile in ipairs(available_knowledge_files) do
+		local mapped = _cm.find_file_map_entry(k_file_map, kfile.path, knowledge_lookup_base_dirs)
 		if mapped then
+			mapped = resolve_mapped_file(
+				knowledge_code_map_file_path,
+				knowledge_code_map,
+				mapped,
+				auto_context_config.prompt_base_dir
+			)
 			table.insert(k_files, mapped)
 			local mapped_kind = mapped.kind or _cm.classify_file_kind(kfile)
 			knowledge_kind_by_path[mapped.file_path] = mapped_kind
@@ -428,14 +477,25 @@ local workbench_data_kind_by_path = {}
 if workbench_data_selection_enabled and workbench_data_code_map then
 	local wd_files = {}
 	local wd_file_map = workbench_data_code_map.file_map
-	for _, wdfile in ipairs(workbench_data_files) do
-		local mapped = _cm.find_file_map_entry(wd_file_map, wdfile.path, {
+	local workbench_lookup_base_dirs = build_code_map_lookup_base_dirs(
+		workbench_data_code_map_file_path,
+		workbench_data_code_map,
+		{
 			CTX.WORKSPACE_DIR,
 			auto_context_config.prompt_base_dir,
 			auto_context_config.workbench_dir,
 			auto_context_config.workbench_data_dir,
-		})
+		}
+	)
+	for _, wdfile in ipairs(workbench_data_files) do
+		local mapped = _cm.find_file_map_entry(wd_file_map, wdfile.path, workbench_lookup_base_dirs)
 		if mapped then
+			mapped = resolve_mapped_file(
+				workbench_data_code_map_file_path,
+				workbench_data_code_map,
+				mapped,
+				auto_context_config.prompt_base_dir
+			)
 			table.insert(wd_files, mapped)
 			local mapped_kind = mapped.kind or _cm.classify_file_kind(wdfile)
 			workbench_data_kind_by_path[mapped.file_path] = mapped_kind

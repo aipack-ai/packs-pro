@@ -127,6 +127,52 @@ local function normalize_code_map_path(file_path, path_base_dir)
 	return file_path
 end
 
+local function is_absolute_path(value)
+	return has_text(value) and (value:sub(1, 1) == "/" or value:match("^%a:[/\\]") ~= nil)
+end
+
+local function resolve_code_map_rel_base(code_map_file_path, code_map_data)
+	if type(code_map_data) ~= "table" or not has_text(code_map_data.rel_base) then
+		return nil
+	end
+
+	local rel_base = code_map_data.rel_base
+	if is_absolute_path(rel_base) then
+		local ok, resolved = pcall(aip.path.resolve, rel_base)
+		return ok and has_text(resolved) and resolved or rel_base
+	end
+
+	local ok_map, resolved_map_path = pcall(aip.path.resolve, code_map_file_path)
+	if not ok_map or not has_text(resolved_map_path) then
+		return nil
+	end
+	local map_dir = aip.path.split(resolved_map_path)
+	local ok_join, joined = pcall(aip.path.join, map_dir, rel_base)
+	if not ok_join or not has_text(joined) then
+		joined = map_dir:gsub("/+$", "") .. "/" .. rel_base:gsub("^/+", "")
+	end
+	local ok_resolve, resolved = pcall(aip.path.resolve, joined)
+	return ok_resolve and has_text(resolved) and resolved or joined
+end
+
+local function resolve_code_map_source_path(code_map_file_path, code_map_data, stored_path)
+	if not has_text(stored_path) then
+		return stored_path
+	end
+
+	local rel_base = resolve_code_map_rel_base(code_map_file_path, code_map_data)
+	if not has_text(rel_base) or is_absolute_path(stored_path) then
+		return stored_path
+	end
+
+	local ok_join, joined = pcall(aip.path.join, rel_base, stored_path)
+	if not ok_join or not has_text(joined) then
+		joined = rel_base:gsub("/+$", "") .. "/" .. stored_path:gsub("^/+", "")
+	end
+	local ok_resolve, resolved = pcall(aip.path.resolve, joined)
+	return ok_resolve and has_text(resolved) and resolved or joined
+end
+
 local function append_path_lookup_key(keys, seen, key)
 	if not has_text(key) then
 		return
@@ -474,6 +520,8 @@ return {
 	filter_text_files       = filter_text_files,
 	new_workbench_data_named_map = new_workbench_data_named_map,
 	normalize_code_map_path = normalize_code_map_path,
+	resolve_code_map_rel_base = resolve_code_map_rel_base,
+	resolve_code_map_source_path = resolve_code_map_source_path,
 	normalize_include_kinds = normalize_include_kinds,
 	classify_file_kind = u_common.classify_file_kind,
 	filter_file_kinds = u_common.filter_file_kinds,

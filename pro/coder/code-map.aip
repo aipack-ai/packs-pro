@@ -16,7 +16,8 @@ local loaded_maps = {}
 local legacy_path_migrated_count = 0
 for _, mdef in ipairs(code_map_config.map_defs) do
 	local map_data = _cm.load_code_map_file(mdef.file_path)
-	if mdef.path_base_dir then
+	mdef.resolved_rel_base = _cm.resolve_code_map_rel_base(mdef.file_path, map_data)
+	if mdef.path_base_dir and not mdef.resolved_rel_base then
 		local migrate_res = _cm.migrate_file_map_keys(map_data.file_map, mdef.path_base_dir)
 		if migrate_res and migrate_res.migrated_count then
 			legacy_path_migrated_count = legacy_path_migrated_count + migrate_res.migrated_count
@@ -161,17 +162,19 @@ end
 for _, mdef in ipairs(code_map_config.map_defs) do
 	local map_data = loaded_maps[mdef.file_path]
 	local file_map = map_data.file_map
-	local listed_files = aip.file.list(mdef.globs, { base_dir = mdef.base_dir, absolute = true })
+	local effective_base_dir = mdef.resolved_rel_base or mdef.base_dir
+	local effective_path_base_dir = mdef.resolved_rel_base or mdef.path_base_dir
+	local listed_files = aip.file.list(mdef.globs, { base_dir = effective_base_dir, absolute = true })
 	local filtered_result = u_common.filter_file_kinds(listed_files, mdef.include_kinds)
 	local map_files = filtered_result.files
 	for _, file in ipairs(filtered_result.unsupported_files) do
-		if retain_file_record(unsupported_paths, file, mdef.path_base_dir) then
+		if retain_file_record(unsupported_paths, file, effective_path_base_dir) then
 			unsupported_file_count = unsupported_file_count + 1
 			non_text_file_count = non_text_file_count + 1
 		end
 	end
 	for _, file in ipairs(filtered_result.excluded_kind_files) do
-		if retain_file_record(excluded_kind_paths, file, mdef.path_base_dir) then
+		if retain_file_record(excluded_kind_paths, file, effective_path_base_dir) then
 			excluded_kind_count = excluded_kind_count + 1
 			non_text_file_count = non_text_file_count + 1
 		end
@@ -179,7 +182,7 @@ for _, mdef in ipairs(code_map_config.map_defs) do
 	
 	for _, orig_file in ipairs(map_files) do
 		local source_path = orig_file.path
-		local code_map_path = _cm.normalize_code_map_path(source_path, mdef.path_base_dir)
+		local code_map_path = _cm.normalize_code_map_path(source_path, effective_path_base_dir)
 		local file_kind = u_common.classify_file_kind(orig_file)
 
 		if orig_file.size and orig_file.size > max_file_size_bytes then
@@ -210,11 +213,15 @@ for _, mdef in ipairs(code_map_config.map_defs) do
 
 			local file_map_file = file_map[code_map_path]
 			local code_map_entry_migrated = false
-			if mdef.path_base_dir then
+			if effective_path_base_dir then
 				local legacy_file_map_file = nil
 				local legacy_file_map_paths = {}
 				for existing_path, existing_info in pairs(file_map) do
-					if existing_path ~= code_map_path and _cm.normalize_code_map_path(existing_path, mdef.path_base_dir) == code_map_path then
+					local existing_source_path = existing_path
+					if mdef.resolved_rel_base then
+						existing_source_path = _cm.resolve_code_map_source_path(mdef.file_path, map_data, existing_path)
+					end
+					if existing_path ~= code_map_path and _cm.normalize_code_map_path(existing_source_path, effective_path_base_dir) == code_map_path then
 						if not legacy_file_map_file then legacy_file_map_file = existing_info end
 						table.insert(legacy_file_map_paths, existing_path)
 					end
