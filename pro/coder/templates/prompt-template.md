@@ -34,7 +34,11 @@ workbench:
   # plan: true
   # spec: true
 
-## Full model names or aliases (see aliases ~/.aipack-base/config-default.toml)
+# progressive escalation on auto fix 
+# (default max_retries: 6, so `sol` will be executed up to 4 times)
+# auto_fix: luna-xhigh, terra, sol
+
+## (gpt is alias to terra) Full model names or aliases (see aliases ~/.aipack-base/config-default.toml)
 ## -high, -medium, or -low suffixes for reasoning (e.g., "sol-low", "opus-max")
 model: gpt
 
