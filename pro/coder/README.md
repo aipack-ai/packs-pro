@@ -960,6 +960,34 @@ Explicit map behavior:
 - Each explicit map has a separate Markdown description cache under the auto-context cache directory.
 - Explicit map candidates and selections are shown separately in auto-context pins and in `last_prompt_file_paths.md`.
 
+#### Packed explicit code maps
+
+Explicit code maps may be loaded from installed AI Packs by using a pack reference in `context_globs` or `knowledge_globs`. For example, a packed map used as a knowledge source can be configured as:
+
+```yaml
+knowledge_globs:
+  - pro@rust10x/code-map.json
+```
+
+The packed JSON file follows the same explicit code-map rules as workspace and absolute paths. Its file name must contain `code-map` or `content-map`, matched case-insensitively. A map listed in `knowledge_globs` contributes only knowledge candidates.
+
+Packed maps can use the optional top-level `rel_base` property to locate their source files relative to the physical directory containing the resolved map file:
+
+```json
+{
+  "rel_base": "guide",
+  "file_map": {
+    "base/error-handling.md": {
+      "file_path": "base/error-handling.md",
+      "summary": "Rust error handling guidance",
+      "when_to_use": "Use when implementing recoverable Rust errors"
+    }
+  }
+}
+```
+
+In this example, `base/error-handling.md` resolves from the pack directory at `guide/base/error-handling.md`. The schema property is named `rel_base`, not `base_rel`. Relative values are resolved from the directory containing the packed code-map JSON file, while absolute values are used directly. Without `rel_base`, the existing workspace-relative behavior applies.
+
 An existing code map can declare an optional top-level `rel_base` property alongside `file_map`:
 
 ```json
