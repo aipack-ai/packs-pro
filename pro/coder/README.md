@@ -372,9 +372,17 @@ Shared default size limit in KB. The default is `1500` KB, or 1.5 MB.
 
 When the more specific settings are omitted, `max_files_size_kb` and `max_file_size_kb` inherit this value. Set either specific setting to override `max_size_kb` only for its corresponding job.
 
+The effective size-limit precedence is:
+
+- `max_size_kb` provides the shared default when `max_files_size_kb` is not set. Its default is `1500` KB.
+- `max_files_size_kb` overrides `max_size_kb` for the aggregate coder request limit.
+- `max_file_size_kb` overrides `max_size_kb` for the per-file `code-map` limit.
+
 #### max_files_size_kb
 
 Optional override for the maximum combined size in KB of all files included in a main coder request. When omitted, it inherits `max_size_kb`. The total includes knowledge, context, working, and workbench-data files. If the total exceeds the limit, the coder run is skipped before an AI call is made.
+
+Most users should configure `max_size_kb`. Set `max_files_size_kb` only when the aggregate coder request needs a different limit from the shared default.
 
 This setting does not control the per-file size limit used by the `code-map` agent.
 
