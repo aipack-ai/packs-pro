@@ -600,7 +600,8 @@ local function build_input_base(params)
 	return {
 		instructions                       = params.instructions,
 		attachments                        = params.attachments,
-		max_files_size_kb                  = meta.max_files_size_kb or CONST.DEFAULT_MAX_FILES_SIZE_KB,
+		max_size_kb                        = meta.max_size_kb or CONST.DEFAULT_MAX_SIZE_KB,
+		max_files_size_kb                  = meta.max_files_size_kb,
 		write_mode                         = params.write_mode,
 		file_content_mode                  = params.file_content_mode,
 		auto_fix                           = params.auto_fix,

@@ -1,7 +1,7 @@
 -- Constant
 
 return {
-	DEFAULT_MAX_FILES_SIZE_KB = 1000, -- 1MB
+	DEFAULT_MAX_SIZE_KB = 1500, -- 1.5MB
 
 	-- labels
 	LABEL_WORKBENCH           = "  Workbench:",

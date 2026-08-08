@@ -91,7 +91,7 @@ end
 -- Check that not more than max
 local max_size_kb = base.max_size_kb
     or (type(base.coder_params) == "table" and base.coder_params.max_size_kb)
-    or CONST.DEFAULT_MAX_FILES_SIZE_KB
+    or CONST.DEFAULT_MAX_SIZE_KB
     
 local max_files_size_kb = base.max_files_size_kb
     or (type(base.coder_params) == "table" and base.coder_params.max_files_size_kb)
