@@ -1,5 +1,9 @@
 `.` minor | `-` Fix | `+` Addition | `^` improvement | `!` Change | `*` important | `>` Refactor
 
+## 2026-08-07 [coder-v0.6.4](https://github.com/aipack-ai/packs-pro/compare/coder-v0.6.5...coder-v0.6.5)
+
+- `-` Fixed `max_size_kb` (was not taken into account before in some cases)
+
 ## 2026-08-07 [coder-v0.6.4](https://github.com/aipack-ai/packs-pro/compare/coder-v0.6.3...coder-v0.6.4)
 
 - `+` Added `max_size_kb` for a unified size limit (defaults to 1500 KB)
