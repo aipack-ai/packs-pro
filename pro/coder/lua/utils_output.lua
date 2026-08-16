@@ -29,6 +29,119 @@ function build_info_lines(ai_response, data)
 	return content
 end
 
+local function parse_missing_file_paths(content)
+	local paths = {}
+	local seen = {}
+	if type(content) ~= "string" then
+		return paths
+	end
+
+	for line in content:gmatch("[^\r\n]+") do
+		local path = line:match("^%s*[-*+]%s+(.+)%s*$")
+		if path then
+			path = aip.text.trim(path)
+			path = path:gsub("^`+", ""):gsub("`+$", "")
+			if path ~= "" and not seen[path] then
+				seen[path] = true
+				table.insert(paths, path)
+			end
+		end
+	end
+
+	return paths
+end
+
+local function resolve_missing_files_helper_path(coder_workbench)
+	if type(coder_workbench) ~= "table" then
+		return nil
+	end
+
+	local cache_dir = coder_workbench.cache_dir
+	if is_null(cache_dir) or cache_dir == "" then
+		local workbench_dir = coder_workbench.dir
+		if is_null(workbench_dir) or workbench_dir == "" then
+			return nil
+		end
+		cache_dir = tostring(workbench_dir):gsub("/+$", "") .. "/.cache"
+	end
+
+	return tostring(cache_dir):gsub("/+$", "") .. "/auto-context/missing-files.md"
+end
+
+function persist_missing_files_helper(content, coder_workbench)
+	if type(content) ~= "string" or content == "" then
+		return nil
+	end
+
+	local helper_path = resolve_missing_files_helper_path(coder_workbench)
+	if is_null(helper_path) or helper_path == "" then
+		return nil
+	end
+
+	local blocks = aip.tag.extract(content, "missing_files") or {}
+	if type(blocks) ~= "table" then
+		return nil
+	end
+
+	local messages = {}
+	local files = {}
+	local seen_messages = {}
+	local seen_files = {}
+	for _, block in ipairs(blocks) do
+		local fields = aip.tag.extract_as_map(block.content, { "mf_message", "mf_files" })
+		local message = fields.mf_message and aip.text.trim(fields.mf_message.content) or nil
+		local block_files = fields.mf_files and parse_missing_file_paths(fields.mf_files.content) or {}
+		if not is_null(message) and message ~= "" and #block_files > 0 then
+			if not seen_messages[message] then
+				seen_messages[message] = true
+				table.insert(messages, message)
+			end
+			for _, file_path in ipairs(block_files) do
+				if not seen_files[file_path] then
+					seen_files[file_path] = true
+					table.insert(files, file_path)
+				end
+			end
+		end
+	end
+
+	if #messages == 0 or #files == 0 then
+		return nil
+	end
+
+	local lines = {
+		"# Missing Files Context Request",
+		"",
+		"## Diagnostic",
+		"",
+		table.concat(messages, "\n\n"),
+		"",
+		"## Requested Files",
+		""
+	}
+	for _, file_path in ipairs(files) do
+		table.insert(lines, "- `" .. file_path .. "`")
+	end
+	table.insert(lines, "")
+	table.insert(lines, "## Auto-context Instruction")
+	table.insert(lines, "")
+	table.insert(lines, "Include the requested files in the next context selection when they are available.")
+
+	local helper_dir = aip.path.parent(helper_path)
+	if not is_null(helper_dir) and helper_dir ~= "" then
+		local ensure_result = aip.file.ensure_dir(helper_dir)
+		if type(ensure_result) == "table" and ensure_result.error then
+			return nil, ensure_result.error
+		end
+	end
+
+	local save_result = aip.file.save(helper_path, table.concat(lines, "\n") .. "\n")
+	if type(save_result) == "table" and save_result.error then
+		return nil, save_result.error
+	end
+	return helper_path
+end
+
 function process_ui_directives(content, single_task)
 	-- if API not here, then do nothing
 	if aip.tag == nil or aip.tag.extract == nil
@@ -619,4 +732,5 @@ return {
 	resolve_failed_hunk_total_count       = resolve_failed_hunk_total_count,
 	hunk_failure_count_text               = hunk_failure_count_text,
 	file_change_status_letter             = file_change_status_letter,
+	persist_missing_files_helper          = persist_missing_files_helper,
 }

@@ -164,13 +164,15 @@ local function extract_auto_context_config(sub_input)
 	local workbench_cache_dir = nil
 	local workbench_include_kinds = _cm.ALL_INCLUDE_KINDS
 
-	if type(workbench) == "table" and not is_null(workbench.data_dir) and workbench.data_dir ~= "" then
-		workbench_data_enabled = true
+	if type(workbench) == "table" then
 		workbench_dir = workbench.dir
-		workbench_data_dir = workbench.data_dir
 		workbench_cache_dir = workbench.cache_dir
-		if type(workbench.include_kinds) == "table" then
-			workbench_include_kinds = workbench.include_kinds
+		if not is_null(workbench.data_dir) and workbench.data_dir ~= "" then
+			workbench_data_enabled = true
+			workbench_data_dir = workbench.data_dir
+			if type(workbench.include_kinds) == "table" then
+				workbench_include_kinds = workbench.include_kinds
+			end
 		end
 	end
 
@@ -214,6 +216,30 @@ local function new_auto_context_sub_agent_config(auto_context)
 		ac_config = aip.lua.merge({ name = "pro@coder/auto-context", enabled = true }, auto_context)
 	end
 	return ac_config
+end
+
+local function consume_missing_files_helper(auto_context_config)
+	if type(auto_context_config) ~= "table" then
+		return nil
+	end
+
+	local cache_dir = auto_context_config.workbench_cache_dir
+	if is_null(cache_dir) or cache_dir == "" then
+		return nil
+	end
+
+	local helper_path = tostring(cache_dir):gsub("/+$", "") .. "/auto-context/missing-files.md"
+	if not aip.file.exists(helper_path) then
+		return nil
+	end
+
+	local helper = aip.file.load(helper_path)
+	if type(helper) ~= "table" or helper.error or type(helper.content) ~= "string" or not helper.content:find("%S") then
+		return nil
+	end
+
+	aip.file.delete(helper_path)
+	return helper
 end
 
 local function resolve_selected_files(globs, attachment_paths)
@@ -572,5 +598,6 @@ return {
 	pin_status                          = pin_status,
 	sort_files_by_mtime                 = sort_files_by_mtime,
 	append_helper_globs_from_sub_agents = append_helper_globs_from_sub_agents,
+	consume_missing_files_helper        = consume_missing_files_helper,
 	LABEL_PROMPT                        = LABEL_PROMPT,
 }

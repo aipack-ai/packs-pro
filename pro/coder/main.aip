@@ -590,6 +590,8 @@ local info_lines = u_output.build_info_lines(ai_response, data)
 local ai_content_for_raw = "====\n" .. info_lines .. "\n\n" .. ai_content .. "\n\n"
 aip.file.append(data.ai_responses_for_raw_path, ai_content_for_raw)
 
+u_output.persist_missing_files_helper(ai_content, data.coder_workbench)
+
 -- === Write to the src file
 local files_changed = {}
 local files_changes_failed = {}

@@ -343,6 +343,12 @@ if not is_null(auto_context_config.helper_globs) and #auto_context_config.helper
 	helper_files = u_common.list_load_likely_text(auto_context_config.helper_globs)
 end
 
+local missing_files_helper = _ac.consume_missing_files_helper(auto_context_config)
+if missing_files_helper then
+	helper_files = helper_files or {}
+	table.insert(helper_files, missing_files_helper)
+end
+
 
 -- === Show status
 local context_globs = auto_context_config.context_globs
