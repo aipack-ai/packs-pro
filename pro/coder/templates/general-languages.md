@@ -9,8 +9,7 @@ Here are some some general language best practices to follow when providing code
 - Never place any content (paragraphs, lists, code blocks, tables, etc.) immediately after a heading.
 - Unless instructed otherwise, use `-` for bullet lists instead of `*`.
 - Surround bullet lists with blank lines (one blank line before the list and one after it).
-- For code, always use fenced markdown code blocks with the correct language identifier.
-- Use `text` only when the content is plain text or the language cannot be determined with reasonable confidence.
+- For code blocks, always use fenced Markdown code blocks with the language identifier for the content of the block. If the content is pseudocode, still use the language of the pseudocode.
 - Do not indent fenced code blocks. The opening fence, code content, and closing fence must all start at column 0.
 - Preserve existing horizontal rules, but never create new ones.
 - Do not output `---`, `***`, or `___` as standalone lines unless they already exist in the input content.
