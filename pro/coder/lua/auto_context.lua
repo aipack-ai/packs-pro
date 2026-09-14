@@ -238,8 +238,111 @@ local function consume_missing_files_helper(auto_context_config)
 		return nil
 	end
 
-	aip.file.delete(helper_path)
 	return helper
+end
+
+local function extract_missing_file_paths(helper)
+	local paths = {}
+	local seen = {}
+	if type(helper) ~= "table" or type(helper.content) ~= "string" then
+		return paths
+	end
+
+	local in_requested_files = false
+	for line in helper.content:gmatch("[^\r\n]+") do
+		if line:match("^##%s+Requested Files%s*$") then
+			in_requested_files = true
+		elseif in_requested_files and line:match("^##%s+") then
+			break
+		elseif in_requested_files then
+			local path = line:match("^%s*[-*+]%s+(.+)%s*$")
+			if path then
+				path = aip.text.trim(path)
+				path = path:gsub("^`+", ""):gsub("`+$", "")
+				if path ~= "" and not seen[path] then
+					seen[path] = true
+					table.insert(paths, path)
+				end
+			end
+		end
+	end
+
+	return paths
+end
+
+local function append_missing_file_globs(auto_context_config, requested_paths)
+	if type(auto_context_config) ~= "table" then
+		return {}, requested_paths or {}
+	end
+
+	local code_map_globs = {}
+	if type(auto_context_config.code_map_globs) == "table" then
+		for _, glob in ipairs(auto_context_config.code_map_globs) do
+			table.insert(code_map_globs, glob)
+		end
+	elseif type(auto_context_config.code_map_globs) == "string" then
+		table.insert(code_map_globs, auto_context_config.code_map_globs)
+	end
+
+	local seen_globs = {}
+	for _, glob in ipairs(code_map_globs) do
+		seen_globs[glob] = true
+	end
+
+	local available_paths = {}
+	local unavailable_paths = {}
+	for _, requested_path in ipairs(requested_paths or {}) do
+		local candidates = {}
+		if type(auto_context_config.prompt_base_dir) == "string"
+			and auto_context_config.prompt_base_dir ~= "" then
+			local ok, joined = pcall(aip.path.join, auto_context_config.prompt_base_dir, requested_path)
+			if ok and type(joined) == "string" and joined ~= "" then
+				table.insert(candidates, joined)
+			end
+		end
+		table.insert(candidates, requested_path)
+
+		local resolved_path = nil
+		for _, candidate in ipairs(candidates) do
+			local ok, exists = pcall(aip.path.exists, candidate)
+			if ok and exists == true then
+				resolved_path = candidate
+				break
+			end
+		end
+
+		if resolved_path then
+			table.insert(available_paths, resolved_path)
+			if not seen_globs[resolved_path] then
+				seen_globs[resolved_path] = true
+				table.insert(code_map_globs, resolved_path)
+			end
+		else
+			table.insert(unavailable_paths, requested_path)
+		end
+	end
+
+	auto_context_config.code_map_globs = code_map_globs
+	return available_paths, unavailable_paths
+end
+
+local function acknowledge_missing_files_helper(auto_context_config)
+	if type(auto_context_config) ~= "table" then
+		return false
+	end
+
+	local cache_dir = auto_context_config.workbench_cache_dir
+	if is_null(cache_dir) or cache_dir == "" then
+		return false
+	end
+
+	local helper_path = tostring(cache_dir):gsub("/+$", "") .. "/auto-context/missing-files.md"
+	if not aip.file.exists(helper_path) then
+		return true
+	end
+
+	local ok, deleted = pcall(aip.file.delete, helper_path)
+	return ok and deleted == true
 end
 
 local function resolve_selected_files(globs, attachment_paths)
@@ -599,5 +702,8 @@ return {
 	sort_files_by_mtime                 = sort_files_by_mtime,
 	append_helper_globs_from_sub_agents = append_helper_globs_from_sub_agents,
 	consume_missing_files_helper        = consume_missing_files_helper,
+	extract_missing_file_paths          = extract_missing_file_paths,
+	append_missing_file_globs           = append_missing_file_globs,
+	acknowledge_missing_files_helper    = acknowledge_missing_files_helper,
 	LABEL_PROMPT                        = LABEL_PROMPT,
 }

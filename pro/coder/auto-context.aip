@@ -344,9 +344,16 @@ if not is_null(auto_context_config.helper_globs) and #auto_context_config.helper
 end
 
 local missing_files_helper = _ac.consume_missing_files_helper(auto_context_config)
+local requested_missing_file_paths = {}
+local unavailable_missing_file_paths = {}
 if missing_files_helper then
 	helper_files = helper_files or {}
 	table.insert(helper_files, missing_files_helper)
+	requested_missing_file_paths = _ac.extract_missing_file_paths(missing_files_helper)
+	requested_missing_file_paths, unavailable_missing_file_paths = _ac.append_missing_file_globs(
+		auto_context_config,
+		requested_missing_file_paths
+	)
 end
 
 
@@ -793,6 +800,10 @@ local data = {
 	workbench_data_files_size  = workbench_data_files_size,
 	workbench_data_kind_by_path = workbench_data_kind_by_path,
 	explicit_map_groups = explicit_map_groups,
+	requested_missing_file_paths = requested_missing_file_paths,
+	missing_files_helper_ready_to_ack = missing_files_helper ~= nil
+		and #requested_missing_file_paths > 0
+		and #unavailable_missing_file_paths == 0,
 	mode                = auto_context_config.mode,
 	cache_explicit      = auto_context_config.cache_explicit,
 }
@@ -1124,6 +1135,9 @@ if res_map.needed_context_files and res_map.needed_context_files.content then
         needed_context_files = parsed
     end
 end
+for _, file_path in ipairs(data.requested_missing_file_paths or {}) do
+	append_unique_path(needed_context_files, file_path)
+end
 local context_reasoning = nil
 if res_map.context_reasoning and res_map.context_reasoning.content then
     context_reasoning = res_map.context_reasoning.content
@@ -1384,6 +1398,10 @@ if data.workbench_data_enabled then
 		workbench_data_selection_attempted = true,
 		attachments = normalized_attachment_paths,
 	}
+end
+
+if data.missing_files_helper_ready_to_ack then
+	_ac.acknowledge_missing_files_helper(data.auto_context_config)
 end
 
 return {
