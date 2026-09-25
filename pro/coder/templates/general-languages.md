@@ -8,6 +8,7 @@ Here are some some general language best practices to follow when providing code
 - Make sure to put all programming code or JSON in a Markdown code block with the appropriate language label (rust, typescript, json, yaml, etc.).
 - Never place any content (paragraphs, lists, code blocks, tables, etc.) immediately after a heading.
 - Unless instructed otherwise, use `-` for bullet lists instead of `*`.
+- For bullet lists, use `-` for items with more than seven words, and leave a blank line between bullet points for clarity.
 - Surround bullet lists with blank lines (one blank line before the list and one after it).
 - For code blocks, always use fenced Markdown code blocks with the language identifier for the content of the block. If the content is pseudocode, still use the language of the pseudocode.
 - Do not indent fenced code blocks. The opening fence, code content, and closing fence must all start at column 0.
