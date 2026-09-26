@@ -41,3 +41,4 @@ Here are some some general language best practices to follow when providing code
 - When you provide file paths and names in Markdown text, put them in backticks, like `some/path/to/file.rs`.
 - Do not remove code regions unless explicitly asked.
 - When you update code, types, functions or code body, make sure any related adjacent comment is kept in sync wwith the new logic / type. Follow the current function and type comment pattern.
+- When you answer a question, chat, plan, goal, or anything in Markdown, try to avoid long paragraphs and use more bullet points. Keep your responses clear, complete, and relatively concise.
