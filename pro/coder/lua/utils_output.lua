@@ -68,19 +68,14 @@ local function resolve_missing_files_helper_path(coder_workbench)
 	return tostring(cache_dir):gsub("/+$", "") .. "/auto-context/missing-files.md"
 end
 
-function persist_missing_files_helper(content, coder_workbench)
+local function collect_missing_files(content)
 	if type(content) ~= "string" or content == "" then
-		return nil
-	end
-
-	local helper_path = resolve_missing_files_helper_path(coder_workbench)
-	if is_null(helper_path) or helper_path == "" then
-		return nil
+		return {}, {}
 	end
 
 	local blocks = aip.tag.extract(content, "missing_files") or {}
 	if type(blocks) ~= "table" then
-		return nil
+		return {}, {}
 	end
 
 	local messages = {}
@@ -105,6 +100,20 @@ function persist_missing_files_helper(content, coder_workbench)
 		end
 	end
 
+	return messages, files
+end
+
+function persist_missing_files_helper(content, coder_workbench)
+	if type(content) ~= "string" or content == "" then
+		return nil
+	end
+
+	local helper_path = resolve_missing_files_helper_path(coder_workbench)
+	if is_null(helper_path) or helper_path == "" then
+		return nil
+	end
+
+	local messages, files = collect_missing_files(content)
 	if #messages == 0 or #files == 0 then
 		return nil
 	end
@@ -154,6 +163,7 @@ function process_ui_directives(content, single_task)
 			{}
 	if type(elems) ~= "table" then return end
 
+	local _, missing_paths = collect_missing_files(content)
 	for _, elem in ipairs(elems) do
 		if elem.tag == "suggested_git_command" then
 			-- process git commit suggestion
@@ -200,6 +210,17 @@ function process_ui_directives(content, single_task)
 				})
 			end
 		end
+	end
+
+	if #missing_paths > 0 then
+		local lines = {}
+		for _, path in ipairs(missing_paths) do
+			table.insert(lines, "- `" .. path .. "`")
+		end
+		aip.run.pin("missing_files_run", 1, {
+			label   = "missing:",
+			content = table.concat(lines, "\n")
+		})
 	end
 end
 

@@ -1086,6 +1086,38 @@ aip.task.pin(label, priority, {
 
 ## AIPack config override
 
+### Missing files notification
+
+When the coder needs existing source files that were not included in its context, it can return a root-level `<missing_files>` tag:
+
+```xml
+<missing_files>
+<mf_message>
+Include these source files so the requested change can be completed.
+</mf_message>
+<mf_files>
+  - src/main.lua
+  - src/config.lua
+</mf_files>
+</missing_files>
+```
+
+`process_ui_directives` in `lua/utils_output.lua` displays these requests:
+
+- Existing task-level `Missing Info:` and `Missing Files:` pins retain the diagnostic message and original file list.
+
+- A core coder run-level pin labeled `missing:` lists the requested paths at priority `1`, after the coding completion pin at priority `0`. It is emitted for both single-task and multi-task runs and does not depend on workbench caching.
+
+- Cache persistence and the run-level display share the same request parser. Only blocks containing both a nonempty diagnostic message and a nonempty file list contribute paths. The parser removes duplicates in first-seen order and strips surrounding backticks. Empty lists do not create a run pin.
+
+- Each task response uses the same run pin identifier, `missing_files_run`. In multi-task runs, later responses containing missing paths replace this list rather than accumulating paths across tasks.
+
+When a workbench is active, `persist_missing_files_helper` separately saves requests containing both a nonempty diagnostic message and file list to `<workbench.cache_dir>/auto-context/missing-files.md`. Existing cache behavior is unchanged.
+
+Missing-files tags are extracted without extrusion, leaving them in the response for helper creation and subsequent processing. The run-level list uses the same paths and Markdown list content as the saved helper's `Requested Files` section. Display remains available without an active workbench.
+
+Rerun the coder after making the requested files available. Auto-context loads the cached request as a helper, adds available requested paths to its code-map inputs, and includes those paths in its context selection. The helper is acknowledged after selection only when all requested paths are available; requests with unavailable paths remain cached.
+
 As mentioned above, the `pro@coder` parametric prompt `coder-prompt.md` allows you to override the AI Pack workspace and base configurations.
 
 The properties `aliases`, `model`, `input_concurrency`, and `temperature` will be merged, overriding parameters from the following configuration files, in order of precedence:
