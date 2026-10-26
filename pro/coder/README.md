@@ -55,27 +55,31 @@ Also, when `write_mode: true`, the file content will be removed from the AI resp
 
 ### Prompt-Local User Templates
 
-When a prompt directory is initialized, `pro@coder` also initializes a prompt-local `user-templates/` directory beside `coder-prompt.md`.
+On every run, `pro@coder` synchronizes bundled defaults into a prompt-local `templates-default/` directory beside `coder-prompt.md` and ensures a sibling `templates-user/` directory exists.
 
-Bundled files from `pro/coder/user-templates/template-*` are copied once into:
+Bundled files from `pro/coder/templates-default/template-*` are copied into the following directory on every run, overwriting matching defaults:
 
 ```text
-$coder_prompt_dir/user-templates/
+$coder_prompt_dir/templates-default/
 ```
 
 The leading `template-` prefix is removed from the copied filename. For example:
 
 ```text
-pro/coder/user-templates/template-suggest-commit.md
+pro/coder/templates-default/template-suggest-commit.md
 ```
 
 is copied as:
 
 ```text
-$coder_prompt_dir/user-templates/suggest-commit.md
+$coder_prompt_dir/templates-default/suggest-commit.md
 ```
 
-Existing prompt-local templates are never overwritten. This lets you customize prompt instructions and workbench rule templates per prompt directory while preserving your edits across future runs.
+To customize a template, copy or move it from `templates-default/` into `templates-user/`, retaining its filename, then edit it there. Template lookup prefers `templates-user/` and falls back to `templates-default/`. Default synchronization never overwrites user overrides. Moving a default does not prevent it from being restored in `templates-default/` on the next run.
+
+For the default prompt directory, these directories are `.aipack/.prompt/pro@coder/templates-default/` and `.aipack/.prompt/pro@coder/templates-user/`.
+
+An existing prompt-local `user-templates/` directory is moved to `deprecated-user-templates/`, not activated as overrides. If the archive already exists, the incoming directory is preserved in a uniquely named subdirectory instead of overwriting archive contents. A `README.md` is created when absent to explain that the archive is unused and can be deleted. Manually transfer any desired customizations to `templates-user/`.
 
 Current prompt-local templates include:
 
@@ -85,7 +89,7 @@ Current prompt-local templates include:
 - `workbench-plan-rules.md`, used to seed generated plan rules.
 - `workbench-spec-rules.md`, used to seed generated spec rules.
 
-Workbench rules are generated into the workbench `.cache/` directory from these prompt-local templates. Treat the prompt-local files under `user-templates/` as the customization source, not the generated `.cache/_...-rules.md` files.
+Workbench rules are seeded into the workbench `.cache/` directory only when absent, selecting `templates-user/` before `templates-default/`. Existing cached rules are never refreshed. Treat files under `templates-user/` as the customization source, not the generated `.cache/_...-rules.md` files. Updated defaults and edited overrides affect only newly seeded rules.
 
 ### Coder Parameters
 
@@ -529,7 +533,7 @@ There is also a `worbkench.data` to turn off data (by default data folder is on)
 
 `workbench.goal` is opt-in and accepts `true`, a document path string, or an enabled configuration table. When enabled, it creates `goal.md` in the resolved workbench directory by default, adds it to context and auto-context helper files, and adds its cached rules to knowledge.
 
-The bundled `template-workbench-goal-rules.md` is copied once to `$coder_prompt_dir/user-templates/workbench-goal-rules.md`. Customize this prompt-local file before the first goal workbench initialization to control how `.cache/_goal-rules.md` is seeded. Existing prompt-local templates and cached rules are never overwritten.
+The bundled `template-workbench-goal-rules.md` is synchronized on every run to `$coder_prompt_dir/templates-default/workbench-goal-rules.md`. Copy it to `$coder_prompt_dir/templates-user/workbench-goal-rules.md` and customize the override before the first goal workbench initialization to control how `.cache/_goal-rules.md` is seeded. User overrides and existing cached rules are never overwritten.
 
 When a workbench file is enabled, `pro@coder` adds prompt guidance that maps canonical file names to resolved workbench paths. For example, `chat.md`, `plan.md`, and `spec.md` refer to the configured workbench files when those capabilities are enabled. This helps prevent accidental creation of root-level files with those names.
 
@@ -1132,7 +1136,7 @@ Note that only these four are AI Pack config properties and can be set in the co
 
 `pro@coder` facilitates **Plan-Based Development** by initializing the current plan file within the prompt's workbench folder and generated plan rules within the workbench cache.
 
-- The foundational rules are generated as `.cache/_plan-rules.md` under the resolved workbench directory. They are seeded from `coder_prompt_dir/user-templates/workbench-plan-rules.md` and are not overwritten once created. The plan flow uses a single `plan.md` file in the workbench directory.
+- The foundational rules are generated as `.cache/_plan-rules.md` under the resolved workbench directory. They are seeded from `coder_prompt_dir/templates-user/workbench-plan-rules.md` when available, otherwise from `coder_prompt_dir/templates-default/workbench-plan-rules.md`, and are not overwritten once created. The plan flow uses a single `plan.md` file in the workbench directory.
 - By default, setting `workbench: { plan: true }` in your meta block automatically initializes these files and includes them in the prompt context.
 - To manually include them or use a custom folder, you can use `context_globs_post`:
   - `.aipack/.prompt/pro@coder/workbench-default/plan.md`
@@ -1262,7 +1266,7 @@ Redo behavior:
 
 `pro@coder` also supports **Spec-Based Development** through the `workbench.spec` capability.
 
-- The foundational rules are generated as `.cache/_spec-rules.md` under the resolved workbench directory. They are seeded from `coder_prompt_dir/user-templates/workbench-spec-rules.md` and are not overwritten once created.
+- The foundational rules are generated as `.cache/_spec-rules.md` under the resolved workbench directory. They are seeded from `coder_prompt_dir/templates-user/workbench-spec-rules.md` when available, otherwise from `coder_prompt_dir/templates-default/workbench-spec-rules.md`, and are not overwritten once created.
 - The main working spec file is `spec.md`, stored in the workbench directory by default.
 - When `workbench.spec` is enabled, `pro@coder/workbench` ensures the spec context file and generated cached rules file exist.
 - The generated cached rules file is added to `knowledge_globs_post`, and the `spec.md` file is added to `context_globs_post`.

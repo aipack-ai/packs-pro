@@ -305,14 +305,16 @@ local function load_prompt_user_template_content(template_names, options)
 		return nil
 	end
 
-	local user_templates_dir = tostring(coder_prompt_dir):gsub("/+$", "") .. "/user-templates"
-	for _, template_name in ipairs(template_names) do
-		if not is_null(template_name) and template_name ~= "" then
-			local template_path = user_templates_dir .. "/" .. tostring(template_name):gsub("^/+", "")
-			if aip.file.exists(template_path) then
-				local template_file = aip.file.load(template_path)
-				if type(template_file) == "table" and type(template_file.content) == "string" and template_file.content ~= "" then
-					return template_file.content
+	for _, dir_name in ipairs({ "templates-user", "templates-default" }) do
+		local templates_dir = tostring(coder_prompt_dir):gsub("/+$", "") .. "/" .. dir_name
+		for _, template_name in ipairs(template_names) do
+			if not is_null(template_name) and template_name ~= "" then
+				local template_path = templates_dir .. "/" .. tostring(template_name):gsub("^/+", "")
+				if aip.file.exists(template_path) then
+					local template_file = aip.file.load(template_path)
+					if type(template_file) == "table" and type(template_file.content) == "string" and template_file.content ~= "" then
+						return template_file.content
+					end
 				end
 			end
 		end

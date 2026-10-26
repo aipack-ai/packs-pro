@@ -4,7 +4,7 @@ local u_common = require("utils_common")
 local M = {}
 
 local TEMPLATES_DIR = CTX.AGENT_FILE_DIR .. "/templates"
-local USER_TEMPLATES_DIR = CTX.AGENT_FILE_DIR .. "/user-templates"
+local DEFAULT_TEMPLATES_DIR = CTX.AGENT_FILE_DIR .. "/templates-default"
 
 function M.load_template(rel_path)
 	return aip.file.load(TEMPLATES_DIR .. "/" .. rel_path)
@@ -31,13 +31,15 @@ function M.load_user_template(prompt_dir, rel_path, options)
 
 	local normalized_rel_path = tostring(rel_path):gsub("^/+", "")
 	if not is_null(prompt_dir) and prompt_dir ~= "" then
-		local prompt_user_template_path = tostring(prompt_dir):gsub("/+$", "") .. "/user-templates/" .. normalized_rel_path
-		local prompt_template, prompt_template_err = load_existing_file(prompt_user_template_path)
-		if prompt_template_err then
-			return nil, prompt_template_err
-		end
-		if prompt_template then
-			return prompt_template
+		for _, template_dir in ipairs({ "templates-user", "templates-default" }) do
+			local prompt_template_path = tostring(prompt_dir):gsub("/+$", "") .. "/" .. template_dir .. "/" .. normalized_rel_path
+			local prompt_template, prompt_template_err = load_existing_file(prompt_template_path)
+			if prompt_template_err then
+				return nil, prompt_template_err
+			end
+			if prompt_template then
+				return prompt_template
+			end
 		end
 	end
 
@@ -76,30 +78,53 @@ function M.save_prompt_file(prompt_path)
 end
 
 function M.init_user_templates(prompt_dir)
-	local user_templates_dir = prompt_dir .. "/user-templates"
-	local ensure_dir_res = aip.file.ensure_dir(user_templates_dir)
-	if type(ensure_dir_res) == "table" and ensure_dir_res.error then
-		return nil, ensure_dir_res.error
+	local legacy_dir = prompt_dir .. "/user-templates"
+	local archive_dir = prompt_dir .. "/deprecated-user-templates"
+	if aip.file.exists(legacy_dir) then
+		local archive_path = archive_dir
+		if aip.path.exists(archive_dir) then
+			archive_path = archive_dir .. "/user-templates-" .. aip.uuid.new_v4()
+		end
+		local move_res = aip.file.move(legacy_dir, archive_path, { overwrite = false })
+		if type(move_res) == "table" and move_res.error then
+			return nil, move_res.error
+		end
+	end
+	if aip.file.exists(archive_dir) then
+		local archive_readme_res = aip.file.ensure_exists(archive_dir .. "/README.md",
+			"# Deprecated User Templates\n\nThis directory is no longer used. Its files are preserved only in case they contain earlier customizations. Copy any customizations you want to keep into the sibling `templates-user/` directory using the matching template filenames. This directory can be deleted.\n")
+		if type(archive_readme_res) == "table" and archive_readme_res.error then
+			return nil, archive_readme_res.error
+		end
 	end
 
-	local template_files = aip.file.list(USER_TEMPLATES_DIR .. "/template-*")
+	for _, dir_name in ipairs({ "templates-default", "templates-user" }) do
+		local ensure_dir_res = aip.file.ensure_dir(prompt_dir .. "/" .. dir_name)
+		if type(ensure_dir_res) == "table" and ensure_dir_res.error then
+			return nil, ensure_dir_res.error
+		end
+	end
+
+	local template_files = aip.file.list(DEFAULT_TEMPLATES_DIR .. "/template-*")
+	if type(template_files) == "table" and template_files.error then
+		return nil, template_files.error
+	end
 	for _, template_file in ipairs(template_files) do
 		local dest_name = template_file.name:gsub("^template%-", "", 1)
 		if dest_name ~= template_file.name then
-			local dest_path = user_templates_dir .. "/" .. dest_name
-			if not aip.file.exists(dest_path) then
-				if aip.file.copy then
-					local copy_res = aip.file.copy(template_file.path, dest_path, { overwrite = false })
-					if type(copy_res) == "table" and copy_res.error then
-						return nil, copy_res.error
-					end
-				else
-					local content = aip.file.load(template_file.path).content
-					local save_res = aip.file.save(dest_path, content)
-					if type(save_res) == "table" and save_res.error then
-						return nil, save_res.error
-					end
+			local dest_path = prompt_dir .. "/templates-default/" .. dest_name
+			local sync_res
+			if aip.file.copy then
+				sync_res = aip.file.copy(template_file.path, dest_path, { overwrite = true })
+			else
+				local template = aip.file.load(template_file.path)
+				if type(template) == "table" and template.error then
+					return nil, template.error
 				end
+				sync_res = aip.file.save(dest_path, template.content)
+			end
+			if type(sync_res) == "table" and sync_res.error then
+				return nil, sync_res.error
 			end
 		end
 	end
