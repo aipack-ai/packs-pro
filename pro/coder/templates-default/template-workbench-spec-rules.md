@@ -109,6 +109,8 @@ If a diagram starts to need two kinds, split it into two diagrams.
 6. **Sequence**: startup, shutdown, or request order, only when order matters.
 
 - The System Overview answers "what runs, and what does it talk to?" before anything else.
+- The System Overview is one diagram. Do not split it into one tiny diagram per program; independent programs that share a store still belong in the same picture.
+- Programs connected only through a store do not imply that one launches the other. If they run independently, say so in the bullets instead of splitting the diagram.
 - Every later diagram must connect back to a box in the System Overview, by name.
 - Skip a step when it does not apply, but never move the System Overview down.
 - Detailed rules, schemas, and tables come after the diagrams.
@@ -126,8 +128,25 @@ If a diagram starts to need two kinds, split it into two diagrams.
 
 - Box labels are one or two words, the name used in the code or the spec.
 - No `<br/>`, no descriptions, no file lists, no flag lists inside boxes.
-- Edge labels are optional and at most one or two words, for example `|writes|`, `|drops|`.
 - Use the same name for a part in every diagram and in the bullets.
+
+### Edge labels
+
+Label every connection with what travels over it, chosen for the context of the diagram:
+
+- **Protocol or transport** between processes or services: `|HTTP|`, `|gRPC|`, `|WebSocket|`, `|Unix socket|`, `|stdin|`.
+- **Message or channel kind** between threads or workers: `|SPSC ring|`, `|mpsc|`, `|event bus|`, `|callback|`.
+- **Format or payload** for files, stores, and data flow: `|JSONL|`, `|SQLite|`, `|binary|`, `|Tick batch|`.
+- **Action**, only when none of the above fits: `|writes|`, `|reads|`, `|drops|`.
+
+Rules:
+
+- One to three words, plain text, no punctuation that needs quotes (no parentheses, colons, or pipes).
+- Pick the one fact the reader needs at that level. In the System Overview that is usually the protocol or format. In a zoomed flow it is usually the message kind or payload type.
+- Do not repeat the box names in the label (`simrec -->|simrec output| capture` adds nothing).
+- Use the same label for the same kind of connection across all diagrams.
+- Details about the connection (capacity, backpressure, retry, schema) go in the bullets, not on the edge.
+- If a connection has nothing meaningful to say, leave it unlabeled rather than inventing a label.
 
 ### Syntax style
 
@@ -135,6 +154,7 @@ Write Mermaid so the raw text is readable without rendering:
 
 - Use plain readable names as node IDs, for example `simulator --> dispatcher`.
 - One arrow per line.
+- Edge labels use the pipe form, for example `sim -->|SPSC ring| dispatch`.
 - Declare a node with brackets only when it needs a special shape or a label that is not a valid ID, and declare it once at the top:
   - `db[(name)]` for a database or file store
   - `lib_db[lib-db]` when the name has dashes, dots, or spaces
@@ -193,7 +213,12 @@ block-beta
 - Every box in the diagram gets exactly one bullet, in reading order.
 - The bullet starts with the box label in bold, then a colon, then the details: `- **dispatch**: wraps each batch once and fans it out.`
 - Put file paths, types, limits, and behaviors here.
-- Use sub-bullets only when one box needs more than one line of detail.
+- Keep the main bullet to one short line: the role, plus the path if there is one.
+- When a box holds several items (files, tables, fields, flags, message types), list them as sub-bullets, never as a comma-separated run in the main line:
+  - One item per sub-bullet, wrapped in backticks.
+  - Add a short note after the item when it helps: ``- `ticks.bin`: 40-byte records, no timestamps.``
+  - A single item stays inline in the main bullet.
+- Use sub-bullets also when one box needs more than one line of detail.
 - After the box bullets, add plain bullets for cross-cutting rules (ordering, failure, invariants).
 
 ### Example
@@ -205,12 +230,12 @@ block-beta
 
 ```mermaid
 flowchart LR
-  sim --> dispatch
-  dispatch --> rec_main
-  dispatch --> rec_sum
+  sim -->|SPSC ring| dispatch
+  dispatch -->|SPSC ring| rec_main
+  dispatch -->|SPSC ring| rec_sum
 ```
 
-- **sim**: reads input ticks and sends batches, paced by deadlines.
+- **sim**: reads input ticks and sends `Vec<Tick>` batches, paced by deadlines.
 - **dispatch**: fans each batch out, main first, then sum.
 - **rec_main**: writes the main recording.
 - **rec_sum**: writes the 2 Hz summary. Absent with `--no-sum`.
@@ -218,11 +243,42 @@ flowchart LR
 - A full main ring blocks dispatch. A full sum ring drops the batch.
 ````
 
+An overview-level example, with protocols and formats on the edges:
+
+````markdown
+### System Overview
+
+**Goal:** show the programs, the stores they share, and how they connect.
+
+```mermaid
+flowchart LR
+  dataset[(dataset)]
+  capture[(capture)]
+  mocker -->|binary + JSON| dataset
+  dataset -->|binary| simrec
+  simrec -->|SQLite| capture
+  capture -.->|HTTP JSON| report
+```
+
+- **mocker**: generates one dataset per run and exits.
+- **dataset**: `sandbox/mock-data/NAME/`
+  - `ticks.bin`: 40-byte tick records, no timestamps.
+  - `story.jsonl`: one maneuver segment per line.
+  - `manifest.json`: written last, marks the dataset complete.
+- **simrec**: replays one dataset and writes one capture folder.
+- **capture**: `sandbox/captured/NAME-SPEED/BACKEND/`
+  - recording: `capture-main.sqlite` or raw segment files.
+  - `capture-main-metrics.json`: published last.
+  - `capture-main-ostel.jsonl`: CPU samples.
+- **report**: static page that fetches metrics files over HTTP, read-only.
+````
+
 ### Before finishing a diagram, check
 
 - One concern, one diagram kind.
-- 6 boxes or fewer.
-- Every label is one or two words.
+- 6 boxes or fewer (stacks: 6 layers, 4 parts per layer).
+- Every box label is one or two words.
+- Every meaningful edge is labeled with a protocol, message kind, or format, in three words or fewer.
 - The raw Mermaid reads like a short list of connections.
 - Every box has a bold bullet underneath.
 
