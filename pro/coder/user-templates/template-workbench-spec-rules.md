@@ -57,6 +57,7 @@ Describe the how:
 - important data flow, control flow, or lifecycle details
 - the code-facing interfaces, contracts, or boundaries implementation should follow
 - use code blocks when appropriate to express concise pseudo types, interfaces, message shapes, or command surfaces when that is clearer than prose
+- use Mermaid diagrams for structure and flow, following `## Mermaid diagram rules`
 
 Use subsections only when they improve clarity.
 
@@ -72,12 +73,101 @@ Describe the why of the chosen design:
 
 This section should explain the design choices, not restate the intent.
 
+## Mermaid diagram rules
+
+Diagrams show shape only. Details always go in bullets under the diagram, never inside the boxes.
+
+### When to add a diagram
+
+- Add a diagram when the reader needs to see structure: parts, connections, direction, or nesting.
+- Do not add a diagram for a single part or a straight list of steps. Use a numbered list instead.
+- Put diagrams in `## Code Design`, one per subsection, each with its own heading.
+- Start each diagram subsection with a one-line `**Goal:**` stating what the diagram shows.
+
+### One concern per diagram
+
+Each diagram answers exactly one question. Pick one kind and do not mix kinds:
+
+- **Process flow**: what runs and who talks to whom (programs, threads, services, workers).
+- **Data flow**: what data moves and how it changes shape (file → record → batch → output).
+- **Data model**: tables, entities, and their relations. Use `erDiagram`.
+- **Sequence**: the order of messages over time (startup, shutdown, a request). Use `sequenceDiagram`, only when order matters.
+- **Structure**: hierarchy or dependencies (crates, modules, folders).
+
+If a diagram starts to need two kinds, split it into two diagrams.
+
+### Size limits
+
+- At most 6 boxes per diagram. If more are needed, split by concern or by level.
+- `flowchart LR` for chains of up to 4 or 5 boxes across.
+- `flowchart TD` for longer chains, trees, and dependency graphs.
+- Branches are fine and keep it compact, for example one box fanning out to two stacked boxes.
+- No `subgraph` unless the grouping is the point of the diagram, and then at most 2.
+- Leave out side parts that do not connect (for example a background sampler) and mention them in the bullets with "(not drawn)".
+
+### Labels
+
+- Box labels are one or two words, the name used in the code or the spec.
+- No `<br/>`, no descriptions, no file lists, no flag lists inside boxes.
+- Edge labels are optional and at most one or two words, for example `|writes|`, `|drops|`.
+- Use the same name for a part in every diagram and in the bullets.
+
+### Syntax style
+
+Write Mermaid so the raw text is readable without rendering:
+
+- Use plain readable names as node IDs, for example `simulator --> dispatcher`.
+- One arrow per line.
+- Declare a node with brackets only when it needs a special shape or a label that is not a valid ID, and declare it once at the top:
+  - `db[(name)]` for a database or file store
+  - `lib_db[lib-db]` when the name has dashes, dots, or spaces
+- After the declarations, use only bare IDs.
+- No quotes, no styling, no `classDef`, no colors, no icons.
+- Use `-.->` only for a weaker link, such as a read-only or optional dependency, and say so in the bullets.
+
+### Bullets under the diagram
+
+- Every box in the diagram gets exactly one bullet, in reading order.
+- The bullet starts with the box label in bold, then a colon, then the details: `- **dispatch**: wraps each batch once and fans it out.`
+- Put file paths, types, limits, and behaviors here.
+- Use sub-bullets only when one box needs more than one line of detail.
+- After the box bullets, add plain bullets for cross-cutting rules (ordering, failure, invariants).
+
+### Example
+
+````markdown
+### Replay Threads
+
+**Goal:** show the threads inside one replay process and who sends to whom.
+
+```mermaid
+flowchart LR
+  sim --> dispatch
+  dispatch --> rec_main
+  dispatch --> rec_sum
+```
+
+- **sim**: reads input ticks and sends batches, paced by deadlines.
+- **dispatch**: fans each batch out, main first, then sum.
+- **rec_main**: writes the main recording.
+- **rec_sum**: writes the 2 Hz summary. Absent with `--no-sum`.
+- **sampler** (not drawn): samples CPU on the side and never touches the rings.
+- A full main ring blocks dispatch. A full sum ring drops the batch.
+````
+
+### Before finishing a diagram, check
+
+- One concern, one diagram kind.
+- 6 boxes or fewer.
+- Every label is one or two words.
+- The raw Mermaid reads like a short list of connections.
+- Every box has a bold bullet underneath.
 
 ## Markdown formatting rules
 
 - Favor concise prose and bullets.
 - Use `-` for bullet points.
-- Use the tripple backtics for the code block, and not the `~~~`
+- Use triple backticks for code blocks, not `~~~`. When a code block must contain another code block, wrap the outer one in four backticks.
 - Leave exactly one empty line after headings.
 - Keep sections in a predictable order.
 - Use short content blocks and concrete wording.
@@ -111,4 +201,3 @@ A good spec should let a reader quickly answer:
 - Why was this design chosen?
 
 If those answers are not easy to find, revise the spec for clarity.
-
