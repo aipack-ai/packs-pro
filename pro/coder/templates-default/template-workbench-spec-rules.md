@@ -1,4 +1,3 @@
-
 # Rules & Skill for creating and following a code spec
 
 ## When to use this skill
@@ -57,6 +56,7 @@ Describe the how:
 - important data flow, control flow, or lifecycle details
 - the code-facing interfaces, contracts, or boundaries implementation should follow
 - use code blocks when appropriate to express concise pseudo types, interfaces, message shapes, or command surfaces when that is clearer than prose
+- start with a top-down System Overview of the key processes and components and how they talk to each other, then zoom in, following `### Diagram order`
 - use Mermaid diagrams for structure and flow, following `## Mermaid diagram rules`
 
 Use subsections only when they improve clarity.
@@ -82,7 +82,7 @@ Diagrams show shape only. Details always go in bullets under the diagram, never 
 - Add a diagram when the reader needs to see structure: parts, connections, direction, or nesting.
 - Do not add a diagram for a single part or a straight list of steps. Use a numbered list instead.
 - Put diagrams in `## Code Design`, one per subsection, each with its own heading.
-- Start each diagram subsection with a one-line `**Goal:**` stating what the diagram shows.
+- Start each diagram subsection with a one-line `**Goal:**` stating what the diagram shows. Do not mention these rules or box limits in it.
 
 ### One concern per diagram
 
@@ -92,13 +92,30 @@ Each diagram answers exactly one question. Pick one kind and do not mix kinds:
 - **Data flow**: what data moves and how it changes shape (file → record → batch → output).
 - **Data model**: tables, entities, and their relations. Use `erDiagram`.
 - **Sequence**: the order of messages over time (startup, shutdown, a request). Use `sequenceDiagram`, only when order matters.
-- **Structure**: hierarchy or dependencies (crates, modules, folders).
+- **Structure**: hierarchy (folders, nesting). Use `flowchart TD`.
+- **Dependencies**: what depends on what (crates, packages, modules, services). Use a layer stack, see `### Dependency diagrams`.
 
 If a diagram starts to need two kinds, split it into two diagrams.
 
+### Diagram order
+
+`## Code Design` reads top-down, from the whole project to the details. Diagrams appear in this order:
+
+1. **System Overview** (process flow, always first): the key processes and components and who talks to whom. One box per running program, service, or major component, plus the main stores they share. No crates, modules, or threads here.
+2. **Zoomed process flows**: one diagram per process that has internal parts worth showing (threads, workers, stages). Each zooms into one box from the overview, using the same name.
+3. **Data flow**: how the main data changes shape, only if it is not obvious from the process flows.
+4. **Data model**: tables and entities, when the scope stores data.
+5. **Dependency stack**: crates, packages, or modules, see `### Dependency diagrams`.
+6. **Sequence**: startup, shutdown, or request order, only when order matters.
+
+- The System Overview answers "what runs, and what does it talk to?" before anything else.
+- Every later diagram must connect back to a box in the System Overview, by name.
+- Skip a step when it does not apply, but never move the System Overview down.
+- Detailed rules, schemas, and tables come after the diagrams.
+
 ### Size limits
 
-- At most 6 boxes per diagram. If more are needed, split by concern or by level.
+- At most 6 boxes per flowchart. If more are needed, split by concern or by level. Dependency stacks follow their own limits in `### Dependency diagrams`.
 - `flowchart LR` for chains of up to 4 or 5 boxes across.
 - `flowchart TD` for longer chains, trees, and dependency graphs.
 - Branches are fine and keep it compact, for example one box fanning out to two stacked boxes.
@@ -124,6 +141,52 @@ Write Mermaid so the raw text is readable without rendering:
 - After the declarations, use only bare IDs.
 - No quotes, no styling, no `classDef`, no colors, no icons.
 - Use `-.->` only for a weaker link, such as a read-only or optional dependency, and say so in the bullets.
+
+### Dependency diagrams
+
+Use these rules whenever a diagram shows what depends on what: crates, packages, libraries, modules, services, or layers.
+
+- Draw dependencies as a **stack of layers**, not as a web of arrows.
+- Build the layers bottom-up:
+  - Bottom layer: parts with no internal dependencies.
+  - Each next layer: parts that depend only on layers below it.
+  - Parts in the same layer sit side by side.
+- Use `block-beta` with `columns N`, where N is the widest layer. A part alone in its layer spans the full width with `:N`.
+- The stack has no arrows. The rule is implied: a part may depend only on layers below it, never sideways or up.
+- Put the exact dependencies in the bullets, one bullet per part, top layer first: `- **name**: uses a, b, c.`
+- Mark foundation parts as `foundation, no internal deps`.
+- End the bullets with the layer rule, and list any exception explicitly.
+- If arrows are truly needed, use `flowchart TD` and draw only the nearest dependency. Drop every arrow already implied by a longer path (if A uses B and B uses C, do not draw A → C).
+- The 6-box limit does not apply to stacks. A stack is limited by shape instead: at most 6 layers and at most 4 parts per layer.
+- Always draw every part as its own box, by its real name. Never merge parts into a made-up group box like `role crates` or `helpers`.
+- Only if the stack exceeds 6 layers or 4 parts in a layer, split it into two stacks (for example libraries and apps), each with real part names.
+
+Example:
+
+````markdown
+### Library Dependencies
+
+**Goal:** show the dependency layers of the library crates.
+
+```mermaid
+block-beta
+  columns 2
+  app["app"] cli["cli"]
+  router["router"]:2
+  core["core"]:2
+  common["common"] asset["asset"]
+```
+
+- **app**: uses router, core, common.
+- **cli**: uses router, core, common, asset.
+- **router**: uses core, common.
+- **core**: uses common.
+- **common**: foundation, no internal deps.
+- **asset**: foundation, no internal deps, used only by cli.
+- A part may depend only on layers below it, never sideways or up.
+````
+
+`block-beta` requires quoted labels, so it is the one exception to the no-quotes rule.
 
 ### Bullets under the diagram
 
